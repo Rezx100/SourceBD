@@ -14,7 +14,6 @@ import { FeatureRow, HeroActions, HeroCentered } from "@/components/site/section
 export const RFQS_KEY = "product/rfqs";
 const P = PAGES[RFQS_KEY]!;
 const row = (n: string) => P.blocks.find((b) => b.n === n)!;
-const label = (b: { label: string }) => b.label;
 
 export function RfqsPage() {
   const [quotes, messages, many] = [row("01"), row("02"), row("03")];
@@ -31,14 +30,14 @@ export function RfqsPage() {
         </HeroCentered>
 
         <FeatureRow
-          label={label(quotes)}
+          label={quotes.label}
           headline={quotes.headline}
           lede={quotes.lede}
           tone="subtle"
           media={<VignetteQuotes stage="weave" />}
         />
-        {messages.shot ? <FeatureRow label={label(messages)} headline={messages.headline} lede={messages.lede} flip media={<Figure shot={messages.shot} still="weave" sizes="(min-width: 1440px) 720px, 100vw" />} /> : null}
-        {many.shot ? <FeatureRow label={label(many)} headline={many.headline} lede={many.lede} tone="subtle" media={<Figure shot={many.shot} still="weave" sizes="(min-width: 1440px) 720px, 100vw" />} /> : null}
+        {messages.shot ? <FeatureRow label={messages.label} headline={messages.headline} lede={messages.lede} flip media={<Figure shot={messages.shot} still="weave" sizes="(min-width: 1440px) 720px, 100vw" />} /> : null}
+        {many.shot ? <FeatureRow label={many.label} headline={many.headline} lede={many.lede} tone="subtle" media={<Figure shot={many.shot} still="weave" sizes="(min-width: 1440px) 720px, 100vw" />} /> : null}
       </div>
 
       <div data-tone="dark">

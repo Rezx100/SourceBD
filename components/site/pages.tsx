@@ -1,6 +1,6 @@
 // The four product pages and the two solutions pages (Paper `30 Marketing · Product` and `Solutions`): one template,
-// because Paper draws them as one: a label, a one-line promise, the search and the two calls to action, a real screen
-// of the product, then numbered sections that each say one thing and show the screen that proves it, and a close.
+// because Paper draws them as one: a label, a one-line promise, one way in (the search on the search page, Start free
+// elsewhere), the product, then sections that each say one thing and show what proves it, and a close.
 // Every screen is a real v4 capture (`public/site/*.png`, taken 3 Oct 2026); the RFQ and quote screens hold sample
 // figures and say so under the picture. Laid out in the home page's look (M1): a centred hero over the product on a
 // textile stage, then rows of text beside the screen that proves it.

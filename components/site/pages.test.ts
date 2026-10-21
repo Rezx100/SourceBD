@@ -140,15 +140,21 @@ describe("the product and solutions pages", () => {
   it("the compliance page lists six lists with who keeps them, and their entries and last full read from the live facts, never a date of its own (critique 22 Oct, S12)", () => {
     const out = page("product/compliance", LIST_FACTS);
     const t = text(out);
-    for (const w of ["UFLPA Entity List", "US Treasury, OFAC", "9,990", "8 Oct 2026", "UK Treasury, OFSI", "EU sanctions map", "16 Oct 2026"]) assert.ok(t.includes(w), w);
-    assert.match(t, /UFLPA Entity List US Department of Homeland Security 253 Read in part, no full read yet/);
+    // Inside the table: the page's own example lede also quotes a day.
+    const table = text(out.slice(out.indexOf("<table"), out.indexOf("</table>")));
+    for (const w of ["UFLPA Entity List", "US Treasury, OFAC 9,990 8 Oct 2026", "UK Treasury, OFSI 1,286 6 Oct 2026", "EU sanctions map", "US Department of Labor, ILAB 457 16 Oct 2026"]) assert.ok(table.includes(w), w);
+    assert.match(table, /UFLPA Entity List US Department of Homeland Security 253 Read in part, no full read yet/);
     assert.match(t, /Each list's entries and the day of its last full read, as the product holds them now\./);
     assert.equal((out.match(/<tbody[\s\S]*?<\/tbody>/)![0].match(/<tr /g) ?? []).length, 6);
     assert.doesNotMatch(t, /as of 3 Oct|3 Oct 2026/);
     // Not read: the names and keepers only, and no figure or day.
     const bare = text(page("product/compliance", NO_FACTS));
     assert.match(bare, /The lists we screen against, and who keeps them\./);
-    assert.doesNotMatch(bare, /Last full read|9,990|Read in part/);
+    assert.doesNotMatch(bare, /Last read|9,990|Read in part/);
+    // The lists' read failed while the other facts came back: the names alone, never six lists "not read".
+    const listsFailed = text(page("product/compliance", parseFacts({ suppliers_indexed: 10268 }, { sources: LIST_CODES.map((code) => ({ code, tier: "tier5_regulatory", records: 0, suppliers: 0, latest: null })) })));
+    assert.doesNotMatch(listsFailed, /Not read yet|Last read/);
+    assert.match(listsFailed, /The lists we screen against, and who keeps them\./);
   });
 
   it("certificates are never 'active': four states, each with a date", () => {

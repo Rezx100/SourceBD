@@ -15,15 +15,15 @@ import { ring } from "./ui";
 
 export type Chip = { key: string; title: string; href: string; count: number | null };
 
-/** Every template with its count from `counts`, or null where none was read: with no counts, the chips the first paint draws. */
 /** The searches the hero offers. */
 const HERO = SEARCH_TEMPLATES.slice(0, 5);
 
+/** The hero's five with their counts from `counts`, or null where none was read: with no counts, the chips the first paint draws. */
 export function chipsOf(counts: Record<string, number | null> = {}): Chip[] {
   return HERO.map((t) => ({ key: t.key, title: t.title, href: discoverHref(t.state), count: counts[t.key] ?? null }));
 }
 
-/** Every template with its count, or null for a count that was not read in time. Never throws. */
+/** The hero's five with their counts, or null for a count that was not read in time. Never throws. */
 export async function loadChips(): Promise<Chip[]> {
   return chipsOf(await readTemplateCounts(HERO).catch((): Record<string, number | null> => ({})));
 }

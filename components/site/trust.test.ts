@@ -141,7 +141,10 @@ describe("the About page", () => {
 
   it("says how often the registers are read and how to report a wrong fact, in the methodology page's words", () => {
     const t = text(about(parseFacts({ suppliers_indexed: 10268 }, { latest_read: "2026-10-19" })));
-    assert.match(t, /RSC is read every week\. Every day we re-open a batch of source pages to check the fact is still there\./);
+    // Every scheduled read is switched off (etl_schedules, read 22 Oct 2026), so no page claims a weekly or daily read.
+    assert.match(t, /There is no fixed schedule for re-reading the registers yet\. Every fact shows the day its source was last read\./);
+    assert.doesNotMatch(t, /every week|every day|daily/i);
+    assert.doesNotMatch(text(method()), /every week|every day|daily/i);
     assert.match(t, /The latest register read was 19 Oct 2026\./);
     assert.match(t, /Write to data@sourcebd\.net ?\. We read the source again\. The source wins\./);
     assert.doesNotMatch(text(about(NO_FACTS)), /latest register read/);

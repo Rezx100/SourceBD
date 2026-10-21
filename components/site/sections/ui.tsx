@@ -64,7 +64,7 @@ export function TextLink({ href, children, className }: { href: string; children
  * An inner page's one hero action (critique 22 Oct, S8): the green Start free with Book a demo as a text link, or, on
  * the search page alone (`search`), the search that runs on public Discover, its button drawn secondary.
  */
-export function HeroActions({ search = false, tryLine = "Try “knit dresses Gazipur” or “GOTS”", center = false }: { search?: boolean; tryLine?: string; center?: boolean }) {
+export function HeroActions({ search = false, center = false }: { search?: boolean; center?: boolean }) {
   if (!search) {
     return (
       <div className={cn("flex flex-wrap items-center gap-2.5", center && "justify-center")}>
@@ -96,7 +96,7 @@ export function HeroActions({ search = false, tryLine = "Try “knit dresses Gaz
             Search
           </button>
         </div>
-        <p className={cn("text-sm text-ink-subtle", center && "text-center")}>{tryLine}</p>
+        <p className={cn("text-sm text-ink-subtle", center && "text-center")}>Try “knit dresses Gazipur” or “GOTS”</p>
       </form>
     </div>
   );

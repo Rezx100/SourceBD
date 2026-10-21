@@ -46,8 +46,21 @@ function Hero({ label, h1, lede, children, actions = true, stage }: { label: str
 
 const countOf = (f: SiteFacts) => (f.suppliers !== null ? withCommas(f.suppliers) : null);
 
-/** The methodology page's words for how often the sources are read; About says the same. */
-const FRESH = "RSC is read every week. Every day we re-open a batch of source pages to check the fact is still there. The other registers have no fixed schedule yet.";
+/**
+ * How often the sources are read, as it is today: every scheduled read has been switched off since 6 Oct 2026
+ * (`etl_schedules.enabled` is false for every register, read 22 Oct), so no page claims a weekly or daily read.
+ * Methodology and About say the same.
+ */
+const FRESH = "There is no fixed schedule for re-reading the registers yet. Every fact shows the day its source was last read.";
+
+/** How to report a wrong fact, in one place: Methodology's corrections and About say the same. */
+function Correction() {
+  return (
+    <>
+      Write to <A href="mailto:data@sourcebd.net">data@sourcebd.net</A>. We read the source again. The source wins.
+    </>
+  );
+}
 
 // ---- Security ----------------------------------------------------------------------------------------------------
 
@@ -151,6 +164,31 @@ function sourceFigures(facts: SiteFacts, code: string): SourceFact | null {
   return facts.sources?.find((s) => s.code === code) ?? null;
 }
 
+/**
+ * A sanctions list's two cells, the same on Methodology and the compliance product page: its entries, and the day of
+ * its last full read with a mark when that was over 90 days ago, or "read in part" when no full read has finished.
+ */
+export function listCells(f: SourceFact | null, now: number): { entries: ReactNode; read: ReactNode } {
+  const stale = f?.latest ? now - Date.parse(f.latest) > NINETY_DAYS : false;
+  return {
+    entries: f && f.records > 0 ? withCommas(f.records) : <span className="text-ink-3">{f ? "Listed, no records yet" : "Not read yet"}</span>,
+    read:
+      f && f.records > 0 && f.latest ? (
+        <>
+          {readDay(f.latest)}
+          {stale ? <span className="font-medium text-ink"> · over 90 days ago</span> : null}
+        </>
+      ) : f && f.records > 0 ? (
+        "Read in part, no full read yet"
+      ) : (
+        "Not read yet"
+      ),
+  };
+}
+
+/** Whether the sanctions lists were read: `sanctions_lists_read()` can fail while the other facts do not, and then every list would wrongly say "not read". */
+export const listsRead = (facts: SiteFacts): boolean => (facts.sources ?? []).some((s) => s.tier === "tier5_regulatory" && s.records > 0);
+
 function TierTable({ tier, facts, now }: { tier: Tier; facts: SiteFacts; now: number }) {
   const read = facts.sources !== null;
   const regs = tier.key === "tier5_regulatory";
@@ -185,6 +223,7 @@ function TierTable({ tier, facts, now }: { tier: Tier; facts: SiteFacts; now: nu
               const f = sourceFigures(facts, s.code);
               const figure = f ? (regs ? f.records : f.suppliers) : null;
               const stale = f?.latest ? now - Date.parse(f.latest) > NINETY_DAYS : false;
+              const list = regs ? listCells(f, now) : null;
               return (
                 <tr key={s.code} className="align-top text-md">
                   <th scope="row" className="py-3 pr-4 font-semibold text-ink">
@@ -192,7 +231,12 @@ function TierTable({ tier, facts, now }: { tier: Tier; facts: SiteFacts; now: nu
                     {regs ? null : <span className="block text-sm font-normal text-ink-3">{s.full}</span>}
                   </th>
                   <td className="py-3 pr-4 text-ink-2">{regs ? s.full : s.gives}</td>
-                  {read ? (
+                  {read && list ? (
+                    <>
+                      <td className="py-3 pr-4 text-right tabular-nums text-ink">{list.entries}</td>
+                      <td className="py-3 text-ink-2">{list.read}</td>
+                    </>
+                  ) : read ? (
                     <>
                       <td className="py-3 pr-4 text-right tabular-nums text-ink">{f && f.records > 0 && figure !== null ? withCommas(figure) : <span className="text-ink-3">{f ? "Listed, no records yet" : "Not read yet"}</span>}</td>
                       <td className="py-3 text-ink-2">
@@ -201,8 +245,6 @@ function TierTable({ tier, facts, now }: { tier: Tier; facts: SiteFacts; now: nu
                             {readDay(f.latest)}
                             {stale ? <span className="font-medium text-ink"> · over 90 days ago</span> : null}
                           </>
-                        ) : regs && f && f.records > 0 ? (
-                          "Read in part, no full read yet"
                         ) : (
                           "Not read yet"
                         )}
@@ -270,7 +312,7 @@ export function Methodology({ facts, now = Date.now() }: { facts: SiteFacts; now
 
       <Section id="corrections" label="Corrections" headline="Spot a wrong fact? Tell us." className="scroll-mt-24">
         <p className="max-w-prose text-md text-ink-2">
-          Write to <A href="mailto:data@sourcebd.net">data@sourcebd.net</A>. We read the source again. The source wins.
+          <Correction />
         </p>
         <div>
           <ButtonLink href="mailto:data@sourcebd.net?subject=Correction" kind="secondary" size="lg" className="max-sm:h-input-touch">
@@ -465,7 +507,7 @@ export function About({ facts }: { facts: SiteFacts }) {
           <div className="flex flex-col gap-1 border-t border-ink pt-3">
             <dt className="text-lg font-semibold text-ink">A wrong fact</dt>
             <dd className="text-md text-ink-2">
-              Write to <A href="mailto:data@sourcebd.net">data@sourcebd.net</A>. We read the source again. The source wins.
+              <Correction />
             </dd>
           </div>
         </dl>

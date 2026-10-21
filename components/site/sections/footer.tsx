@@ -29,7 +29,7 @@ export function Footer({ facts, year }: { facts: SiteFacts; year: number }) {
                 <h2 className="text-base font-medium text-ink-strong">{status.title}</h2>
                 <p className="flex items-center gap-2 text-base text-ink-strong">
                   <span aria-hidden className="size-2 shrink-0 rounded-full bg-signal" />
-                  {lastRead ? <span>Last register read {lastRead}</span> : <span>Registers read daily</span>}
+                  {lastRead ? <span>Last register read {lastRead}</span> : <span>Every fact dated by its source</span>}
                 </p>
                 {line ? <p className="text-sm text-ink-subtle">{line}</p> : null}
                 {status.links.map((l) => (

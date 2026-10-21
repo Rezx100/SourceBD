@@ -26,5 +26,7 @@ Jashore 10, Habiganj 9, Sirajganj 8, Bogura 5, Rajshahi 5, Bagerhat 4, Faridpur 
 Rangpur 3, Dinajpur 2, Kurigram 2, Kushtia 2, Magura 2, Netrokona 2, Sylhet 2, and one each in Bandarban, Barishal,
 Brahmanbaria, Chandpur, Gaibandha, Gopalganj, Madaripur, Rajbari, Rangamati and Sherpur.
 
-What the script folds: the approved lexicon's spellings (Chittagong, CTG; Narayangonj, N.ganj), Savar and Ashulia into
-Dhaka, and the official new spellings (Comilla, Jessore, Bogra, Barisal, Narshingdi). Nothing else is merged.
+What the script folds: the approved lexicon's spellings (Chittagong, CTG, Dacca, every "-gonj", the Mymensingh
+variants, B.Baria, Chapai Nawabganj, Cox's Bazar), Savar and Ashulia into Dhaka, and the official new spellings
+(Comilla, Jessore, Bogra, Barisal, Narshingdi); "N/A" and "-" count as not on file. Nothing else is merged, so a
+sub-district filed as a district would show in the list above as its own name (none did on 21 Oct).
