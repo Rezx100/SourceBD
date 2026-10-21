@@ -5,6 +5,7 @@
 import { notFound } from "next/navigation";
 import type { ReactNode } from "react";
 import { PAGES, SitePage, siteMetadata } from "@/components/site/pages";
+import { COMPLIANCE_KEY, CompliancePage } from "@/components/site/product/compliance";
 import { RECORDS_KEY, RecordsPage } from "@/components/site/product/records";
 import { RFQS_KEY, RfqsPage } from "@/components/site/product/rfqs";
 import { SEARCH_KEY, SearchPage } from "@/components/site/product/search";
@@ -21,6 +22,7 @@ const REBUILT: Record<string, () => Promise<ReactNode>> = {
   [RECORDS_KEY]: async () => <RecordsPage cards={(await loadHomeRecords()).cards} />,
   [SEARCH_KEY]: async () => <SearchPage facts={await loadSiteFacts()} />,
   [RFQS_KEY]: async () => <RfqsPage />,
+  [COMPLIANCE_KEY]: async () => <CompliancePage />,
 };
 
 type Props = { params: Promise<{ slug: string }> };
