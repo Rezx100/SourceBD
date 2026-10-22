@@ -83,20 +83,30 @@ def legal_forms(base: str, seen: str | None) -> list[str]:
 
 
 def checked_in_production() -> set[str]:
-    """Every supplier with a row in volza_export_checks (the "not on Volza" ones too).
+    """Every supplier with a row in volza_export_checks (the "not on Volza" ones too) or volza_raw_results.
 
     22 Oct 2026: the raw folder went missing with the old worktree, and a plan built from files
     alone would have paid again for 457 suppliers. The table is what was loaded, so it is the floor.
     """
+    http = rest()
+    done = {r["supplier_id"] for r in _rest_all(http, "/volza_export_checks?select=supplier_id&order=supplier_id")}
+    # 0156: everything we paid for, loaded or not; until 0156 is applied the table is not there (404)
+    if http.get("/volza_raw_results", params={"select": "supplier_id", "limit": 0}).status_code != 404:
+        done |= {r["supplier_id"] for r in _rest_all(
+            http, "/volza_raw_results?select=supplier_id,results_file&order=results_file,supplier_id")}
+    return done
+
+
+def rest() -> httpx.Client:
+    """Production's REST API with the service key, from .env in the current folder."""
     from etl.core.config import settings
 
-    if not settings.supabase_url:  # .env is read from the current folder
+    if not settings.supabase_url:
         raise SystemExit("no Supabase address: run this from E:\\SourceBD so .env loads. "
                          "Without it every checked supplier would be paid for again.")
     key = settings.supabase_service_role_key
-    http = httpx.Client(base_url=f"{settings.supabase_url}/rest/v1", timeout=60,
+    return httpx.Client(base_url=f"{settings.supabase_url}/rest/v1", timeout=60,
                         headers={"apikey": key, "Authorization": f"Bearer {key}"})
-    return {r["supplier_id"] for r in _rest_all(http, "/volza_export_checks?select=supplier_id&order=supplier_id")}
 
 
 def plan() -> list[dict[str, Any]]:
