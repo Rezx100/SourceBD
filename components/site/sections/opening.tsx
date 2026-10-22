@@ -163,7 +163,7 @@ export function Opening({ suppliers, items = TOUR }: { suppliers: number | null;
       const O: Pt = [((DISPLAY[0][0] + DISPLAY[2][0]) / 2) * sw, ((DISPLAY[0][1] + DISPLAY[2][1]) / 2) * sh];
       // The push ends with the display as wide as the app stands on its own, so the app never has to move to leave it.
       const zoom = Math.min(MAX_ZOOM, W / ((DISPLAY[1][0] - DISPLAY[0][0]) * sw));
-      const t = span(p, 0.04, 0.5);
+      const t = span(p, 0.04, 0.46);
       const z = Math.exp(Math.log(zoom) * t);
       const T: Pt = [(vw / 2 - sx - O[0]) * t, (vh / 2 - sy - O[1]) * t];
       sc.style.transformOrigin = `${O[0]}px ${O[1]}px`;
@@ -174,9 +174,10 @@ export function Opening({ suppliers, items = TOUR }: { suppliers: number | null;
       const pinnedQ = DISPLAY.map(([x, y]): Pt => [sx + O[0] + z * (x * sw - O[0]) + T[0], sy + O[1] + z * (y * sh - O[1]) + T[1]]);
       const fill = rect((vw - W) / 2, (vh - H) / 2, W, H);
       const settled = rect(home[0], home[1], W, H);
-      // The laptop and the studio fall away; the app keeps its place, only its slight perspective easing out.
-      const gone = span(p, 0.52, 0.66);
-      const slide = span(p, 0.72, 0.9);
+      // The laptop holds as the hero for a moment, the app playing in it; then the laptop and the studio fall away
+      // while the app keeps its place, only its slight perspective easing out; only then does it slide aside.
+      const gone = span(p, 0.54, 0.68);
+      const slide = span(p, 0.74, 0.9);
       const q = slide > 0 ? mix(fill, settled, slide) : mix(pinnedQ, fill, gone);
       d.style.transform = quadTransform(W, H, q);
       d.style.borderRadius = `${14 * gone}px`;
@@ -192,7 +193,8 @@ export function Opening({ suppliers, items = TOUR }: { suppliers: number | null;
         copy.current.style.visibility = c >= 1 ? "hidden" : "";
       }
       if (edge.current) edge.current.style.opacity = String(slide);
-      const wds = span(p, 0.8, 0.96);
+      // The list comes in once the app has cleared its column, never under it.
+      const wds = span(p, 0.88, 0.98);
       if (words.current) {
         words.current.style.opacity = String(wds);
         words.current.style.transform = `translateY(${(1 - wds) * 20}px)`;
