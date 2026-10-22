@@ -14,7 +14,7 @@ import { ring } from "./ui";
 
 /** The tour's recordings, by name: what the address bar says and the one sentence a screen reader gets instead. */
 export const SCREENS = {
-  find: { url: "sourcebd.net/app", says: "The search: “knit GOTS” is typed, 606 suppliers are found, and Aboni Knitwear is pointed at with its place, workers, certificates and exports." },
+  find: { url: "sourcebd.net/app", says: "The search: “knit GOTS” is typed, 606 suppliers are found and listed one by one, and Aboni Knitwear is pointed at with its place, workers, certificates and exports." },
   check: { url: "sourcebd.net/app/discover?q=knit+GOTS", says: "Aboni Knitwear's record opens beside the results, at its exports, its checks and its two RSC buildings." },
   watch: { url: "sourcebd.net/app/compliance", says: "The Compliance hub: ten certificates across the saved list, expired first, each with Ask for the renewal." },
   ask: { url: "sourcebd.net/app/saved", says: "Three saved suppliers ticked, then Send one RFQ opens the request beside the list." },
@@ -22,15 +22,22 @@ export const SCREENS = {
 
 export type ScreenName = keyof typeof SCREENS;
 
+/**
+ * A screen whose picture is composed in code from real captures rather than the raw recording: the search is the
+ * opening's dashboard (the founder's review of 22 Oct 14:18: it must come alive, as mercury.com's does), a HyperFrames
+ * composition of frames of the same recording (PROVENANCE.md).
+ */
+const COMPOSED: Partial<Record<ScreenName, string>> = { find: "clip-find" };
+
 /** The file a screen plays from (`/site/home/<file>.webm|mp4`, its first frame `<file>.webp`). */
-export const screenFile = (name: ScreenName): string => `app-${name}`;
+export const screenFile = (name: ScreenName): string => COMPOSED[name] ?? `app-${name}`;
 
 /**
  * The ledger of app moments (founder's video 3: "do not repeat any dashboard image"): every video the home page plays,
  * by file, and the one moment of the app it shows. `sections/page.test.ts` fails when two sections show one moment.
  */
 export const LEDGER: Record<string, string> = {
-  "app-find": "search: knit GOTS typed, the results",
+  "clip-find": "search: knit GOTS typed, the results",
   "app-check": "a record opened beside the results",
   "app-ask": "saved list: three ticked, the request opens",
   "app-watch": "compliance hub: certificates that need attention",

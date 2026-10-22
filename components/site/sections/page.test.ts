@@ -123,8 +123,13 @@ describe("the home page", () => {
     assert.doesNotMatch(tour, /aria-label="Common searches"|\/app\/discover\?/);
     for (const w of ["Find", "Check", "Ask", "Watch"]) assert.match(t, new RegExp(`\\b${w}\\b`));
     assert.match(out, /href="\/product\/search"[^>]*>See how/);
-    // The tour's window holds the four recordings, each starting from its first frame.
-    for (const n of ["find", "check", "ask", "watch"]) assert.match(tour, new RegExp(`poster="/site/home/app-${n}\\.webp"`), n);
+    // The tour's window holds the four screens, each starting from its first frame: the search composed from the
+    // recording's frames (the opening's dashboard, his review of 22 Oct 14:18), the other three the raw recordings.
+    // eslint-disable-next-line @typescript-eslint/no-require-imports -- loaded after the test build exists.
+    const { screenFile } = require("@/components/site/sections/browser") as typeof import("@/components/site/sections/browser");
+    assert.equal(screenFile("find"), "clip-find");
+    for (const n of ["find", "check", "ask", "watch"] as const) assert.match(tour, new RegExp(`poster="/site/home/${screenFile(n)}\\.webp"`), n);
+    assert.doesNotMatch(out, /app-find\./, "the raw search recording is gone from the page");
     assert.doesNotMatch(out, /<video[^>]*autoplay/i, "nothing plays until it is on screen");
   });
 

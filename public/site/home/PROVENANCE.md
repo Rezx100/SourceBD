@@ -42,10 +42,27 @@ submitted: the RFQ walk stops when the request opens, with nothing typed in it. 
 
 | Recording | What it shows | Files |
 | -- | -- | -- |
-| `find` | “knit GOTS” typed on the search page, the 606 results, Aboni Knitwear pointed at | `app-find.mp4` · `app-find.webm` · `app-find.webp` |
+| `find` | “knit GOTS” typed on the search page, the 606 results, Aboni Knitwear pointed at. **Not shipped raw**: the opening's dashboard is composed from its frames (below) | the master only |
 | `check` | Aboni Knitwear opened beside the results, then its certificates and checks | `app-check.mp4` · `app-check.webm` · `app-check.webp` |
 | `watch` | The Compliance hub: ten certificates that need attention across the saved list | `app-watch.mp4` · `app-watch.webm` · `app-watch.webp` |
 | `ask` | Three saved suppliers ticked, then the request opening beside the list | `app-ask.mp4` · `app-ask.webm` · `app-ask.webp` |
+
+## The opening's dashboard (the tour's Find), composed, 22 Oct 2026
+
+The founder's review of 22 Oct 14:18: the dashboard in the opening must come alive, as mercury.com's does, and in
+HyperFrames (the local HTML compositions rendered to video, `npx skills add heygen-com/hyperframes`). `clip-find` is a
+HyperFrames composition (`.impeccable/preview/home-clips/hf-find/`, `build-find.cjs` writes it; HyperFrames 0.8.185
+rendered it frame by frame in Chrome at 2880 × 1800, 30 fps; ffmpeg encoded the frames as the other clips). Every
+pixel of the app is cut from four frames of the `find` recording's 4K master (0 s, the landing; 5.4 s, the field
+focused with “knit GOTS” typed; 7.4 s and 12.5 s, the results, Aboni Knitwear's row plain and in its hover state),
+each scaled to 2880 × 1800 with lanczos once and laid at 1:1, so nothing is resampled twice. The recorder's drawn
+pointer was painted out of flat colour where it stood (white page, the row's hover grey); no other pixel of the app
+was touched, and no AI model touched any. What the composition draws itself: the page's white, the field's caret, the
+glass lift's hairline and shadow on the pointed-at row, the pointer and its click ring.
+
+| Clip | What it shows | Composed from | Files |
+| -- | -- | -- | -- |
+| `find` | The search landing, complete; the pointer takes the field, “knit GOTS” is typed a letter at a time (the typed field's own pixels uncovered), Search is clicked; the landing's panels leave into a soft blur as the field rises into the bar; the chip row, the table's head, its eleven rows one after another and its foot arrive; the pointer finds Aboni Knitwear, whose row takes its hover and lifts, then its Open control. 10.6 s, so the next recording (the record opening beside the results) starts where this ends | the `find` master at 0, 5.4, 7.4 and 12.5 s, signed in | `clip-find.mp4` · `clip-find.webm` · `clip-find.webp` |
 
 ## Animations of the real app (the sections), 22 Oct 2026
 

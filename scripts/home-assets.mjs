@@ -46,9 +46,11 @@ for (const [name, widths] of SRC === "-" ? [] : Object.entries(STILLS)) {
 // captures, frame by frame, by the kit in .impeccable/preview/home-clips (PROVENANCE.md, "Animations of the real app").
 // The tour's screens: each recording (`<name>.mp4`, a 4K master: 1440 × 900 drawn at 8/3, 3840 × 2400) ships silent at
 // 2880 × 1800 as VP9 and H.264, with its first frame as the poster (`<name>.webp`, 2880 × 1800), so the window is
-// never empty before it plays and stays sharp when the home page's opening zooms it to the whole screen.
+// never empty before it plays and stays sharp when the home page's opening zooms it to the whole screen. The search
+// (`find.mp4`) is not shipped raw: the opening's dashboard is composed from its frames (`clip-find`, by the kit's
+// hf-find project; PROVENANCE.md, "The opening's dashboard").
 if (REC && existsSync(REC)) {
-  for (const file of readdirSync(REC).filter((f) => ["find.mp4", "check.mp4", "ask.mp4", "watch.mp4"].includes(f))) {
+  for (const file of readdirSync(REC).filter((f) => ["check.mp4", "ask.mp4", "watch.mp4"].includes(f))) {
     const name = file.replace(/\.mp4$/, "");
     const src = join(REC, file);
     const base = join(OUT, `app-${name}`);

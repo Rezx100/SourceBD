@@ -148,7 +148,7 @@ export function Opening({ suppliers, items = TOUR }: { suppliers: number | null;
   // The app has reached its place beside the list: only then does it play.
   const [settled, setSettled] = useState(false);
   const { active, setActive, next } = useTour(items.length, items, section);
-  const first = items[0]?.screen ? screenFile(items[0].screen) : "app-find";
+  const first = screenFile(items[0]?.screen ?? "find");
 
   useEffect(() => {
     const wide = matchMedia("(min-width: 1024px)");
