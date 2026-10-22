@@ -289,7 +289,7 @@ describe("the search page in the home's frame (M4, handoff-mercury-m4-onward.md 
     assert.equal((out.match(/aria-label="Pause demo"/g) ?? []).length, 6);
   });
 
-  it("the ground runs paper, dark, paper, dark: the rows, the carousel and cross-sell, the FAQ, the close", () => {
+  it("the ground runs paper, dark, paper, dark: the rows, the three steps and cross-sell, the FAQ, the close", () => {
     const out = page(SEARCH_KEY);
     assert.match(out, /^(?:<link [^>]*>)*<main data-tone="paper" class="[^"]*bg-\[rgb\(var\(--mk-ground-paper\)\)\]/);
     const tones = [...out.matchAll(/data-tone="(photo|dark|paper)"/g)].map((m) => m[1]).slice(1);
@@ -372,7 +372,7 @@ describe("the RFQs page in the home's frame (M4, handoff-mercury-m4-onward.md §
 });
 
 describe("the solutions pages in the home's frame (M4, handoff-mercury-m4-onward.md §4.2)", () => {
-  it("sourcing: the Ask playing in the hero, a pinned tour of Find, Check and Ask, the three rows with their demos, the outcome, three products, the close", () => {
+  it("sourcing: the Ask playing in the hero, a pinned tour of Find, Check and Ask, the three rows with their demos, three products, the close with the outcome as its line", () => {
     const out = page(SOURCING_KEY);
     assert.match(out, /<h1[^>]*>From search to RFQ in one sitting\.<\/h1>/);
     assert.match(out.slice(0, out.indexOf("<h2")), /Three suppliers ticked from the results and one example RFQ/);
@@ -397,7 +397,7 @@ describe("the solutions pages in the home's frame (M4, handoff-mercury-m4-onward
     assert.match(t, /Free during beta\. No card needed\./);
   });
 
-  it("compliance teams: the Watch playing in the hero, a pinned tour of Check, Watch and Screen (the checks with the one maroon example), four rows with their demos, the outcome, three products, the close", () => {
+  it("compliance teams: the Watch playing in the hero, a pinned tour of Check, Watch and Screen (the checks with the one maroon example), four rows with their demos, three products, the close with the outcome as its line", () => {
     const out = page(COMPLIANCE_TEAMS_KEY);
     assert.match(out, /<h1[^>]*>Show where every fact came from\.<\/h1>/);
     assert.match(out.slice(0, out.indexOf("<h2")), /saved suppliers checked against the UFLPA Entity List/);

@@ -22,9 +22,9 @@ export function HairlineGrid({ id, title, lede, items, tone = "paper", center = 
             <li
               key={it.title}
               style={{ transitionDelay: `${i * 60}ms` }}
-              className="flex flex-col gap-1.5 border-b border-line py-5 transition duration-reveal ease-reveal motion-reduce:transition-none group-data-[reveal=wait]/reveal:translate-y-4 group-data-[reveal=wait]/reveal:opacity-0 lg:flex-row lg:items-baseline lg:gap-8"
+              className="flex flex-col gap-1.5 border-b border-line py-5 transition-[opacity,transform] duration-reveal ease-reveal motion-reduce:transition-none group-data-[reveal=wait]/reveal:translate-y-4 group-data-[reveal=wait]/reveal:opacity-0 xl:flex-row xl:items-baseline xl:gap-8"
             >
-              <h3 className="text-site-title font-medium text-ink-strong lg:w-[240px] lg:shrink-0">{it.title}</h3>
+              <h3 className="text-site-title font-medium text-ink-strong xl:w-[200px] xl:shrink-0">{it.title}</h3>
               <p className="text-site-body text-ink-muted">{it.body}</p>
             </li>
           ))}

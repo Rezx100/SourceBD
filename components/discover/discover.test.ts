@@ -85,6 +85,9 @@ describe("the public Discover page: the start", () => {
     assert.match(text(out), /Discover Find a verified factory\. Search by certification, product, or district\./);
     assert.match(out, /aria-labelledby="discover-common"/);
     assert.match(text(out), /Common searches/);
+    // The nine searches the app offers, each a link, named once by the heading.
+    for (const t of ["GOTS-certified knitwear", "Lingerie and intimates", "Buying houses in Dhaka"]) assert.ok(text(out).includes(t), t);
+    assert.doesNotMatch(out, /aria-label="Common searches"/);
     assert.match(out, /<button type="submit" class="[^"]*border-line-strong[^"]*"/, "Search is the secondary button");
     assert.match(out, /<form[^>]*method="get"[^>]*action="\/discover"[^>]*role="search"|<form[^>]*role="search"[^>]*>/);
     assert.match(out, /<form[^>]*action="\/discover"/);

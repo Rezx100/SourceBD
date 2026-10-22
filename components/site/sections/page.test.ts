@@ -184,10 +184,11 @@ describe("the Mercury home page", () => {
     assert.doesNotMatch(grid, /<svg|rounded-card/);
   });
 
-  it("the strip of registers draws each mark at 32 px with no box, loaded with the page (critique 22 Oct)", () => {
+  it("the strip of registers loads its nine framed marks with the page, never as empty boxes (critique 22 Oct; the frame is the logos lock's)", () => {
     const strip = /<section aria-labelledby="home-marks"[\s\S]*?<\/section>/.exec(page())![0];
-    assert.equal((strip.match(/<img [^>]*width="32"/g) ?? []).length, 9);
-    assert.doesNotMatch(strip, /loading="lazy"|rounded-md border/);
+    assert.equal((strip.match(/<img /g) ?? []).length, 9);
+    assert.doesNotMatch(strip, /loading="lazy"/);
+    assert.doesNotMatch(strip, /font-mono/);
   });
 
   it("one material system: the backdrops are cotton and weave only, and the night is drawn, never photographed (critique 22 Oct, S3)", () => {

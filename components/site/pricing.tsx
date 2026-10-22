@@ -98,7 +98,7 @@ export function Pricing({ facts }: { facts: SiteFacts }) {
         <HeroActions center />
       </HeroCentered>
 
-      <section aria-labelledby="plans" className="pb-14 md:pb-section">
+      <section aria-labelledby="plans">
         <div className={cn(measure, "flex flex-col gap-8")}>
           <div className="flex flex-col gap-2">
             <h2 id="plans" className="text-site-body font-medium text-ink-subtle">

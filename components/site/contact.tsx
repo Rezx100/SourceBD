@@ -26,18 +26,16 @@ export function Contact() {
           <Lede>Tell us what you buy. Your message goes to the founder by email.</Lede>
         </div>
         <div className={cn(measure, "grid gap-16 lg:grid-cols-[1fr_minmax(0,520px)] max-lg:gap-10")}>
-          <div className="flex flex-col gap-10">
-            <div className="flex flex-col gap-4">
-              <p className="text-site-body font-medium text-ink-subtle">What we can cover</p>
-              <dl className="flex flex-col gap-5">
-                {COVER.map(([t, b]) => (
-                  <div key={t} className="flex flex-col gap-1 border-t border-ink pt-3">
-                    <dt className="text-lg font-semibold text-ink">{t}</dt>
-                    <dd className="text-md text-ink-2">{b}</dd>
-                  </div>
-                ))}
-              </dl>
-            </div>
+          <div className="flex flex-col gap-4">
+            <p className="text-site-body font-medium text-ink-subtle">What we can cover</p>
+            <dl className="flex flex-col gap-5">
+              {COVER.map(([t, b]) => (
+                <div key={t} className="flex flex-col gap-1 border-t border-ink pt-3">
+                  <dt className="text-lg font-semibold text-ink">{t}</dt>
+                  <dd className="text-md text-ink-2">{b}</dd>
+                </div>
+              ))}
+            </dl>
           </div>
           <div className="flex flex-col gap-6 rounded-lg border border-line bg-surface p-8 max-sm:p-5">
             <h2 className="text-xl font-semibold text-ink">Your message</h2>

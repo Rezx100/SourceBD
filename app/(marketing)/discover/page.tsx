@@ -40,7 +40,7 @@ const BASE_PATH = "/discover";
 
 /** The nine common searches with their counts, from the cached read the home's chips and the app's search share: no new read per visit. Streamed, so the page never waits on it. */
 async function CommonSearches() {
-  return <Chips chips={await loadChips(SEARCH_TEMPLATES)} />;
+  return <Chips chips={await loadChips(SEARCH_TEMPLATES)} labelledBy="discover-common" />;
 }
 
 type SearchParams = Record<string, string | string[] | undefined>;
@@ -164,20 +164,6 @@ export default async function PublicDiscoverPage({
       </section>
 
       {/* Before anything is typed, the page is the common searches, not an empty field over the footer (critique 22 Oct). */}
-      {hasSearchQuery ? null : (
-        <section aria-labelledby="discover-common" className="pb-24 max-md:pb-14">
-          <div className={cn(measure, "flex flex-col items-center gap-5")}>
-            <h2 id="discover-common" className="text-site-body font-medium text-ink-subtle">
-              Common searches
-            </h2>
-            <Suspense fallback={<Chips chips={chipsOf({}, SEARCH_TEMPLATES)} pending />}>
-              <CommonSearches />
-            </Suspense>
-            <p className="max-w-[560px] text-center text-sm text-ink-subtle">Each opens in the app, where its filters run: sign in first, at no cost.</p>
-          </div>
-        </section>
-      )}
-
       {hasSearchQuery ? (
         <section className="pb-24 max-md:pb-14">
           <div className={cn(measure, "flex flex-col gap-6")}>
@@ -197,7 +183,19 @@ export default async function PublicDiscoverPage({
             />
           </div>
         </section>
-      ) : null}
+      ) : (
+        <section aria-labelledby="discover-common" className="pb-24 max-md:pb-14">
+          <div className={cn(measure, "flex flex-col items-center gap-5")}>
+            <h2 id="discover-common" className="text-site-body font-medium text-ink-subtle">
+              Common searches
+            </h2>
+            <Suspense fallback={<Chips chips={chipsOf({}, SEARCH_TEMPLATES)} pending labelledBy="discover-common" />}>
+              <CommonSearches />
+            </Suspense>
+            <p className="max-w-[560px] text-center text-sm text-ink-subtle">Each opens in the app, where its filters run: sign in first, at no cost.</p>
+          </div>
+        </section>
+      )}
     </main>
   );
 }

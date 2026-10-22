@@ -28,7 +28,8 @@ describe("the pricing page", () => {
     assert.doesNotMatch(t, /[$£€]\s?\d|per month|\/mo\b/i);
     assert.equal((page().match(/<article/g) ?? []).length, 2);
     // The plans follow the hero at once, on the product window's surface (critique 22 Oct).
-    assert.match(page(), /<section aria-labelledby="plans" class="pb-14 md:pb-section">/);
+    assert.match(page(), /<section [^>]*class="pt-10 md:pt-24 pb-10 md:pb-16"/, "the hero's own padding gives way to the page's");
+    assert.match(page(), /<section aria-labelledby="plans">/, "no band of its own: the compare's padding is the one gap");
     assert.equal((page().match(/<article class="[^"]*border-line-strong[^"]*shadow-sm/g) ?? []).length, 2);
   });
 

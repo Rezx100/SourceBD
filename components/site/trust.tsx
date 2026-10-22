@@ -459,6 +459,20 @@ const WHO: [string, ReactNode][] = [
   ["Where the data lives", <>In our Supabase database, AWS region us-west-1, in the United States. See <A href="/security">Security</A>.</>],
 ];
 
+/** About's lists of facts: a term over its words, a rule above each, two across from 768. */
+function FactList({ items }: { items: readonly (readonly [string, ReactNode])[] }) {
+  return (
+    <dl className="grid max-w-[900px] gap-x-10 gap-y-6 md:grid-cols-2">
+      {items.map(([t, b]) => (
+        <div key={t} className="flex flex-col gap-1 border-t border-ink pt-3">
+          <dt className="text-lg font-semibold text-ink">{t}</dt>
+          <dd className="text-md text-ink-2">{b}</dd>
+        </div>
+      ))}
+    </dl>
+  );
+}
+
 const HOW: [string, string][] = [
   ["Every fact shows its source.", "In words, with the date we read it."],
   ["Nothing fake.", "Real records or nothing. Examples are labelled as samples."],
@@ -493,45 +507,22 @@ export function About({ facts }: { facts: SiteFacts }) {
       </section>
 
       <Section label="How we work" headline="Receipts, not opinions.">
-        <dl className="grid max-w-[900px] gap-x-10 gap-y-6 md:grid-cols-2">
-          {HOW.map(([t, b]) => (
-            <div key={t} className="flex flex-col gap-1 border-t border-ink pt-3">
-              <dt className="text-lg font-semibold text-ink">{t}</dt>
-              <dd className="text-md text-ink-2">{b}</dd>
-            </div>
-          ))}
-        </dl>
+        <FactList items={HOW} />
         <A href="/methodology">Read the methodology</A>
       </Section>
 
       {/* How often the registers are read and how to report a wrong fact, in the methodology page's own words (critique 22 Oct, About). */}
       <Section label="Freshness and corrections" headline="How often we read, and how to correct us." tone="subtle">
-        <dl className="grid max-w-[900px] gap-x-10 gap-y-6 md:grid-cols-2">
-          <div className="flex flex-col gap-1 border-t border-ink pt-3">
-            <dt className="text-lg font-semibold text-ink">How often we read</dt>
-            <dd className="text-md text-ink-2">
-              {FRESH}
-              {latest ? ` The latest register read was ${latest}.` : ""}
-            </dd>
-          </div>
-          <div className="flex flex-col gap-1 border-t border-ink pt-3">
-            <dt className="text-lg font-semibold text-ink">A wrong fact</dt>
-            <dd className="text-md text-ink-2">
-              <Correction />
-            </dd>
-          </div>
-        </dl>
+        <FactList
+          items={[
+            ["How often we read", `${FRESH}${latest ? ` The latest register read was ${latest}.` : ""}`],
+            ["A wrong fact", <Correction key="correction" />],
+          ]}
+        />
       </Section>
 
       <Section label="The company" headline="Who runs SourceBD.">
-        <dl className="grid max-w-[900px] gap-x-10 gap-y-6 md:grid-cols-2">
-          {WHO.map(([t, b]) => (
-            <div key={t} className="flex flex-col gap-1 border-t border-ink pt-3">
-              <dt className="text-lg font-semibold text-ink">{t}</dt>
-              <dd className="text-md text-ink-2">{b}</dd>
-            </div>
-          ))}
-        </dl>
+        <FactList items={WHO} />
       </Section>
 
       {/* The closing band every other page ends on (critique 22 Oct). */}
