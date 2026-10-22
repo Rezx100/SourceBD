@@ -452,7 +452,7 @@ describe("the compliance page in the home's frame (M4, handoff-mercury-m4-onward
     const tones = [...out.matchAll(/data-tone="(photo|dark|paper)"/g)].map((m) => m[1]);
     assert.deepEqual(tones, ["paper", "dark"]);
     const pauses = (out.match(/aria-label="Pause (?:demo|video)"/g) ?? []).length;
-    assert.equal(pauses, 8, "the hero, the four moments' playing search, the expiry vignette, the UFLPA checks, the statement and the cross-sell's three loops");
+    assert.equal(pauses, 11, "the hero, the four moments' four clips, the expiry vignette, the UFLPA checks, the statement and the cross-sell's three loops");
     assert.ok(!text(out).includes(CAPTION), "no dated caption under the product");
     const cross = out.slice(out.indexOf('aria-labelledby="site-cross-sell"'), out.indexOf('aria-labelledby="site-close"'));
     for (const href of ["/product/search", "/product/records", "/product/rfqs"]) assert.match(cross, new RegExp(`href="${href}"`), href);

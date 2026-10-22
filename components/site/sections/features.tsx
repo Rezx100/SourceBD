@@ -1,30 +1,31 @@
 "use client";
 
-// The two ways the marketing site shows features (the founder's second video, 22 Oct 2026, after mercury.com's), both
-// on the product panel (`.mk-panel`, app/ds.css) with a part of the real app standing on it:
+// The two ways the home page shows features (the founder's videos of 22 Oct 2026, after mercury.com's). Each feature is
+// a part of the real app composed in code from a real capture (`Clip`, sections/browser.tsx), filling its panel or its
+// card edge to edge, with no hairline round it.
 //
-// `FeatureTour`: a short list on the left, the open item's picture on the right. It never holds the scroll: an item
-// opens when it is clicked, or after `motion.featureMs` while the section is in view, its line filling as it waits.
-// The panel keeps one shape and every picture sits in it stacked, crossfading, so nothing moves.
+// `FeatureTour`: a short list on the left, the open item's clip on the right. It never holds the scroll: an item opens
+// when it is clicked, or when the one before it has played to its end, its line filling as it plays. The panel keeps
+// one shape and the clips sit in it stacked, crossfading, so nothing moves.
 //
-// `FeatureGrid`: a heading and four cards, two by two; the first card's picture plays, the other three stand still.
+// `FeatureGrid`: a heading and four cards, two by two, each card its clip's frame; the four start two seconds apart so
+// only one moves strongly at a time.
 
 import { useRef, useState, type ReactNode } from "react";
-import { stillPreferred, useInView } from "@/components/site/motion";
 import { cn } from "@/lib/utils";
+import { Clip } from "./browser";
 import { H2, TextLink, measure, ring } from "./ui";
 
-export type Feature = { title: string; body: string; link?: readonly [string, string]; picture: ReactNode };
+/** A feature: its words, and its clip (`clip-<clip>`) with the sentence a screen reader gets in its place. */
+export type Feature = { title: string; body: string; link?: readonly [string, string]; clip: string; says: string };
 
-export function FeatureTour({ id, heading, items, flip = false }: { id: string; heading: ReactNode; items: readonly Feature[]; flip?: boolean }) {
-  const box = useRef<HTMLDivElement>(null);
-  const seen = useInView(box, 0.4);
+export function FeatureTour({ id, heading, items }: { id: string; heading: ReactNode; items: readonly Feature[] }) {
   const [on, setOn] = useState(0);
-  const moving = seen && !stillPreferred();
+  const bar = useRef<HTMLSpanElement>(null);
   return (
     <section aria-labelledby={id} className="py-16 md:py-section">
-      <div ref={box} className={cn(measure, "grid items-center gap-10 lg:grid-cols-12 lg:gap-16")}>
-        <div className={cn("flex flex-col gap-8 lg:col-span-4", flip && "lg:order-2")}>
+      <div className={cn(measure, "grid items-center gap-10 lg:grid-cols-12 lg:gap-16")}>
+        <div className="flex flex-col gap-8 lg:col-span-4">
           <H2 id={id} className="md:text-site-h3">
             {heading}
           </H2>
@@ -50,21 +51,17 @@ export function FeatureTour({ id, heading, items, flip = false }: { id: string; 
                       </TextLink>
                     ) : null}
                   </div>
-                  {/* The open item's wait, filling; at its end the next item opens. Keyed so it starts again each time. */}
-                  {open && moving ? (
-                    <span key={on} aria-hidden onAnimationEnd={() => setOn((n) => (n + 1) % items.length)} className="absolute -bottom-px left-0 h-0.5 w-full origin-left animate-progress bg-ink-strong" />
-                  ) : null}
+                  {/* How far the open item's clip has played; at its end the next item opens. */}
+                  {open ? <span ref={bar} aria-hidden className="absolute -bottom-px left-0 h-0.5 w-full origin-left scale-x-0 bg-ink-strong" /> : null}
                 </li>
               );
             })}
           </ol>
         </div>
-        <div className={cn("min-w-0 lg:col-span-8", flip && "lg:order-1")}>
-          <div className="mk-panel relative aspect-[4/3] overflow-hidden rounded-card md:aspect-[16/11] md:rounded-stage">
+        <div className="min-w-0 lg:col-span-8">
+          <div className="relative aspect-[4/3] overflow-hidden rounded-card bg-sunken shadow-window md:aspect-[16/11] md:rounded-stage">
             {items.map((f, i) => (
-              <div key={f.title} aria-hidden={i !== on} className={cn("absolute inset-0 flex items-center justify-center p-5 transition-opacity duration-slow ease-out motion-reduce:transition-none md:p-12", i === on ? "opacity-100" : "pointer-events-none opacity-0")}>
-                <div className="w-full max-w-[680px]">{f.picture}</div>
-              </div>
+              <Clip key={f.title} name={f.clip} says={f.says} active={i === on} onEnded={() => setOn((n) => (n + 1) % items.length)} bar={i === on ? bar : undefined} />
             ))}
           </div>
         </div>
@@ -81,10 +78,10 @@ export function FeatureGrid({ id, heading, items }: { id: string; heading: React
           {heading}
         </H2>
         <ul className="grid gap-x-8 gap-y-12 md:grid-cols-2">
-          {items.map((f) => (
+          {items.map((f, i) => (
             <li key={f.title} className="flex flex-col gap-5">
-              <div className="mk-panel flex aspect-[4/3] items-center justify-center overflow-hidden rounded-card p-6 md:aspect-[16/11] md:p-10">
-                <div className="w-full">{f.picture}</div>
+              <div className="relative aspect-square overflow-hidden rounded-card bg-sunken shadow-window md:rounded-stage">
+                <Clip name={f.clip} says={f.says} delay={i * 2000} />
               </div>
               <div className="flex flex-col gap-1.5 md:pr-12">
                 <h3 className="text-site-title font-medium text-ink-strong">{f.title}</h3>

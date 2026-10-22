@@ -159,11 +159,11 @@ export function FeatureRow({ label, headline, lede, children, media, flip = fals
  * laptop the home page zooms into (`hero`), its swatches and its sample rail behind the product's windows, a northern
  * European port at night, the studio at dusk for the close, and the factory floor for the suppliers' section.
  */
-export type StillName = "hero" | "swatches" | "rail" | "port" | "dusk" | "mill" | "loupe" | "lock" | "seal";
+export type StillName = "hero" | "laptop" | "swatches" | "rail" | "port" | "dusk" | "mill";
 
-/** The widths each photograph ships at, and its height at the first of them. */
-const WIDTHS: Record<StillName, number[]> = { hero: [1600, 2560, 3840], swatches: [1600, 2560], rail: [1600, 2560], port: [1600, 2560], dusk: [1600, 2560], mill: [1600, 2560], loupe: [1200], lock: [1200], seal: [1200] };
-const HEIGHT: Partial<Record<StillName, number>> = { dusk: 687, loupe: 896, lock: 896, seal: 896 };
+/** The widths each photograph ships at, and its height at the first of them. `laptop` is the hero's laptop, upscaled, for its zoom. */
+const WIDTHS: Record<StillName, number[]> = { hero: [1600, 2560, 3840], laptop: [2560, 4096], swatches: [1600, 2560], rail: [1600, 2560], port: [1600, 2560], dusk: [1600, 2560], mill: [1600, 2560] };
+const HEIGHT: Partial<Record<StillName, number>> = { laptop: 1440, dusk: 687 };
 
 const set = (name: StillName, ext: "avif" | "webp") => WIDTHS[name].map((w) => `/site/home/${name}-${w}.${ext} ${w}w`).join(", ");
 

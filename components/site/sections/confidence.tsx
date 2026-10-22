@@ -1,17 +1,20 @@
-// 12 · Buy with confidence (the founder's videos of 22 Oct 2026: the tabs shifted the layout, the panels were text
-// heavy and the frames said nothing; his second video pointed at mercury.com's three security cards). The night
-// ground under a photograph of a northern European port, then three cards, each an object on the night ground and two
-// lines: the sanctions warning, the forced-labour checks, the locked contacts. The data line closes the section.
-// The words are what the Security and Compliance pages say (`components/site/trust.tsx`, `pages.tsx`).
+// 12 · Buy with confidence (the founder's videos of 22 Oct 2026: no tabs that shift the layout, and in video 3 the
+// container, loupe and padlock photographs "look irrelevant"). The night ground under a photograph of a northern
+// European port, then three cards, each the real app doing what its words say, composed in code from captures
+// (PROVENANCE.md): a record's sanctions lists with the day each was read (no supplier on the site is sanctioned
+// today, so no sanctioned record exists to show), the UFLPA checks across the saved list, a record's contact details
+// locked. The data line closes the section. The words are what the Security and Compliance
+// pages say (`components/site/trust.tsx`, `pages.tsx`).
 
 import { cn } from "@/lib/utils";
+import { Clip } from "./browser";
 import { HomeIcon } from "./icons";
-import { Still, TextLink, measure, type StillName } from "./ui";
+import { Still, TextLink, measure } from "./ui";
 
-export const CARDS: { still: StillName; title: string; body: string }[] = [
-  { still: "seal", title: "A sanctioned supplier is marked everywhere.", body: "A maroon warning on the list, in the record and on the full page, and Send RFQ is refused." },
-  { still: "loupe", title: "Forced-labour lists, checked for you.", body: "Every saved supplier against the UFLPA Entity List. Entries added since our last read are said to be unchecked." },
-  { still: "lock", title: "Contacts stay locked until they are given.", body: "Contact details open only when the supplier or a register provides them. Locked is a state, not a blur." },
+export const CARDS: { clip: string; says: string; title: string; body: string }[] = [
+  { clip: "sanctions", says: "A record's sanctions panel: not listed, read for every supplier, with the day each list was read: US Treasury (OFAC) 8 Oct, US Labor (ILAB) 16 Oct, European Union 6 Oct, UK (OFSI) 6 Oct.", title: "Every supplier, checked against sanctions lists.", body: "US, EU and UK lists, each with the day we read it. A supplier on one is marked maroon everywhere and Send RFQ is refused." },
+  { clip: "uflpa", says: "The Compliance hub's UFLPA checks on the saved list: none on the UFLPA Entity List, none with a possible Xinjiang link, no link found for 18 suppliers.", title: "Forced-labour lists, checked for you.", body: "Every saved supplier against the UFLPA Entity List. Entries added since our last read are said to be unchecked." },
+  { clip: "locked", says: "A public record's contact panel: the contact details are locked, with Sign up to contact.", title: "Contacts stay locked until they are given.", body: "Contact details open only when the supplier or a register provides them. Locked is a state, not a blur." },
 ];
 
 export function Confidence() {
@@ -29,10 +32,10 @@ export function Confidence() {
           </div>
         </div>
         <ul className="grid gap-6 md:grid-cols-3 md:gap-8">
-          {CARDS.map((c) => (
-            <li key={c.title} className="flex flex-col overflow-hidden rounded-card bg-surface ring-1 ring-ink/10">
+          {CARDS.map((c, i) => (
+            <li key={c.title} className="flex flex-col overflow-hidden rounded-card bg-surface">
               <div className="relative aspect-[4/3]">
-                <Still name={c.still} sizes="(min-width: 768px) 420px, 100vw" />
+                <Clip name={c.clip} says={c.says} delay={i * 1500} />
               </div>
               <div className="flex flex-col gap-2 p-6 md:p-7">
                 <h3 className="text-site-title font-medium text-ink">{c.title}</h3>

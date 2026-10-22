@@ -145,8 +145,8 @@ import { ring } from "./sections/ui";
  * The frame a product demo plays in. `children` draws one step's state; elements the cursor visits carry
  * `data-cursor="<name>"`. The demo itself is `aria-hidden`: `description` says in one sentence what it shows, and the
  * real copy sits beside it. The window keeps the product's light ground on any page tone; `frame` puts it in its
- * browser window and hands it the pause control, which is always there (WCAG 2.2.2), pressed while the demo is
- * stopped. No caption: the founder's video of 22 Oct asked for no small text under the product. When the scene starts
+ * browser window and hands it the pause control, which is always there for the keyboard (WCAG 2.2.2) and pressed
+ * while the demo is stopped, though not drawn until it has focus. No caption: the founder's video of 22 Oct asked for no small text under the product. When the scene starts
  * again, its last step fades away over the first.
  */
 export function DemoStage<S extends CursorState>({ steps, description, className, frame, windowClass, children }: {
@@ -199,14 +199,18 @@ export function DemoStage<S extends CursorState>({ steps, description, className
       {frame ? (
         frame(win, { paused, toggle })
       ) : (
-        <div className="relative">
+        // A click on the demo pauses it; the button is drawn only when the keyboard reaches it (founder's video 3).
+        <div className="relative" onClick={toggle}>
           {win}
           <button
             type="button"
             aria-label="Pause demo"
             aria-pressed={paused}
-            onClick={toggle}
-            className={cn("absolute bottom-3 left-3 flex size-9 items-center justify-center rounded-full bg-ink/70 text-surface hover:bg-ink/85", ring)}
+            onClick={(e) => {
+              e.stopPropagation();
+              toggle();
+            }}
+            className={cn("absolute bottom-3 left-3 flex size-9 items-center justify-center rounded-full bg-ink/70 text-surface opacity-0 focus-visible:opacity-100", ring)}
           >
             {paused ? <Play size={14} weight="fill" aria-hidden /> : <Pause size={14} weight="fill" aria-hidden />}
           </button>

@@ -1,30 +1,52 @@
 "use client";
 
 // The product as a buyer sees it (the founder's videos, 22 Oct 2026): the real app, recorded from the admin account
-// at 1440 × 900 on a 2× screen (`scripts/home-assets.mjs`, public/site/home/PROVENANCE.md), inside a desktop browser's
-// window. The window has one shape everywhere, 16:10 with its bar inside, so nothing on a page moves when what plays in
-// it changes; the bar is one SVG drawn to the window's width, so it reads the same at 300 px and at 1200. A recording
-// plays only while it is on screen, from its first frame as a poster; reduced motion and Save-Data keep the poster.
+// at 1440 × 900 (`scripts/home-assets.mjs`, public/site/home/PROVENANCE.md), and the parts of it the sections show,
+// composed in code from real captures (`Clip`). A video plays only while it is on screen, from its first frame as a
+// poster; reduced motion and Save-Data keep the poster. There is no visible pause button (founder's video 3): a click
+// or a tap on a playing picture pauses it, and its pause button appears when the keyboard reaches it (WCAG 2.2.2).
 
 import { Pause, Play } from "@phosphor-icons/react";
-import { useEffect, useLayoutEffect, useRef, useState, type ReactNode, type RefObject } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type MouseEvent, type ReactNode, type RefObject } from "react";
 import { stillPreferred, useInView } from "@/components/site/motion";
 import { cn } from "@/lib/utils";
 import { ring } from "./ui";
 
-/** The recordings, by name: what the address bar says and the one sentence a screen reader gets instead of the video. */
+/** The tour's recordings, by name: what the address bar says and the one sentence a screen reader gets instead. */
 export const SCREENS = {
   find: { url: "sourcebd.net/app", says: "The search: “knit GOTS” is typed, 606 suppliers are found, and Aboni Knitwear is pointed at with its place, workers, certificates and exports." },
   check: { url: "sourcebd.net/app/discover?q=knit+GOTS", says: "Aboni Knitwear's record opens beside the results, at its exports, its checks and its two RSC buildings." },
-  record: { url: "sourcebd.net/app/suppliers/aboni-knitwear", says: "Aboni Knitwear's full record, read from the top: exports, key facts, memberships, the brands it ships to, and its markets." },
   watch: { url: "sourcebd.net/app/compliance", says: "The Compliance hub: ten certificates across the saved list, expired first, each with Ask for the renewal." },
-  saved: { url: "sourcebd.net/app/saved", says: "The saved list of eighteen suppliers; three are ticked and Send one RFQ appears." },
   ask: { url: "sourcebd.net/app/saved", says: "Three saved suppliers ticked, then Send one RFQ opens the request beside the list." },
 } as const;
 
 export type ScreenName = keyof typeof SCREENS;
 
-const src = (name: ScreenName, ext: "webm" | "mp4" | "webp") => `/site/home/app-${name}.${ext}`;
+/**
+ * The ledger of app moments (founder's video 3: "do not repeat any dashboard image"): every video the home page plays,
+ * by file, and the one moment of the app it shows. `sections/page.test.ts` fails when two sections show one moment.
+ */
+export const LEDGER: Record<string, string> = {
+  "app-find": "search: knit GOTS typed, the results",
+  "app-check": "a record opened beside the results",
+  "app-ask": "saved list: three ticked, the request opens",
+  "app-watch": "compliance hub: certificates that need attention",
+  "clip-filters": "search: the Certificates menu, ticks narrowing the list",
+  "clip-buyers": "record: Buyers",
+  "clip-shipments": "record: markets and latest shipments",
+  "clip-certificates": "record: Certificates",
+  "clip-record": "record: header and export figures",
+  "clip-real-mondol": "public page: Mondol Fabrics",
+  "clip-real-aboni": "public page: Aboni Knitwear",
+  "clip-real-liberty": "public page: Liberty Knitwear",
+  "clip-keyfacts": "record: Key facts",
+  "clip-memberships": "record: Memberships",
+  "clip-safety": "record: Safety (RSC)",
+  "clip-sources": "record: Sources",
+  "clip-sanctions": "record: sanctions lists",
+  "clip-uflpa": "compliance hub: UFLPA checks",
+  "clip-locked": "public page: contact details locked",
+};
 
 /** The window's bar: three lights, the address in its field, a hairline under it. 1440 × 52 in the bar's own units. */
 function Bar({ url }: { url: string }) {
@@ -45,12 +67,12 @@ function Bar({ url }: { url: string }) {
 }
 
 /**
- * A browser window: the bar, then 1440 × 848 of page (the recordings are 1440 × 900; their last 52 px, empty canvas,
- * fall under the window's edge). Light inside whatever the ground around it. `children` fill the page area.
+ * A browser window: the bar, then 1440 × 848 of page. Light inside whatever the ground around it; one soft shadow and
+ * no hairline round it (founder's video 3). `children` fill the page area.
  */
 export function BrowserFrame({ url, children, className }: { url: string; children: ReactNode; className?: string }) {
   return (
-    <div data-ground="day" className={cn("relative isolate overflow-hidden rounded-frame bg-surface shadow-window ring-1 ring-ink/10", className)}>
+    <div data-ground="day" className={cn("relative isolate overflow-hidden rounded-frame bg-surface shadow-window", className)}>
       <Bar url={url} />
       <div className="relative aspect-[1440/848] overflow-hidden bg-canvas">{children}</div>
     </div>
@@ -79,40 +101,42 @@ function usePlayback(video: RefObject<HTMLVideoElement | null>, on: boolean, bar
 }
 
 /**
- * One recording filling its window's page. `active` says it is the one showing (a tour stacks several and crossfades
- * between them, so the window is never empty); `onEnded` lets the tour move on, and the video loops without it.
- * `playing` is the visitor's pause; `bar` is the open item's progress line.
+ * A video of the site (`/site/home/<file>.webm|mp4`, its first frame `<file>.webp` as the poster), filling its parent.
+ * `active` says it is the one showing (a list stacks several and crossfades, so the place is never empty); `onEnded`
+ * lets the list move on, and it loops without it. `delay` holds its start (ms) the first time it comes into view, so a
+ * grid of them does not move all at once. `playing` is the visitor's pause; `bar` the open item's progress line.
  */
-export function AppVideo({ name, active = true, playing = true, eager = false, onEnded, bar }: { name: ScreenName; active?: boolean; playing?: boolean; eager?: boolean; onEnded?: () => void; bar?: RefObject<HTMLElement | null> }) {
+export function Video({ file, active = true, playing = true, eager = false, delay = 0, onEnded, bar, className }: { file: string; active?: boolean; playing?: boolean; eager?: boolean; delay?: number; onEnded?: () => void; bar?: RefObject<HTMLElement | null>; className?: string }) {
   const box = useRef<HTMLDivElement>(null);
   const video = useRef<HTMLVideoElement>(null);
   const seen = useInView(box, 0.3);
   const [still, setStill] = useState(true);
+  const [held, setHeld] = useState(delay > 0);
   useEffect(() => setStill(stillPreferred()), []);
-  // A tour's item starts from its beginning each time it opens.
+  useEffect(() => {
+    if (!held || !seen) return;
+    const t = window.setTimeout(() => setHeld(false), delay);
+    return () => window.clearTimeout(t);
+  }, [held, seen, delay]);
+  // An item of a list starts from its beginning each time it opens.
   useEffect(() => {
     if (active && video.current) video.current.currentTime = 0;
   }, [active]);
-  usePlayback(video, active && seen && playing && !still, active ? bar : undefined);
+  usePlayback(video, active && seen && playing && !still && !held, active ? bar : undefined);
+  const src = `/site/home/${file}`;
   return (
-    <div ref={box} className={cn("absolute inset-0 transition-opacity duration-slow ease-out motion-reduce:transition-none", active ? "opacity-100" : "opacity-0")}>
-      <video
-        ref={video}
-        aria-hidden
-        tabIndex={-1}
-        muted
-        playsInline
-        loop={!onEnded}
-        preload={eager ? "auto" : "none"}
-        poster={src(name, "webp")}
-        onEnded={onEnded}
-        className="size-full object-cover object-top"
-      >
-        <source src={src(name, "webm")} type="video/webm" />
-        <source src={src(name, "mp4")} type="video/mp4" />
+    <div ref={box} className={cn("absolute inset-0 transition-opacity duration-slow ease-out motion-reduce:transition-none", active ? "opacity-100" : "opacity-0", className)}>
+      <video ref={video} aria-hidden tabIndex={-1} muted playsInline loop={!onEnded} preload={eager ? "auto" : "none"} poster={`${src}.webp`} onEnded={onEnded} className="size-full object-cover object-top">
+        <source src={`${src}.webm`} type="video/webm" />
+        <source src={`${src}.mp4`} type="video/mp4" />
       </video>
     </div>
   );
+}
+
+/** One of the tour's recordings of the real app (`app-<name>`). */
+export function AppVideo({ name, ...rest }: { name: ScreenName } & Omit<Parameters<typeof Video>[0], "file">) {
+  return <Video file={`app-${name}`} {...rest} />;
 }
 
 /**
@@ -140,60 +164,45 @@ export function FitPage({ children, width = 1040 }: { children: ReactNode; width
   );
 }
 
-/** The window's own pause button (WCAG 2.2.2), on the page's lower left corner, out of the recording's way. */
+/**
+ * The pause control of anything that plays (WCAG 2.2.2). Not drawn until the keyboard reaches it (founder's video 3:
+ * no pause or play button on the marketing site); a pointer pauses by clicking the picture itself (`pauseOnClick`).
+ */
 export function PauseButton({ paused, onToggle, label = "Pause video" }: { paused: boolean; onToggle: () => void; label?: string }) {
   return (
     <button
       type="button"
       aria-label={label}
       aria-pressed={paused}
-      onClick={onToggle}
-      className={cn("absolute bottom-3 left-3 z-raised flex size-9 items-center justify-center rounded-full bg-ink/70 text-surface backdrop-blur-sm hover:bg-ink/85 md:bottom-4 md:left-4", ring)}
+      onClick={(e) => {
+        e.stopPropagation();
+        onToggle();
+      }}
+      className={cn("absolute bottom-3 left-3 z-raised flex size-9 items-center justify-center rounded-full bg-ink/70 text-surface opacity-0 backdrop-blur-sm focus-visible:opacity-100 md:bottom-4 md:left-4", ring)}
     >
       {paused ? <Play size={14} weight="fill" aria-hidden /> : <Pause size={14} weight="fill" aria-hidden />}
     </button>
   );
 }
 
+/** A click handler for a playing picture: a click pauses it or plays it again, unless it landed on a link. */
+export const pauseOnClick = (toggle: () => void) => (e: MouseEvent) => {
+  if (!(e.target as HTMLElement).closest("a")) toggle();
+};
+
 /**
- * Parts of the app cut from the recordings (`scripts/home-assets.mjs` CROPS, public/site/home/crop-<name>.webp at 2×):
- * one value point alone, as a card. The sizes here are the cuts' own, in the page's 1440 × 900 units.
+ * A part of the real app composed in code from a real capture and played (`clip-<name>`, PROVENANCE.md): it fills its
+ * parent, which is its card or its panel, edge to edge (founder's video 3: "full card, not like this size"). `says` is
+ * the sentence a screen reader gets in its place.
  */
-const CUTS = { exports: [872, 226], memberships: [872, 228], buyers: [872, 318], shipments: [872, 420], attention: [810, 510], uflpa: [352, 216] } as const;
-
-export type CutName = keyof typeof CUTS;
-
-export function Cut({ name, className }: { name: CutName; className?: string }) {
-  const [w, h] = CUTS[name];
-  return (
-    // eslint-disable-next-line @next/next/no-img-element -- pre-cut at 2× in public/site/home (PROVENANCE.md), no optimizer pass
-    <img src={`/site/home/crop-${name}.webp`} alt="" width={w} height={h} loading="lazy" decoding="async" className={cn("block h-auto w-full rounded-frame bg-surface shadow-window ring-1 ring-ink/10", className)} />
-  );
-}
-
-/** A part of a recording, playing: the box `[x, y, w, h]` of the 1440 × 900 page, with its own pause button. */
-export function LiveCut({ name, box: [x, y, w, h], className }: { name: ScreenName; box: readonly [number, number, number, number]; className?: string }) {
+export function Clip({ name, says, active = true, delay, onEnded, bar, className }: { name: string; says: string; active?: boolean; delay?: number; onEnded?: () => void; bar?: RefObject<HTMLElement | null>; className?: string }) {
   const [paused, setPaused] = useState(false);
+  const toggle = () => setPaused((p) => !p);
   return (
-    <div data-ground="day" className={cn("relative overflow-hidden rounded-frame bg-surface shadow-window ring-1 ring-ink/10", className)} style={{ aspectRatio: `${w} / ${h}` }}>
-      <div className="absolute aspect-[1440/900]" style={{ width: `${(1440 / w) * 100}%`, left: `${(-x / w) * 100}%`, top: `${(-y / h) * 100}%` }}>
-        <AppVideo name={name} playing={!paused} />
-      </div>
-      <PauseButton paused={paused} onToggle={() => setPaused((p) => !p)} />
-    </div>
-  );
-}
-
-/** A recording in its window, with its pause button and its sentence for a screen reader. */
-export function Screen({ name, className, eager = false }: { name: ScreenName; className?: string; eager?: boolean }) {
-  const [paused, setPaused] = useState(false);
-  return (
-    <figure className={className}>
-      <figcaption className="sr-only">{SCREENS[name].says}</figcaption>
-      <BrowserFrame url={SCREENS[name].url}>
-        <AppVideo name={name} eager={eager} playing={!paused} />
-        <PauseButton paused={paused} onToggle={() => setPaused((p) => !p)} />
-      </BrowserFrame>
+    <figure className={cn("absolute inset-0 m-0 transition-opacity duration-slow ease-out motion-reduce:transition-none", active ? "opacity-100" : "pointer-events-none opacity-0", className)} onClick={pauseOnClick(toggle)}>
+      <figcaption className="sr-only">{says}</figcaption>
+      <Video file={`clip-${name}`} active={active} playing={!paused} delay={delay} onEnded={onEnded} bar={bar} />
+      {active ? <PauseButton paused={paused} onToggle={toggle} /> : null}
     </figure>
   );
 }

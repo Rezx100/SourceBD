@@ -70,13 +70,15 @@ describe("the home page", () => {
     assert.doesNotMatch(t, /undefined|null|NaN/);
   });
 
-  it("draws the sections in order: none removed, each redesigned", () => {
-    const t = text(page());
+  it("draws the sections in order: only the registers strip removed (founder's video 3), the rest redesigned", () => {
+    const out = page();
+    const t = text(out);
+    assert.doesNotMatch(t, /Every fact comes from a register you already trust/);
+    assert.doesNotMatch(out, /aria-labelledby="home-marks"/);
     const order = [
       "Bangladesh sourcing, on the record.",
       "Everything you do to vet a factory.",
       "Factories on SourceBD already make for brands like these.",
-      "Every fact comes from a register you already trust.",
       "Vetting used to be a chase.",
       "Inside one record.",
       "Four moments from a day's sourcing.",
@@ -116,14 +118,38 @@ describe("the home page", () => {
     assert.doesNotMatch(out, /<video[^>]*autoplay/i, "nothing plays until it is on screen");
   });
 
-  it("every picture of the product is a browser window or a part of the real app, each recording with its pause button, and nothing is captioned under it", () => {
+  it("every picture of the product is the real app playing, with no pause button drawn, no hairline round it and nothing captioned under it (founder's video 3)", () => {
     const out = page();
-    assert.ok((out.match(/<svg viewBox="0 0 1440 52"/g) ?? []).length >= 3, "browser bars");
-    const videos = (out.match(/<video /g) ?? []).length;
-    assert.ok(videos >= 7);
-    assert.ok((out.match(/aria-label="Pause video"/g) ?? []).length >= 4);
+    const videos = out.match(/<video [^>]*>/g) ?? [];
+    assert.ok(videos.length >= 15, `${videos.length} videos`);
+    for (const v of videos) assert.match(v, /poster="\/site\/home\/(?:app|clip)-[a-z-]+\.webp"/, v);
+    // Each playing picture keeps its pause control for the keyboard (WCAG 2.2.2), drawn only when focused: the tour's,
+    // the showcase's open clip, the record's, the four moments' and the three confidence cards'.
+    const pauses = out.match(/<button type="button" aria-label="Pause video"[^>]*>/g) ?? [];
+    assert.ok(pauses.length >= 10, `${pauses.length} pause controls`);
+    for (const b of pauses) assert.match(b, /\bopacity-0\b[^"]*\bfocus-visible:opacity-100\b/, b);
+    assert.doesNotMatch(out, /ring-ink\/10/, "no hairline round a picture of the app");
+    assert.doesNotMatch(out, /\/site\/home\/crop-/, "no still cut of a recording is left");
     assert.doesNotMatch(text(out), /Real records as read|Example company, not a real supplier/);
-    for (const c of ["buyers", "attention", "exports", "memberships", "uflpa", "shipments"]) assert.match(out, new RegExp(`/site/home/crop-${c}\\.webp`), c);
+  });
+
+  it("shows each moment of the app once: no two sections play the same one (the ledger, founder's video 3)", () => {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports -- loaded after the test build exists.
+    const { LEDGER } = require("@/components/site/sections/browser") as typeof import("@/components/site/sections/browser");
+    const out = page();
+    const starts = [...out.matchAll(/<section [^>]*aria-labelledby="([^"]+)"/g)].map((m) => ({ at: m.index, id: m[1]! }));
+    const where = new Map<string, Set<string>>();
+    for (const m of out.matchAll(/poster="\/site\/home\/((?:app|clip)-[a-z-]+)\.webp"/g)) {
+      const file = m[1]!;
+      const moment = LEDGER[file];
+      assert.ok(moment, `${file} is not in the ledger`);
+      const section = starts.filter((s) => s.at < m.index).pop()?.id ?? "(none)";
+      if (!where.has(moment)) where.set(moment, new Set());
+      where.get(moment)!.add(section);
+    }
+    assert.ok(where.size >= 15, `${where.size} moments`);
+    for (const [moment, sections] of where) assert.equal(sections.size, 1, `"${moment}" is shown in ${[...sections].join(" and ")}`);
+    assert.equal(new Set(Object.values(LEDGER)).size, Object.keys(LEDGER).length, "two files of the ledger show one moment");
   });
 
   it("the grounds are fixed: the main landmark fades nothing and only the night sections say so, with no second skip anchor", () => {
@@ -142,13 +168,6 @@ describe("the home page", () => {
     for (const b of ["H&M", "Inditex", "Next", "Walmart", "M&S", "Tesco", "ASOS"]) assert.ok(strip.includes(`>${b}<`), b);
     assert.doesNotMatch(strip, /Primark|Target|Zara/, "a brand with no published list and no customs record is not named");
     assert.equal((strip.match(/aria-hidden="true"/g) ?? []).length, 1, "the drift's second copy is hidden from screen readers");
-  });
-
-  it("frames only the marks the logos lock allows, at full strength with the code under each, loaded with the page", () => {
-    const strip = /<section aria-labelledby="home-marks"[\s\S]*?<\/section>/.exec(page())![0];
-    for (const c of ["EPB", "RSC", "BGMEA", "BKMEA", "BTMA", "BGAPMEA", "GOTS", "OEKO-TEX", "WRAP"]) assert.match(strip, new RegExp(`>${c}</span>`), c);
-    assert.equal((strip.match(/<img /g) ?? []).length, 9);
-    assert.doesNotMatch(strip, /loading="lazy"|opacity-0|bepza|dife/i);
   });
 
   it("the ladder is the methodology page's tiers, source for source (audit P2, 14 Oct 2026)", () => {
@@ -173,7 +192,7 @@ describe("the home page", () => {
     for (const img of out.match(/<img [^>]*>/g) ?? []) if (/\/site\/home\//.test(img)) assert.match(img, /alt=""/, img);
     assert.doesNotMatch(out, /\/site\/home\/screen-|\/site\/[a-z-]+\.png|hero-cotton|weave-|hero-loop/);
     const stills = new Set([...out.matchAll(/\/site\/home\/([a-z]+)-(?:1200|1600)\.(?:avif|webp)/g)].map((m) => m[1]));
-    for (const s of stills) assert.ok(["hero", "swatches", "rail", "port", "dusk", "mill", "loupe", "lock", "seal"].includes(s!), s);
+    for (const s of stills) assert.ok(["hero", "swatches", "rail", "port", "dusk", "mill"].includes(s!), s);
     for (const s of ["hero", "swatches", "port", "dusk", "mill"]) assert.ok(stills.has(s), s);
   });
 
@@ -286,11 +305,13 @@ describe("the live sections", () => {
     assert.match(none, /Inside one record\./, "the recorded record still stands");
   });
 
-  it("Buy with confidence: three cards and the data line, no tabs that shift the page", () => {
+  it("Buy with confidence: three cards, each the real app (no stand-in photograph), and the data line, no tabs that shift the page", () => {
     const out = live();
     assert.equal((out.match(/role="tab"/g) ?? []).length, 0);
-    for (const s of ["A sanctioned supplier is marked everywhere.", "Forced-labour lists, checked for you.", "Contacts stay locked until they are given."]) assert.match(text(out), new RegExp(s));
-    for (const s of ["seal", "loupe", "lock"]) assert.match(out, new RegExp(`/site/home/${s}-1200\\.webp`), s);
+    const cards = /<section data-tone="dark" aria-labelledby="home-confidence"[\s\S]*?<\/section>/.exec(out)![0];
+    for (const s of ["Forced-labour lists, checked for you.", "Contacts stay locked until they are given."]) assert.match(text(cards), new RegExp(s));
+    for (const s of ["sanctions", "uflpa", "locked"]) assert.match(cards, new RegExp(`poster="/site/home/clip-${s}\\.webp"`), s);
+    assert.doesNotMatch(cards, /(?:seal|loupe|lock)-1200/);
     assert.match(out, /href="\/security"/);
   });
 
@@ -299,6 +320,6 @@ describe("the live sections", () => {
     assert.doesNotMatch(out, /data-reveal=/, "only the browser holds a section back, and only one below the fold");
     assert.match(text(out), /10,278 Bangladesh garment suppliers published/);
     for (const m of out.match(/group-data-\[reveal=wait\]\/reveal:\S+/g) ?? []) assert.match(m, /opacity-0|translate-y-\d/, m);
-    for (const v of out.match(/<video [^>]*>/g) ?? []) assert.match(v, /poster="\/site\/home\/app-[a-z]+\.webp"/, v);
+    for (const v of out.match(/<video [^>]*>/g) ?? []) assert.match(v, /poster="\/site\/home\/(?:app|clip)-[a-z-]+\.webp"/, v);
   });
 });

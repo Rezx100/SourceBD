@@ -1,7 +1,8 @@
 "use client";
 
 // The tour (the founder's videos of 22 Oct 2026, after mercury.com's): what a buyer does, listed on the left, the real
-// app doing it on the right in its browser window. It never holds the scroll. An item opens when it is clicked, or
+// app doing it on the right (on the home page the opening's own app, without a window; on the solutions pages in its
+// browser window). It never holds the scroll. An item opens when it is clicked, or
 // when the one before it has played to its end; a coded demo (an item with no recording) holds for twice
 // `motion.featureMs`. The window keeps one shape, so nothing on the page moves when the item changes, and the
 // recordings sit stacked in it and crossfade, so it is never empty. The home page's opening draws the same list and
@@ -12,7 +13,7 @@ import type { Frame } from "@/components/site/demos/stage";
 import { stillPreferred, useInView } from "@/components/site/motion";
 import { motion } from "@/lib/design/tokens";
 import { cn } from "@/lib/utils";
-import { AppVideo, BrowserFrame, PauseButton, SCREENS, type ScreenName } from "./browser";
+import { AppVideo, BrowserFrame, PauseButton, SCREENS, pauseOnClick, type ScreenName } from "./browser";
 import { HomeIcon, type IconName } from "./icons";
 import { TextLink, measure, ring } from "./ui";
 
@@ -72,7 +73,7 @@ export function TourWindow({ items, active, playing, onEnded, bar }: { items: re
   const open = items[active]!;
   if (!open.screen && open.Demo) return <open.Demo stage="night" />;
   return (
-    <figure className="relative">
+    <figure className="relative" onClick={pauseOnClick(() => setPaused((v) => !v))}>
       <figcaption className="sr-only">{open.screen ? SCREENS[open.screen].says : open.body}</figcaption>
       <BrowserFrame url={SCREENS[open.screen ?? "find"].url}>
         {items.map((t, i) => (t.screen ? <AppVideo key={t.key} name={t.screen} active={i === active} playing={playing && !paused} eager={i === 0} onEnded={onEnded} bar={bar} /> : null))}

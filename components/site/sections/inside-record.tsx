@@ -1,9 +1,10 @@
-// 8 · Inside one record (the founder's video of 22 Oct 2026: show the whole dashboard, not a modified piece of it, and
-// no small print under it): Aboni Knitwear's record as the app draws it, read from the top in a recording from the
-// admin account, in its browser window on a photograph of the buyer's swatch table.
+// 8 · Inside one record (the founder's videos of 22 Oct 2026: show the whole dashboard, not a modified piece of it, no
+// small print under it, and animate it): Aboni Knitwear's record as the app draws it for the admin account, in its
+// browser window on a photograph of the buyer's swatch table, the camera drifting in to the record's head and its
+// export figures and back (a clip composed in code from a real capture, PROVENANCE.md).
 
 import { cn } from "@/lib/utils";
-import { Screen } from "./browser";
+import { BrowserFrame, Clip } from "./browser";
 import { H2, Lede, Stage, measure } from "./ui";
 
 export function InsideRecord() {
@@ -15,7 +16,9 @@ export function InsideRecord() {
           <Lede className="mx-auto max-w-[600px]">Exports, memberships, certificates, inspections and buyers. Each fact names the register it came from.</Lede>
         </div>
         <Stage still="swatches" className="w-full">
-          <Screen name="record" className="mx-auto max-w-[1040px]" />
+          <BrowserFrame url="sourcebd.net/app/suppliers/aboni-knitwear" className="mx-auto max-w-[1040px]">
+            <Clip name="record" says="Aboni Knitwear's record in the app: its name, its facts line and its export figures, US$97.6m over two years, 131 buyers, the EU its biggest market." />
+          </BrowserFrame>
         </Stage>
       </div>
     </section>

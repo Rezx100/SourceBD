@@ -1,7 +1,8 @@
 // The home page at `/`, rebuilt from the founder's two videos of 22 Oct 2026 after mercury.com's: the buyer's sourcing
 // studio and the zoom into its laptop, the tour on the night ground, the brands its factories make for, then the
 // record's features on the paper ground, the night again for buying with confidence, and the close. Every picture of
-// the product is the real app, recorded from the admin account (`sections/browser.tsx`). Each section stands on its own
+// the product is the real app: the tour's recordings and, everywhere else, parts of it animated in code from real
+// captures (`sections/browser.tsx`, `Clip`), no part shown twice (founder's video 3). Each section stands on its own
 // ground, fixed (`PageMain`): nothing crossfades as the page scrolls. The announcement bar and the navigation sit above
 // it in the (home) layout; the footer is the page's own. Figures come from the site's live facts (`lib/site-facts.ts`):
 // a figure that was not read is left out, never guessed. `slots` lets the route stream the chips' counts and the three
@@ -21,7 +22,6 @@ import { Figures } from "./sections/figures";
 import { PlatformGrid } from "./sections/grid";
 import { InsideRecord } from "./sections/inside-record";
 import { Ladder } from "./sections/ladder";
-import { MarksStrip } from "./sections/marks";
 import { NeverDo } from "./sections/never";
 import { Opening } from "./sections/opening";
 import { RealRecords } from "./sections/real-records";
@@ -35,7 +35,6 @@ export function HomeMercury({ facts, chips = [], cards = [], slots = {} }: { fac
     <PageMain id={null} className="font-sans text-ink-strong antialiased">
       <Opening suppliers={facts.suppliers} chips={slots.chips ?? (chips.length ? <Chips chips={chips} className="md:justify-start" /> : null)} />
       <BrandStrip />
-      <MarksStrip />
       <Showcase />
       <InsideRecord />
       {slots.records ?? <RealRecords cards={cards} />}

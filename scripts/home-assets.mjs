@@ -24,10 +24,9 @@ const STILLS = {
   port: [1600, 2560],
   dusk: [1600, 2560],
   mill: [1600, 2560],
-  // The three objects on the night ground for Buy with confidence: a loupe, a padlock, a sealed container.
-  loupe: [1200],
-  lock: [1200],
-  seal: [1200],
+  // The hero's laptop and the desk round it (x 1122–2722, y 846–1746 of the 3840 plate) upscaled 2.56×, laid over the
+  // plate while the opening zooms so the bezel stays sharp (founder's video 3, 22 Oct 2026: "the laptop edges get blurred").
+  laptop: [2560, 4096],
 };
 
 const ff = (...args) => execFileSync("ffmpeg", ["-v", "error", "-y", ...args], { stdio: "inherit" });
@@ -43,37 +42,13 @@ for (const [name, widths] of SRC === "-" ? [] : Object.entries(STILLS)) {
   }
 }
 
-// Parts of the app's screens, for the feature cards: one frame of a recording (`at` seconds in, from the end when
-// negative), cut to a box in the page's own 1440 × 900 units (the recording's own size is read, so a 4K master cuts
-// the same box) and kept at 2× (`crop-<name>.webp`). The sizes are repeated in `Cut` (components/site/sections/browser.tsx).
-const CROPS = {
-  exports: ["record", 0.5, 232, 166, 872, 226],
-  memberships: ["record", 0.5, 232, 600, 872, 228],
-  buyers: ["record", 5.2, 232, 214, 872, 318],
-  shipments: ["record", -0.3, 232, 286, 872, 420],
-  attention: ["watch", -0.3, 244, 84, 810, 510],
-  uflpa: ["watch", -0.3, 1068, 84, 352, 216],
-};
-
-const widthOf = (file) => Number(execFileSync("ffprobe", ["-v", "error", "-select_streams", "v", "-show_entries", "stream=width", "-of", "csv=p=0", file]).toString().trim());
-
-if (REC && existsSync(REC)) {
-  for (const [name, [video, at, x, y, w, h]] of Object.entries(CROPS)) {
-    const src = join(REC, `${video}.mp4`);
-    const k = widthOf(src) / 1440;
-    const seek = at < 0 ? ["-sseof", String(at)] : ["-ss", String(at)];
-    const out = join(OUT, `crop-${name}.webp`);
-    const px = (v) => Math.round(v * k);
-    ff(...seek, "-i", src, "-frames:v", "1", "-vf", `crop=${px(w)}:${px(h)}:${px(x)}:${px(y)},scale=${w * 2}:${h * 2}:flags=lanczos`, "-c:v", "libwebp", "-quality", "86", out);
-    console.log("crop", name, kb(out));
-  }
-}
-
-// The app's screens: each recording (`<name>.mp4`, a 4K master: 1440 × 900 drawn at 8/3, 3840 × 2400) ships silent at
+// The parts of the app the sections show (`clip-<name>.*`) are not made here: they are composed in code from real
+// captures, frame by frame, by the kit in .impeccable/preview/home-clips (PROVENANCE.md, "Animations of the real app").
+// The tour's screens: each recording (`<name>.mp4`, a 4K master: 1440 × 900 drawn at 8/3, 3840 × 2400) ships silent at
 // 2880 × 1800 as VP9 and H.264, with its first frame as the poster (`<name>.webp`, 2880 × 1800), so the window is
 // never empty before it plays and stays sharp when the home page's opening zooms it to the whole screen.
 if (REC && existsSync(REC)) {
-  for (const file of readdirSync(REC).filter((f) => f.endsWith(".mp4"))) {
+  for (const file of readdirSync(REC).filter((f) => ["find.mp4", "check.mp4", "ask.mp4", "watch.mp4"].includes(f))) {
     const name = file.replace(/\.mp4$/, "");
     const src = join(REC, file);
     const base = join(OUT, `app-${name}`);

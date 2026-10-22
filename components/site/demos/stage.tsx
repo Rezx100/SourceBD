@@ -2,14 +2,15 @@
 
 // What every coded product demo on the site shares (handoff-mercury-m2-m3.md, M2; the founder's videos of 22 Oct 2026):
 // `Demo` is a `DemoStage` drawn at the app's proportions inside the same desktop browser window as the recordings of
-// the real app (`sections/browser.tsx`), its pause button in the window's corner and no caption under it. The app has
+// the real app (`sections/browser.tsx`): a click pauses it, its pause button shows only to the keyboard, and no caption
+// sits under it. The app has
 // no dark theme: `data-ground="day"` keeps the window light inside any tone. `typed` and `streamed` write the steps a
 // scene needs to type a search or let rows arrive one at a time, at the motion tokens' pace.
 
 import { X } from "@phosphor-icons/react";
 import type { ReactNode } from "react";
 import { DemoStage, type CursorState, type Step } from "@/components/site/motion";
-import { BrowserFrame, FitPage, PauseButton } from "@/components/site/sections/browser";
+import { BrowserFrame, FitPage, PauseButton, pauseOnClick } from "@/components/site/sections/browser";
 import { Stage, type StillName } from "@/components/site/sections/ui";
 import { motion } from "@/lib/design/tokens";
 import { cn } from "@/lib/utils";
@@ -46,13 +47,16 @@ export function Window({ children, className }: { children: ReactNode; className
 /** A demo: its window in the browser, on its stage, with the pause button in the window's corner. */
 export function Demo<S extends CursorState>({ steps, description, className, stage, eager = false, after, url = "sourcebd.net/app", children }: Frame & { steps: readonly Step<S>[]; description: string; children: (state: S) => ReactNode }) {
   const frame = (win: ReactNode, pause: { paused: boolean; toggle: () => void }) => {
+    // A click on the window pauses the demo; its button shows only to the keyboard (sections/browser.tsx).
     const browser = (
-      <BrowserFrame url={url}>
-        <FitPage>
-          <div className="p-8">{win}</div>
-        </FitPage>
-        <PauseButton paused={pause.paused} onToggle={pause.toggle} label="Pause demo" />
-      </BrowserFrame>
+      <div onClick={pauseOnClick(pause.toggle)}>
+        <BrowserFrame url={url}>
+          <FitPage>
+            <div className="p-8">{win}</div>
+          </FitPage>
+          <PauseButton paused={pause.paused} onToggle={pause.toggle} label="Pause demo" />
+        </BrowserFrame>
+      </div>
     );
     return stage && stage !== "night" ? (
       <Stage still={stage} eager={eager}>
