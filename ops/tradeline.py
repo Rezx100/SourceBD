@@ -63,6 +63,9 @@ def kept_rows(path: Path) -> list[dict[str, Any]]:
 def save(paths: list[Path]) -> None:
     """Copy results to production, where 0156 keeps them for their year; rows already there stay as they are."""
     http = rest()
+    if http.get("/volza_raw_results", params={"select": "supplier_id", "limit": 0}).status_code == 404:
+        print("not saved to the server: 0156 is not applied yet; the files stay on this computer")
+        return
     # the licence's year: only expired rows go, and 0156 refuses any other delete
     http.delete("/volza_raw_results", params={"expires_at": f"lte.{datetime.now(timezone.utc).isoformat()}"},
                 headers={"Prefer": "return=minimal"}).raise_for_status()
