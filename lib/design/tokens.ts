@@ -635,6 +635,7 @@ export const spacing = {
   tabbar: "56px",
   "action-bar": "64px",
   section: "120px", // the marketing rhythm: a section's top and bottom from 768 up (56 below)
+  nav: "72px", // the marketing navigation's bar, which the home's opening starts under (founder, 22 Oct 2026)
 };
 
 /** Paper's breakpoints. They REPLACE Tailwind's (whose `2xl` is 1536). */

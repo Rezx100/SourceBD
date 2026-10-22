@@ -5,6 +5,10 @@
 // click, hover or the keyboard and close on Escape, an outside press or a navigation; every item is a real link
 // and the bar works with no script as a row of links (the panels are a convenience). Under 1024 the bar is the
 // wordmark, Start free and a Menu button that opens every link in a sheet.
+//
+// The bar sticks to the top of the window. On the home page (`over`), after mercury.com's and the founder's recording
+// of 22 Oct 2026 13:17, it starts clear over the studio photograph, with no ground and no line under it, and takes a
+// frosted ground the moment the page scrolls; everywhere else it has its ground from the first paint.
 
 import { CaretDown, List } from "@phosphor-icons/react";
 import Link from "next/link";
@@ -49,9 +53,10 @@ function Panel({ menu }: { menu: Menu }) {
   );
 }
 
-export function SiteNav() {
+export function SiteNav({ over = false }: { /** The home page: the bar floats clear over the opening until the page scrolls. */ over?: boolean }) {
   const [open, setOpen] = useState<Menu | null>(null);
   const [sheet, setSheet] = useState(false);
+  const [atTop, setAtTop] = useState(true);
   const path = usePathname();
   const bar = useRef<HTMLElement>(null);
   const triggers = useRef<Partial<Record<Menu, HTMLButtonElement | null>>>({});
@@ -61,6 +66,18 @@ export function SiteNav() {
     setOpen(null);
     setSheet(false);
   }, [path]);
+
+  // Over the opening: clear while the page sits at its top, frosted once it has scrolled a little.
+  useEffect(() => {
+    if (!over) return;
+    const read = () => setAtTop(scrollY < 16);
+    read();
+    addEventListener("scroll", read, { passive: true });
+    return () => removeEventListener("scroll", read);
+  }, [over]);
+
+  // A menu open over the photograph needs the ground too, so its panel reads.
+  const clear = over && atTop && !open;
 
   useEffect(() => {
     if (!open) return;
@@ -82,7 +99,7 @@ export function SiteNav() {
   }, [open]);
 
   return (
-    <header className="relative z-raised border-b border-line bg-surface font-sans">
+    <header className={cn("sticky top-0 z-raised border-b font-sans transition-[background-color,border-color] duration-slow motion-reduce:transition-none", clear ? "border-transparent bg-transparent" : "border-line bg-surface/90 backdrop-blur-md supports-[backdrop-filter]:bg-surface/80")}>
       <nav ref={bar} aria-label="Main" className="relative" onMouseLeave={() => setOpen(null)}>
         <div className={cn(measure, "flex h-[72px] items-center justify-between")}>
           <div className="flex items-center gap-12">

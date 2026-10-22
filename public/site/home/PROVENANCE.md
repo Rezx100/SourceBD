@@ -49,31 +49,45 @@ submitted: the RFQ walk stops when the request opens, with nothing typed in it. 
 
 ## Animations of the real app (the sections), 22 Oct 2026
 
-Each is one part of the app at reading size, after mercury.com's product clips (one part crisp, the rest of the page
-dimmed and blurred by distance, rows lifting in turn, a slow camera, holds between short eased moves). The pixels of
-the app are cut from screenshots of the real pages at 8/3 (3840 px across 1440 CSS px), taken by headless Chrome:
-signed in on the founder's temporary admin profile (deleted after the captures), or signed out for the public pages.
-The record's sections were captured as the app draws them in a window 430 px wide, where each section is one column
-and its text stays large inside a card; the search and the record's head at 1440. A page in the kit (`scene.html`)
-lays the cuts on the ground and moves them; headless Chrome draws it frame by frame at 30 fps, and each ships as
-H.264 (crf 24) and VP9 (crf 34) with its first frame as the poster. Every letter and number is the app's own; the
-text was checked against the live pages on the day. The only things the kit draws are the ground, the shadows, the
-pointer and its click ring. Captures opened a menu and ticked a filter; nothing was typed, saved or sent.
+Each is one part of the app at reading size, after mercury.com's product clips. The pixels of the app are cut from
+screenshots of the real pages at 8/3 (3840 px across 1440 CSS px), taken by headless Chrome: signed in on the founder's
+temporary admin profile (deleted after the captures), or signed out for the public pages. The record's sections were
+captured as the app draws them in a window 430 px wide, where each section is one column and its text stays large
+inside a card; the search and the record's head at 1440. A page in the kit (`scene.html`) lays the cuts on the ground
+and moves them; headless Chrome draws it frame by frame at 30 fps, and each ships as H.264 (crf 24) and VP9 (crf 34)
+with its first frame as the poster. Every letter and number is the app's own; the text was checked against the live
+pages on the day. The only things the kit draws are the ground, the lift's hairline and shadow, the pointer and its
+click ring. Captures opened a menu and ticked a filter; nothing was typed, saved or sent.
+
+Remade on 22 Oct 2026 after the founder's recording of 13:17: the part of the app is one whole sheet on a ground of the
+design system's colours (no grid, no yellow); nothing is cut out, dimmed or blurred; a glass lift (a hairline and a
+faint, long shadow, never a black one) travels its rows, laid over the sheet as the same pixels so nothing pops; the
+sheet fills its frame and runs off the bottom edge as mercury's cards do; the camera breathes and follows. A public
+record's clip ends where it began, so the hand-over between records is one header for another.
 
 | Clip | What it shows | Captured from | Files |
 | -- | -- | -- | -- |
 | `filters` | The search's Certificates menu: GOTS ticked, 10,048 suppliers narrowing to 587, then unticked | `/app/discover` and `/app/discover?cert=gots:valid`, signed in | `clip-filters.mp4` · `clip-filters.webm` · `clip-filters.webp` |
 | `buyers` | Aboni Knitwear's Buyers: the brands' own supplier lists and customs records | `/app/suppliers/aboni-knitwear`, signed in | `clip-buyers.mp4` · `clip-buyers.webm` · `clip-buyers.webp` |
 | `shipments` | Aboni Knitwear's markets and its latest customs shipments | `/app/suppliers/aboni-knitwear`, signed in | `clip-shipments.mp4` · `clip-shipments.webm` · `clip-shipments.webp` |
-| `certificates` | Aboni Knitwear's certificates with their numbers and dates | `/app/suppliers/aboni-knitwear`, signed in | `clip-certificates.mp4` · `clip-certificates.webm` · `clip-certificates.webp` |
-| `record` | Aboni Knitwear's record head and export figures, the camera drifting in and out | `/app/suppliers/aboni-knitwear`, signed in | `clip-record.mp4` · `clip-record.webm` · `clip-record.webp` |
+| `certificates` | Aboni Knitwear's certificates with their numbers and dates, and the one that ended | `/app/suppliers/aboni-knitwear`, signed in | `clip-certificates.mp4` · `clip-certificates.webm` · `clip-certificates.webp` |
+| `record` | Aboni Knitwear's record as the app draws it, the camera coming in on its head and its export figures and out | `/app/suppliers/aboni-knitwear`, signed in | `clip-record.mp4` · `clip-record.webm` · `clip-record.webp` |
 | `keyfacts` | Aboni Knitwear's key facts | `/app/suppliers/aboni-knitwear`, signed in | `clip-keyfacts.mp4` · `clip-keyfacts.webm` · `clip-keyfacts.webp` |
-| `memberships` | Aboni Knitwear's four memberships, each lifting in turn (the pilot the founder approved) | frame 0.5 s of the `record` master | `clip-memberships.mp4` · `clip-memberships.webm` · `clip-memberships.webp` |
+| `memberships` | Aboni Knitwear's four memberships, each lifting in turn | `/app/suppliers/aboni-knitwear`, signed in | `clip-memberships.mp4` · `clip-memberships.webm` · `clip-memberships.webp` |
 | `safety` | Aboni Knitwear's RSC safety record | `/app/suppliers/aboni-knitwear`, signed in | `clip-safety.mp4` · `clip-safety.webm` · `clip-safety.webp` |
 | `sources` | Aboni Knitwear's sources in trust order | `/app/suppliers/aboni-knitwear`, signed in | `clip-sources.mp4` · `clip-sources.webm` · `clip-sources.webp` |
-| `sanctions` | Aboni Knitwear's sanctions lists: not listed, each list with the day it was read (no supplier is sanctioned today, so no sanctioned record exists to show) | `/app/suppliers/aboni-knitwear`, signed in | `clip-sanctions.mp4` · `clip-sanctions.webm` · `clip-sanctions.webp` |
-| `uflpa` | The Compliance hub's UFLPA checks on the saved list | `/app/compliance`, signed in | `clip-uflpa.mp4` · `clip-uflpa.webm` · `clip-uflpa.webp` |
-| `locked` | A public record's contact panel, locked, a pointer resting on Sign up to contact | `/suppliers/aboni-knitwear`, signed out | `clip-locked.mp4` · `clip-locked.webm` · `clip-locked.webp` |
-| `real-mondol` | Mondol Fabrics' public record, scrolled for real to its GOTS certificate, zoomed in and out | `/suppliers/mondol-fabrics`, signed out | `clip-real-mondol.mp4` · `clip-real-mondol.webm` · `clip-real-mondol.webp` |
-| `real-aboni` | Aboni Knitwear's public record, scrolled to its WRAP certificate | `/suppliers/aboni-knitwear`, signed out | `clip-real-aboni.mp4` · `clip-real-aboni.webm` · `clip-real-aboni.webp` |
-| `real-liberty` | Liberty Knitwear's public record, scrolled to its RSC safety inspections | `/suppliers/liberty-knitwear`, signed out | `clip-real-liberty.mp4` · `clip-real-liberty.webm` · `clip-real-liberty.webp` |
+| `real-mondol` | Mondol Fabrics' public record, scrolled for real to its GOTS certificate, in close and out, back to the top | `/suppliers/mondol-fabrics`, signed out | `clip-real-mondol.mp4` · `clip-real-mondol.webm` · `clip-real-mondol.webp` |
+| `real-aboni` | Aboni Knitwear's public record, scrolled to its WRAP certificate and back | `/suppliers/aboni-knitwear`, signed out | `clip-real-aboni.mp4` · `clip-real-aboni.webm` · `clip-real-aboni.webp` |
+| `real-liberty` | Liberty Knitwear's public record, scrolled to its RSC safety inspections and back | `/suppliers/liberty-knitwear`, signed out | `clip-real-liberty.mp4` · `clip-real-liberty.webm` · `clip-real-liberty.webp` |
+
+## Stills of the real app (Buy with confidence), 22 Oct 2026
+
+The founder's recording of 22 Oct 13:17: this section needs no animation. Each is one panel cut from the same captures,
+alone on the night ground with a light hairline and glow, the page round it hidden; the kit draws it once (1200 × 900)
+and it ships as WebP (quality 86).
+
+| Still | What it shows | Captured from | File |
+| -- | -- | -- | -- |
+| `sanctions` | Aboni Knitwear's sanctions lists: not listed, each list with the day it was read (no supplier is sanctioned today, so no sanctioned record exists to show) | `/app/suppliers/aboni-knitwear`, signed in | `still-sanctions.webp` |
+| `uflpa` | The Compliance hub's UFLPA checks on the saved list | `/app/compliance`, signed in | `still-uflpa.webp` |
+| `locked` | A public record's contact panel, locked | `/suppliers/aboni-knitwear`, signed out | `still-locked.webp` |

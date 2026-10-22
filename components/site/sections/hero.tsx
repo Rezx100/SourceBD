@@ -26,7 +26,8 @@ export function homeDescription(suppliers: number | null): string {
 
 export function HeroCopy({ suppliers }: { suppliers: number | null }) {
   return (
-    <div className={cn(measure, "relative flex flex-col items-center gap-5 pb-10 pt-12 text-center md:gap-6 lg:pb-0 lg:pt-[9vh]")}>
+    // From 1024 up the navigation floats over the studio, so the copy starts a bar's height lower.
+    <div className={cn(measure, "relative flex flex-col items-center gap-5 pb-10 pt-12 text-center md:gap-6 lg:pb-0 lg:pt-[calc(9vh+theme(spacing.nav))]")}>
       <h1 id="home-title" className="text-site-h1-sm font-light text-ink-strong [text-wrap:balance] md:text-site-h1">
         Bangladesh sourcing, on the record.
       </h1>

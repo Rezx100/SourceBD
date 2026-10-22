@@ -1,15 +1,17 @@
 "use client";
 
 // The home page's opening (the founder's videos of 22 Oct 2026, after mercury.com's hero): a buyer's sourcing studio in
-// London, the laptop on its table, the headline in the light from its windows. From 1024 up, where nothing asks for
-// reduced motion, the opening is a scene pinned for nearly three screens of scroll. The real app sits in the laptop's
-// screen, pinned to its four corners; the camera pushes into the laptop; the app lifts out of it until it fills the view
-// less a margin, while the laptop leaves the frame and the studio gives way to the night ground; then the app slides
-// right, its far edge falling into the night, and the tour's list comes in on the left. The app is drawn at that final
-// size and only ever scaled down, so its text stays sharp, and the laptop's part of the photograph is laid over at 2.56×
-// so its bezel does too (founder's video 3). The window that rides the zoom is the tour's own, so nothing swaps. After
-// the scene the tour never holds the scroll: an item opens when it is clicked or when the one before it has played to
-// its end. Below 1024, and with reduced motion, the studio (with the app's first frame in the laptop) and the tour stack.
+// London, the laptop on its table, the headline in the light from its windows, the navigation floating over it. From
+// 1024 up, where nothing asks for reduced motion, the opening is a scene pinned for three screens of scroll (his
+// recording of 22 Oct 13:17 set the order): the real app plays in the laptop's screen, pinned to its four corners; the
+// camera pushes in until the laptop is the hero, the display as wide as the app will stand, while the studio round it
+// softens into a blur and the laptop stays sharp; then the laptop and the studio fade into the night ground and the app
+// alone remains, exactly where it was; only then does it slide right, its far edge falling into the night, and the
+// tour's list comes in on the left. The app is drawn at its final size and only ever scaled down, so its text stays
+// sharp, and the laptop's part of the photograph is laid over at 2.56× so its bezel does too (his video 3). No shadow
+// is drawn under the app at any point. The window that rides the zoom is the tour's own, so nothing swaps. After the
+// scene the tour never holds the scroll: an item opens when it is clicked or when the one before it has played to its
+// end. Below 1024, and with reduced motion, the studio (with the app's first frame in the laptop) and the tour stack.
 
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { stillPreferred } from "@/components/site/motion";
@@ -31,9 +33,11 @@ const LAPTOP = { x: 0.29219, y: 0.39167, w: 0.41667, h: 0.41667 } as const;
 /** The app's shape: 1440 × 900. */
 const ASPECT = 1.6;
 /** The pinned scene is this many screens tall. */
-const TRACK = 2.8;
-/** How far the camera pushes in: the view stays inside the laptop layer, which is sharp to about 3×. */
-const ZOOM = 3;
+const TRACK = 3.2;
+/** The camera never pushes in past this, whatever the window's shape (the laptop layer is sharp to about 4×). */
+const MAX_ZOOM = 4.8;
+/** How far the studio round the laptop blurs by the end of the push, in px. */
+const BLUR = 18;
 
 type Pt = readonly [number, number];
 const clamp = (v: number, a = 0, b = 1) => Math.min(b, Math.max(a, v));
@@ -59,11 +63,13 @@ export function quadTransform(w: number, h: number, q: readonly Pt[]): string {
   return `matrix3d(${[a / w, d / w, 0, g / w, b / h, e / h, 0, k / h, 0, 0, 1, 0, x0, y0, 0, 1].map(n).join(",")})`;
 }
 
-/** The studio photograph as a 16:9 box covering its parent; `laptop` lays the sharp laptop over it (the zoom only). */
-function Studio({ scene, laptop, children }: { scene?: React.Ref<HTMLDivElement>; laptop?: boolean; children?: ReactNode }) {
+/** The studio photograph as a 16:9 box covering its parent; `laptop` lays the sharp laptop over it (the zoom only). `room` is the photograph itself, which the scene blurs. */
+function Studio({ scene, room, laptop, children }: { scene?: React.Ref<HTMLDivElement>; room?: React.Ref<HTMLDivElement>; laptop?: boolean; children?: ReactNode }) {
   return (
     <div ref={scene} className="absolute left-1/2 top-1/2 aspect-video w-full min-w-[calc(100vh*16/9)] -translate-x-1/2 -translate-y-1/2 max-lg:min-w-0">
-      <Still name="hero" eager sizes="(min-width: 1024px) 100vw, 100vw" />
+      <div ref={room} className="absolute inset-0">
+        <Still name="hero" eager sizes="(min-width: 1024px) 100vw, 100vw" />
+      </div>
       {laptop ? (
         <div aria-hidden className="absolute [mask-composite:intersect] [mask-image:linear-gradient(90deg,transparent,black_4%,black_96%,transparent),linear-gradient(transparent,black_4%,black_96%,transparent)]" style={{ left: `${LAPTOP.x * 100}%`, top: `${LAPTOP.y * 100}%`, width: `${LAPTOP.w * 100}%`, height: `${LAPTOP.h * 100}%` }}>
           <Still name="laptop" sizes="200vw" />
@@ -86,24 +92,25 @@ function Poster() {
 }
 
 /** The tour's recordings stacked in the app's place, crossfading; a click pauses them, the keyboard finds the button. */
-function Dash({ items, active, playing, onEnded, bar }: { items: readonly TourItem[]; active: number; playing: boolean; onEnded: () => void; bar: React.RefObject<HTMLSpanElement | null> }) {
+function Dash({ items, active, onEnded, bar }: { items: readonly TourItem[]; active: number; onEnded: () => void; bar: React.RefObject<HTMLSpanElement | null> }) {
   const [paused, setPaused] = useState(false);
   const toggle = () => setPaused((v) => !v);
   const open = items[active]!;
   return (
     <figure data-ground="day" className="relative m-0 size-full overflow-hidden bg-surface" onClick={pauseOnClick(toggle)}>
       <figcaption className="sr-only">{open.screen ? SCREENS[open.screen].says : open.body}</figcaption>
-      {items.map((t, i) => (t.screen ? <AppVideo key={t.key} name={t.screen} active={i === active} playing={playing && !paused} eager={i === 0} onEnded={onEnded} bar={bar} /> : null))}
+      {items.map((t, i) => (t.screen ? <AppVideo key={t.key} name={t.screen} active={i === active} playing={!paused} eager={i === 0} onEnded={onEnded} bar={bar} /> : null))}
       <PauseButton paused={paused} onToggle={toggle} />
     </figure>
   );
 }
 
-export function Opening({ suppliers, chips, items = TOUR }: { suppliers: number | null; chips?: ReactNode; items?: readonly TourItem[] }) {
+export function Opening({ suppliers, items = TOUR }: { suppliers: number | null; items?: readonly TourItem[] }) {
   const section = useRef<HTMLElement>(null);
   const stage = useRef<HTMLDivElement>(null);
   const studio = useRef<HTMLDivElement>(null);
   const scene = useRef<HTMLDivElement>(null);
+  const room = useRef<HTMLDivElement>(null);
   const copy = useRef<HTMLDivElement>(null);
   const night = useRef<HTMLDivElement>(null);
   const words = useRef<HTMLDivElement>(null);
@@ -112,7 +119,6 @@ export function Opening({ suppliers, chips, items = TOUR }: { suppliers: number 
   const edge = useRef<HTMLDivElement>(null);
   const bar = useRef<HTMLSpanElement>(null);
   const [pinned, setPinned] = useState(false);
-  const [playing, setPlaying] = useState(true);
   const [size, setSize] = useState<{ w: number; h: number } | null>(null);
   const { active, setActive, next } = useTour(items.length, items, section);
 
@@ -131,13 +137,11 @@ export function Opening({ suppliers, chips, items = TOUR }: { suppliers: number 
     const sc = scene.current;
     const d = dash.current;
     if (!pinned || !sec || !st || !sc || !d) {
-      for (const el of [sc, studio.current, copy.current, night.current, words.current, edge.current]) if (el) el.style.cssText = "";
+      for (const el of [sc, room.current, studio.current, copy.current, night.current, words.current, edge.current]) if (el) el.style.cssText = "";
       setSize(null);
-      setPlaying(true);
       return;
     }
     let raf = 0;
-    let was: boolean | null = null;
     let W = 0, H = 0, home: Pt = [0, 0];
     // The app's own size: the view less a margin, 16:10 kept (92 % of the width, 86 % of the height at most).
     const fit = () => {
@@ -157,27 +161,30 @@ export function Opening({ suppliers, chips, items = TOUR }: { suppliers: number 
       const sw = Math.max(vw, (vh * 16) / 9), sh = (sw * 9) / 16;
       const sx = (vw - sw) / 2, sy = (vh - sh) / 2;
       const O: Pt = [((DISPLAY[0][0] + DISPLAY[2][0]) / 2) * sw, ((DISPLAY[0][1] + DISPLAY[2][1]) / 2) * sh];
-      const t = span(p, 0.04, 0.46);
-      const z = Math.exp(Math.log(ZOOM) * t);
+      // The push ends with the display as wide as the app stands on its own, so the app never has to move to leave it.
+      const zoom = Math.min(MAX_ZOOM, W / ((DISPLAY[1][0] - DISPLAY[0][0]) * sw));
+      const t = span(p, 0.04, 0.5);
+      const z = Math.exp(Math.log(zoom) * t);
       const T: Pt = [(vw / 2 - sx - O[0]) * t, (vh / 2 - sy - O[1]) * t];
       sc.style.transformOrigin = `${O[0]}px ${O[1]}px`;
       sc.style.transform = `translate(-50%, -50%) translate(${T[0]}px, ${T[1]}px) scale(${z})`;
+      // The studio round the laptop softens as the camera comes in; the laptop, laid over it, stays sharp.
+      if (room.current) room.current.style.filter = t > 0.01 ? `blur(${(BLUR * t) / z}px)` : "";
       // The display's corners on the stage, through the same camera.
       const pinnedQ = DISPLAY.map(([x, y]): Pt => [sx + O[0] + z * (x * sw - O[0]) + T[0], sy + O[1] + z * (y * sh - O[1]) + T[1]]);
       const fill = rect((vw - W) / 2, (vh - H) / 2, W, H);
       const settled = rect(home[0], home[1], W, H);
-      const lift = span(p, 0.3, 0.46);
-      const slide = span(p, 0.54, 0.8);
-      const q = slide > 0 ? mix(fill, settled, slide) : mix(pinnedQ, fill, lift);
+      // The laptop and the studio fall away; the app keeps its place, only its slight perspective easing out.
+      const gone = span(p, 0.52, 0.66);
+      const slide = span(p, 0.72, 0.9);
+      const q = slide > 0 ? mix(fill, settled, slide) : mix(pinnedQ, fill, gone);
       d.style.transform = quadTransform(W, H, q);
-      d.style.borderRadius = `${14 * lift}px`;
-      d.style.boxShadow = lift > 0 ? `0 ${40 * lift}px ${90 * lift}px -${30 * lift}px rgb(var(--mk-ground-night) / ${0.9 * lift})` : "none";
+      d.style.borderRadius = `${14 * gone}px`;
       if (studio.current) {
-        const gone = span(p, 0.34, 0.5);
         studio.current.style.opacity = String(1 - gone);
         studio.current.style.visibility = gone >= 1 ? "hidden" : "";
       }
-      if (night.current) night.current.style.opacity = String(span(p, 0.3, 0.48));
+      if (night.current) night.current.style.opacity = String(gone);
       const c = span(p, 0, 0.14);
       if (copy.current) {
         copy.current.style.opacity = String(1 - c);
@@ -185,18 +192,12 @@ export function Opening({ suppliers, chips, items = TOUR }: { suppliers: number 
         copy.current.style.visibility = c >= 1 ? "hidden" : "";
       }
       if (edge.current) edge.current.style.opacity = String(slide);
-      const wds = span(p, 0.66, 0.88);
+      const wds = span(p, 0.8, 0.96);
       if (words.current) {
         words.current.style.opacity = String(wds);
         words.current.style.transform = `translateY(${(1 - wds) * 20}px)`;
         // Until the list is there to see, clicks go to the headline's form under it.
         words.current.style.pointerEvents = wds > 0.5 ? "auto" : "none";
-      }
-      // The app plays once it is out of the laptop and whole on the night ground.
-      const now = p >= 0.46;
-      if (now !== was) {
-        was = now;
-        setPlaying(now);
       }
     };
     const onScroll = () => {
@@ -217,15 +218,16 @@ export function Opening({ suppliers, chips, items = TOUR }: { suppliers: number 
     };
   }, [pinned]);
 
-  const dashboard = <Dash items={items} active={active} playing={playing} onEnded={next} bar={bar} />;
+  const dashboard = <Dash items={items} active={active} onEnded={next} bar={bar} />;
 
   return (
-    <section ref={section} data-tone="dark" aria-labelledby="home-title" className="relative" style={pinned ? { height: `${TRACK * 100}vh` } : undefined}>
+    // From 1024 up the opening starts under the navigation, which floats over the studio until the page scrolls.
+    <section ref={section} data-tone="dark" aria-labelledby="home-title" className="relative lg:-mt-nav" style={pinned ? { height: `${TRACK * 100}vh` } : undefined}>
       <div ref={stage} className={cn(pinned && "sticky top-0 h-screen overflow-hidden")}>
         {/* The studio. In the scene it fills the stage under everything; in flow it is the page's first block. */}
         <div data-ground="day" className={cn("bg-[rgb(var(--mk-ground-paper))] text-ink", pinned ? "absolute inset-0" : "relative flex flex-col lg:block lg:h-screen lg:min-h-[640px] lg:overflow-hidden")}>
           <div ref={studio} className={cn(pinned ? "absolute inset-0 overflow-hidden" : "relative order-2 aspect-video overflow-hidden lg:absolute lg:inset-0 lg:aspect-auto")}>
-            <Studio scene={scene} laptop={pinned}>
+            <Studio scene={scene} room={room} laptop={pinned}>
               {pinned ? null : <Poster />}
             </Studio>
           </div>
@@ -247,7 +249,6 @@ export function Opening({ suppliers, chips, items = TOUR }: { suppliers: number 
         {/* The tour. In the scene it is the stage's last frame; in flow it is the section after the studio. */}
         <div className={cn(pinned ? "pointer-events-none absolute inset-0 flex items-center" : "py-16 md:py-section")}>
           <div className={cn(measure, "grid items-center gap-10 lg:grid-cols-12 lg:gap-12 xl:gap-16")}>
-            {/* min-w-0: the chips' sideways strip must not widen the column past the phone's edge. */}
             <div ref={words} className="pointer-events-auto min-w-0 lg:col-span-4">
               <TourList
                 heading={
@@ -259,13 +260,12 @@ export function Opening({ suppliers, chips, items = TOUR }: { suppliers: number 
                 active={active}
                 onPick={setActive}
                 bar={bar}
-                extra={(t) => (t.key === "find" && chips ? <div className="pt-1">{chips}</div> : null)}
               />
             </div>
             <div ref={slot} className="min-w-0 lg:col-span-8">
               {/* In flow the app shows at a size a phone can read: its left part, edge to edge in the column. */}
               {pinned ? null : (
-                <div className="relative aspect-[4/3] overflow-hidden rounded-frame shadow-window">
+                <div className="relative aspect-[4/3] overflow-hidden rounded-frame shadow-glass">
                   <div className="absolute inset-y-0 left-0 w-[140%]">{dashboard}</div>
                 </div>
               )}

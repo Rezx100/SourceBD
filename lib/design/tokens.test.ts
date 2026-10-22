@@ -650,7 +650,7 @@ test("the type scale, the widths and the durations are the approved ones", () =>
   assert.deepEqual({ ...screens }, { xs: "320px", sm: "640px", md: "768px", lg: "1024px", xl: "1280px", "2xl": "1440px" });
   assert.deepEqual({ ...spacing }, {
     "control-sm": "24px", control: "32px", "row-head": "36px", row: "40px", "control-lg": "40px", touch: "44px",
-    "input-touch": "48px", "row-tall": "56px", topbar: "56px", tabbar: "56px", "action-bar": "64px", section: "120px",
+    "input-touch": "48px", "row-tall": "56px", topbar: "56px", tabbar: "56px", "action-bar": "64px", section: "120px", nav: "72px",
   });
   assert.deepEqual({ ...transitionDuration }, { fast: "120ms", DEFAULT: "200ms", slow: "320ms", reveal: "700ms" });
 });

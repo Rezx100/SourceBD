@@ -45,14 +45,16 @@ export const marketingMetadata: Metadata = {
   },
 };
 
-/** `top` draws above the navigation (the home page's announcement); `footer={false}` leaves the footer to the page. */
+/** `top` draws above the navigation (the home page's announcement); `over` lets the bar float clear over the home's opening; `footer={false}` leaves the footer to the page. */
 export async function MarketingChrome({
   children,
   top,
+  over = false,
   footer = true,
 }: {
   children: React.ReactNode;
   top?: React.ReactNode;
+  over?: boolean;
   footer?: boolean;
 }) {
   // The facts feed only the footer; a page that draws its own footer does not wait for them.
@@ -63,7 +65,7 @@ export async function MarketingChrome({
         <ScrollToTop />
         <SkipLink />
         {top}
-        <SiteNav />
+        <SiteNav over={over} />
         <div
           id="main-content"
           tabIndex={-1}

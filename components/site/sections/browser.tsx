@@ -43,9 +43,9 @@ export const LEDGER: Record<string, string> = {
   "clip-memberships": "record: Memberships",
   "clip-safety": "record: Safety (RSC)",
   "clip-sources": "record: Sources",
-  "clip-sanctions": "record: sanctions lists",
-  "clip-uflpa": "compliance hub: UFLPA checks",
-  "clip-locked": "public page: contact details locked",
+  "still-sanctions": "record: sanctions lists",
+  "still-uflpa": "compliance hub: UFLPA checks",
+  "still-locked": "public page: contact details locked",
 };
 
 /** The window's bar: three lights, the address in its field, a hairline under it. 1440 × 52 in the bar's own units. */
@@ -67,12 +67,13 @@ function Bar({ url }: { url: string }) {
 }
 
 /**
- * A browser window: the bar, then 1440 × 848 of page. Light inside whatever the ground around it; one soft shadow and
- * no hairline round it (founder's video 3). `children` fill the page area.
+ * A browser window: the bar, then 1440 × 848 of page. Light inside whatever the ground around it; a glass edge (a lit
+ * top line and a faint close shadow), never a dark drop (founder's recording of 22 Oct 13:17) and no hairline round it
+ * (his video 3). `children` fill the page area.
  */
 export function BrowserFrame({ url, children, className }: { url: string; children: ReactNode; className?: string }) {
   return (
-    <div data-ground="day" className={cn("relative isolate overflow-hidden rounded-frame bg-surface shadow-window", className)}>
+    <div data-ground="day" className={cn("relative isolate overflow-hidden rounded-frame bg-surface shadow-glass", className)}>
       <Bar url={url} />
       <div className="relative aspect-[1440/848] overflow-hidden bg-canvas">{children}</div>
     </div>
@@ -203,6 +204,21 @@ export function Clip({ name, says, active = true, delay, onEnded, bar, className
       <figcaption className="sr-only">{says}</figcaption>
       <Video file={`clip-${name}`} active={active} playing={!paused} delay={delay} onEnded={onEnded} bar={bar} />
       {active ? <PauseButton paused={paused} onToggle={toggle} /> : null}
+    </figure>
+  );
+}
+
+/**
+ * A part of the real app held still (`still-<name>.webp`, PROVENANCE.md): one panel cut from a real capture on the night
+ * ground with a glass edge, the page round it hidden (founder's recording of 22 Oct 13:17: Buy with confidence needs no
+ * animation). It fills its parent; `says` is the sentence a screen reader gets in its place.
+ */
+export function AppStill({ name, says, className }: { name: string; says: string; className?: string }) {
+  return (
+    <figure className={cn("absolute inset-0 m-0", className)}>
+      <figcaption className="sr-only">{says}</figcaption>
+      {/* eslint-disable-next-line @next/next/no-img-element -- pre-sized in public/site/home (PROVENANCE.md), no optimizer pass */}
+      <img src={`/site/home/still-${name}.webp`} alt="" width={1200} height={900} loading="lazy" decoding="async" className="size-full object-cover" />
     </figure>
   );
 }

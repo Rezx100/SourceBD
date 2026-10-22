@@ -7,6 +7,11 @@
 // `motion.featureMs`. The window keeps one shape, so nothing on the page moves when the item changes, and the
 // recordings sit stacked in it and crossfade, so it is never empty. The home page's opening draws the same list and
 // window inside its zoom (opening.tsx); the solutions pages draw `Tour`.
+//
+// Since the founder's recording of 22 Oct 13:17 ("the sections must be animated, like this one" of mercury.com) an item
+// opens with motion: its line grows from nothing to its height while its words rise in, and the one closing folds the
+// same way (`Disclosure`). A closed item's words are inert and hidden from assistive technology; the server draws the
+// first item open, so the list reads complete with no script.
 
 import { useCallback, useEffect, useRef, useState, type ComponentType, type ReactNode, type RefObject } from "react";
 import type { Frame } from "@/components/site/demos/stage";
@@ -26,8 +31,22 @@ export const TOUR: readonly TourItem[] = [
   { key: "watch", icon: "bell", title: "Watch", body: "We keep checking certificates and forced-labour lists across your saved suppliers and tell you what changed.", href: "/product/compliance", screen: "watch" },
 ];
 
+/**
+ * An item's words under its title: a grid row that grows from 0 to its content's height (320 ms) while the words rise
+ * in, and folds back the same way. Closed, it is inert and hidden from assistive technology; reduced motion cuts.
+ */
+export function Disclosure({ id, open, className, children }: { id: string; open: boolean; className?: string; children: ReactNode }) {
+  return (
+    <div id={id} inert={!open} aria-hidden={!open} className={cn("grid transition-[grid-template-rows] duration-slow ease-out motion-reduce:transition-none", open ? "grid-rows-[1fr]" : "grid-rows-[0fr]")}>
+      <div className="min-h-0 overflow-hidden">
+        <div className={cn("transition-[opacity,transform] duration-slow ease-out motion-reduce:transition-none", open ? "translate-y-0 opacity-100" : "-translate-y-1.5 opacity-0", className)}>{children}</div>
+      </div>
+    </div>
+  );
+}
+
 /** The heading and the items; the open one shows its line, its link and a 2 px line of how far it has played. */
-export function TourList({ id, heading, items, active, onPick, bar, extra }: { id?: string; heading: ReactNode; items: readonly TourItem[]; active: number; onPick: (i: number) => void; bar: RefObject<HTMLSpanElement | null>; extra?: (item: TourItem) => ReactNode }) {
+export function TourList({ id, heading, items, active, onPick, bar }: { id?: string; heading: ReactNode; items: readonly TourItem[]; active: number; onPick: (i: number) => void; bar: RefObject<HTMLSpanElement | null> }) {
   return (
     <div className="flex flex-col gap-8">
       <h2 id={id} className="text-xl text-ink [text-wrap:balance] md:text-site-h3">
@@ -43,18 +62,17 @@ export function TourList({ id, heading, items, active, onPick, bar, extra }: { i
                 aria-expanded={on}
                 aria-controls={`tour-${t.key}`}
                 onClick={() => onPick(i)}
-                className={cn("flex min-h-14 w-full items-center gap-3 text-left text-site-title font-medium transition-colors", ring, on ? "text-ink" : "text-ink-2 hover:text-ink")}
+                className={cn("flex min-h-14 w-full items-center gap-3 text-left text-site-title font-medium transition-colors duration-slow", ring, on ? "text-ink" : "text-ink-2 hover:text-ink")}
               >
-                <HomeIcon name={t.icon} size={20} className={on ? "text-ink" : "text-ink-2"} />
+                <HomeIcon name={t.icon} size={20} className={cn("transition-colors duration-slow", on ? "text-ink" : "text-ink-2")} />
                 {t.title}
               </button>
-              <div id={`tour-${t.key}`} hidden={!on} className={cn("flex-col gap-3 pb-5 pl-8", on ? "flex" : "hidden")}>
+              <Disclosure id={`tour-${t.key}`} open={on} className="flex flex-col gap-3 pb-5 pl-8">
                 <p className="text-site-body text-ink-2">{t.body}</p>
-                {extra?.(t)}
                 <TextLink href={t.href} className="min-h-8 text-ink">
                   See how
                 </TextLink>
-              </div>
+              </Disclosure>
               {on ? <span ref={bar} aria-hidden className="absolute -bottom-px left-0 h-0.5 w-full origin-left scale-x-0 bg-ink" /> : null}
             </li>
           );

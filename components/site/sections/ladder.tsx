@@ -2,7 +2,9 @@
 // it never enters a record on its own (AGENTS.md rules 5 and 6). Since the founder's video 3 of 22 Oct 2026 ("a lot of
 // space wasted, visually empty, it looks thin") the ladder fills the width: the heading over it, not in an empty column
 // beside it, and six rungs that step down and in, each with its rank as a large figure, its name at heading size and
-// the marks at 48 px. The rungs stack in one after another as the ladder comes into view; nothing pins.
+// the marks at 48 px. The rungs stack in one after another as the ladder comes into view; nothing pins. Since his
+// recording of 22 Oct 13:17 tiers 4 and 5 carry tiles too: a buyer brand is never drawn as a logo and no regulator's
+// seal is approved (`context/logos.lock.md` §1, §3, §5), so each is its short name in our type, in the same frame.
 
 import { SourceMark, hasSourceMark } from "@/components/patterns/source-mark";
 import { cn } from "@/lib/utils";
@@ -10,14 +12,44 @@ import { TIERS } from "../sources";
 import { Reveal } from "./reveal";
 import { H2, Lede, TextLink, measure } from "./ui";
 
-/** The methodology page's tiers (`sources.ts`), so the two pages cannot list different sources; approved marks on tiers 1–3 (`context/logos.lock.md`: no mark, no render). */
-export const LADDER: { tier: string; name: string; what: string; marks: string[] }[] = [
-  ...TIERS.map((t) => ({ tier: `Tier ${t.n}`, name: t.label, what: t.ladder.split(", ").join(" · "), marks: t.n <= 3 ? t.sources.map((s) => s.code).filter(hasSourceMark) : [] })),
-  { tier: "Tier 6", name: "Cross-check only", what: "Never enters a record on its own", marks: [] },
+/** The short name a tier 4 or 5 source is set as in its tile (`context/logos.lock.md`: brands by name, never a logo). */
+export const NAME_TILES: Record<string, string> = {
+  BRAND_HM: "H&M",
+  BRAND_NEXT: "Next",
+  BRAND_MS: "M&S",
+  BRAND_ASOS: "ASOS",
+  BRAND_PRIMARK: "Primark",
+  UFLPA: "UFLPA",
+  OFAC: "OFAC",
+  UK_OFSI: "OFSI",
+  EU_SANC: "EU",
+  US_WRO: "WRO",
+  ILAB: "ILAB",
+};
+
+/** The methodology page's tiers (`sources.ts`), so the two pages cannot list different sources; approved marks on tiers 1–3, name tiles on 4 and 5 (`context/logos.lock.md`: no mark, no render). */
+export const LADDER: { tier: string; name: string; what: string; marks: string[]; names: string[] }[] = [
+  ...TIERS.map((t) => ({
+    tier: `Tier ${t.n}`,
+    name: t.label,
+    what: t.ladder.split(", ").join(" · "),
+    marks: t.n <= 3 ? t.sources.map((s) => s.code).filter(hasSourceMark) : [],
+    names: t.n >= 4 ? t.sources.map((s) => NAME_TILES[s.code]).filter((n): n is string => !!n) : [],
+  })),
+  { tier: "Tier 6", name: "Cross-check only", what: "Never enters a record on its own", marks: [], names: [] },
 ];
 
 /** Each rung steps in a little further than the one above it. */
 const STEP = ["lg:ml-0", "lg:ml-[5%]", "lg:ml-[10%]", "lg:ml-[15%]", "lg:ml-[20%]", "lg:ml-[25%]"];
+
+/** A source's short name in our type, framed like a mark (48 px tall). */
+function NameTile({ name }: { name: string }) {
+  return (
+    <span aria-hidden className="flex h-12 min-w-12 items-center justify-center rounded-md border border-ink-strong/10 bg-surface px-2.5 text-xs font-semibold tracking-tight text-ink-strong">
+      {name}
+    </span>
+  );
+}
 
 export function Ladder() {
   return (
@@ -36,6 +68,7 @@ export function Ladder() {
       <Reveal as="ol" className="flex min-w-0 flex-col gap-2.5">
         {LADDER.map((r, i) => {
           const quiet = i === LADDER.length - 1;
+          const tiles = r.marks.length || r.names.length;
           return (
             <li
               key={r.tier}
@@ -54,10 +87,13 @@ export function Ladder() {
                 <span className={cn("text-xl font-normal md:text-site-h3", quiet ? "text-ink-subtle" : "text-ink-strong")}>{r.name}</span>
                 <span className={cn("text-site-body md:text-site-lede", quiet ? "text-ink-subtle" : "text-ink-muted")}>{r.what}</span>
               </div>
-              {r.marks.length ? (
+              {tiles ? (
                 <span className="col-span-2 flex flex-wrap gap-2.5 sm:col-span-1 sm:justify-end">
                   {r.marks.map((m) => (
                     <SourceMark key={m} source={m} className="size-12 border-ink-strong/10 [&>img]:max-h-[32px] [&>img]:max-w-[32px]" />
+                  ))}
+                  {r.names.map((n) => (
+                    <NameTile key={n} name={n} />
                   ))}
                 </span>
               ) : null}

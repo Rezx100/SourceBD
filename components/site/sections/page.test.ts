@@ -107,10 +107,17 @@ describe("the home page", () => {
     assert.equal((out.match(/aria-controls="tour-[a-z]+"/g) ?? []).length, 4);
     const tour = out.slice(out.indexOf("Everything you do to vet a factory."), out.indexOf('aria-labelledby="home-brands"'));
     assert.equal((tour.match(/aria-expanded="true"/g) ?? []).length, 1, "one item open");
-    // The closed items' lines are hidden by class as well as by attribute: a display class would otherwise win.
-    const panels = [...out.matchAll(/<div id="tour-[a-z]+"( hidden="")? class="([^"]*)"/g)];
+    // An item's words open with motion (a grid row growing from nothing, founder's recording of 22 Oct 13:17): the
+    // closed ones are folded to nothing, inert and hidden from assistive technology; the open one is none of those.
+    const panels = [...out.matchAll(/<div id="tour-[a-z]+"([^>]*)>/g)].map((m) => m[1]!);
     assert.equal(panels.length, 4);
-    for (const [, hiddenAttr, cls = ""] of panels) assert.equal(cls.split(" ").includes("hidden"), hiddenAttr !== undefined, cls);
+    const closed = panels.filter((a) => / inert=""/.test(a));
+    assert.equal(closed.length, 3, "three closed");
+    for (const a of closed) assert.ok(/aria-hidden="true"/.test(a) && /grid-rows-\[0fr\]/.test(a), a);
+    const [openPanel] = panels.filter((a) => !/ inert=""/.test(a));
+    assert.ok(openPanel && /grid-rows-\[1fr\]/.test(openPanel) && !/aria-hidden="true"/.test(openPanel), openPanel);
+    // No pills under Find (his recording of 22 Oct 13:17): no common search is linked from the opening.
+    assert.doesNotMatch(tour, /aria-label="Common searches"|\/app\/discover\?/);
     for (const w of ["Find", "Check", "Ask", "Watch"]) assert.match(t, new RegExp(`\\b${w}\\b`));
     assert.match(out, /href="\/product\/search"[^>]*>See how/);
     // The tour's window holds the four recordings, each starting from its first frame.
@@ -118,17 +125,21 @@ describe("the home page", () => {
     assert.doesNotMatch(out, /<video[^>]*autoplay/i, "nothing plays until it is on screen");
   });
 
-  it("every picture of the product is the real app playing, with no pause button drawn, no hairline round it and nothing captioned under it (founder's video 3)", () => {
+  it("every picture of the product is the real app playing or held still, with no pause button drawn, no dark shadow and nothing captioned under it (founder's videos of 22 Oct)", () => {
     const out = page();
     const videos = out.match(/<video [^>]*>/g) ?? [];
-    assert.ok(videos.length >= 15, `${videos.length} videos`);
+    assert.ok(videos.length >= 12, `${videos.length} videos`);
     for (const v of videos) assert.match(v, /poster="\/site\/home\/(?:app|clip)-[a-z-]+\.webp"/, v);
+    // Buy with confidence holds three parts of the app still (his recording of 22 Oct 13:17), each from a capture.
+    const stills = out.match(/<img [^>]*src="\/site\/home\/still-[a-z-]+\.webp"[^>]*>/g) ?? [];
+    assert.equal(stills.length, 3, `${stills.length} stills`);
     // Each playing picture keeps its pause control for the keyboard (WCAG 2.2.2), drawn only when focused: the tour's,
-    // the showcase's open clip, the record's, the four moments' and the three confidence cards'.
+    // the showcase's open clip, the record's and the four moments'.
     const pauses = out.match(/<button type="button" aria-label="Pause video"[^>]*>/g) ?? [];
-    assert.ok(pauses.length >= 10, `${pauses.length} pause controls`);
+    assert.ok(pauses.length >= 7, `${pauses.length} pause controls`);
     for (const b of pauses) assert.match(b, /\bopacity-0\b[^"]*\bfocus-visible:opacity-100\b/, b);
     assert.doesNotMatch(out, /ring-ink\/10/, "no hairline round a picture of the app");
+    assert.doesNotMatch(out, /shadow-window/, "no dark drop shadow under a picture of the app (his recording of 22 Oct 13:17)");
     assert.doesNotMatch(out, /\/site\/home\/crop-/, "no still cut of a recording is left");
     assert.doesNotMatch(text(out), /Real records as read|Example company, not a real supplier/);
   });
@@ -139,7 +150,7 @@ describe("the home page", () => {
     const out = page();
     const starts = [...out.matchAll(/<section [^>]*aria-labelledby="([^"]+)"/g)].map((m) => ({ at: m.index, id: m[1]! }));
     const where = new Map<string, Set<string>>();
-    for (const m of out.matchAll(/poster="\/site\/home\/((?:app|clip)-[a-z-]+)\.webp"/g)) {
+    for (const m of out.matchAll(/(?:poster|src)="\/site\/home\/((?:app|clip|still)-[a-z-]+)\.webp"/g)) {
       const file = m[1]!;
       const moment = LEDGER[file];
       assert.ok(moment, `${file} is not in the ledger`);
@@ -203,18 +214,19 @@ describe("the home page", () => {
     assert.match(grid, /lg:grid-cols-4/);
   });
 
-  it("the first paint waits for no slow read: the chips' counts and the three records stream in (critique 22 Oct, S9)", () => {
+  it("the first paint waits for no slow read: the three records stream in, and no chip count is read (critique 22 Oct, S9; founder's recording of 22 Oct 13:17)", () => {
     const route = readFileSync(join(process.cwd(), "app/(home)/page.tsx"), "utf8");
-    assert.match(route, /<Suspense fallback=\{<Chips chips=\{chipsOf\(\)\} pending className="md:justify-start" \/>\}>/);
+    assert.match(route, /<Suspense fallback=\{null\}>\s*<LiveRecords/);
+    assert.doesNotMatch(route, /Chips|chipsOf|loadChips/);
     const body = route.slice(route.indexOf("export default async function HomePage"));
     assert.ok(body.length < route.length, "the page function");
-    assert.doesNotMatch(body, /loadChips|await loadHomeRecords|await Promise\.all/);
+    assert.doesNotMatch(body, /await loadHomeRecords|await Promise\.all/);
   });
 
-  it("the streamed parts land in their own places: the chips in the tour's Find, the three cards after the record", () => {
+  it("the streamed records land in their place: after the record, before the four moments", () => {
     const mark = (id: string) => createElement("p", { "data-slot": id }, id);
-    const t = text(draw(createElement(HomeMercury, { facts: LIVE, slots: { chips: mark("chips-slot"), records: mark("records-slot") } })));
-    const order = ["on the record.", "Everything you do to vet a factory.", "chips-slot", "Vetting used to be a chase.", "Inside one record.", "records-slot", "Four moments from a day's sourcing."];
+    const t = text(draw(createElement(HomeMercury, { facts: LIVE, slots: { records: mark("records-slot") } })));
+    const order = ["on the record.", "Everything you do to vet a factory.", "Vetting used to be a chase.", "Inside one record.", "records-slot", "Four moments from a day's sourcing."];
     let at = -1;
     for (const s of order) {
       const i = t.indexOf(s, at + 1);
@@ -266,7 +278,7 @@ describe("the home page", () => {
 });
 
 const CARD = { slug: "aboni-knitwear", name: "Aboni Knitwear Ltd", meta: "Factory · Dhaka · 3,314 workers filed · 8 sources", marks: ["EPB", "WRAP"], facts: [{ icon: "rosette" as const, title: "WRAP 7865 · valid to 25 Aug 2027", sub: "WRAP register · read 8 Oct 2026" }] };
-const live = (over: Partial<Parameters<typeof HomeMercury>[0]> = {}) => draw(createElement(HomeMercury, { facts: LIVE, cards: [CARD], chips: [{ key: "a", title: "GOTS-certified knitwear", href: "/app/discover?hs=6109", count: 205 }, { key: "b", title: "Buying houses in Dhaka", href: "/app/discover?entity=buying_house", count: null }], ...over }));
+const live = (over: Partial<Parameters<typeof HomeMercury>[0]> = {}) => draw(createElement(HomeMercury, { facts: LIVE, cards: [CARD], ...over }));
 
 describe("the live sections", () => {
   it("the figures are the site's facts, the two true-by-definition ones always, and a figure not read is left out", () => {
@@ -279,39 +291,36 @@ describe("the live sections", () => {
     assert.match(bare, /0 scores, grades or stars on any supplier/);
   });
 
-  it("the tour's Find offers five common searches, not nine (critique 22 Oct, S8)", () => {
+  it("the common searches stay off the home page (founder's recording of 22 Oct 13:17: no pills)", () => {
     // eslint-disable-next-line @typescript-eslint/no-require-imports -- loaded after the test build exists.
     const { chipsOf } = require("@/components/site/sections/chips") as typeof import("@/components/site/sections/chips");
-    assert.equal(chipsOf().length, 5);
-    assert.ok(chipsOf().every((c) => c.count === null), "with no counts read, none is drawn");
+    assert.equal(chipsOf().length, 5, "Discover still offers five");
+    assert.doesNotMatch(live(), /aria-label="Common searches"|\/app\/discover\?/);
   });
 
-  it("a chip shows its count only when the count was read, and links to its search", () => {
-    const out = live();
-    assert.match(out, /href="\/app\/discover\?hs=6109"[^>]*>.*?GOTS-certified knitwear<\/span><span[^>]*>205<\/span>/);
-    assert.match(out, /Buying houses in Dhaka<\/span><\/a>/);
-    assert.doesNotMatch(text(live({ chips: [] })), /GOTS-certified knitwear/);
-  });
-
-  it("the real records say a fact large and leave its small source line to the record; with none read, the section is not drawn", () => {
+  it("the real records are a plain strip under the page: name, line, the one fact, Open the record; no card, no mark, no icon; with none read, the section is not drawn", () => {
     const out = live();
     const t = text(out);
     assert.match(t, /Real records, not reviews\./);
     assert.match(t, /WRAP 7865 · valid to 25 Aug 2027/);
     assert.doesNotMatch(t, /WRAP register · read 8 Oct 2026/);
     assert.match(out, /href="\/suppliers\/aboni-knitwear"[^>]*>(?:<[^>]+>)*Aboni Knitwear Ltd</);
+    const strip = /<ol class="grid border-t border-line[^"]*">[\s\S]*?<\/ol>/.exec(out.slice(out.indexOf('aria-labelledby="home-records"')))![0];
+    assert.doesNotMatch(strip, /<img|rounded-card|shadow-/, "no mark, no card");
+    assert.equal((strip.match(/<svg /g) ?? []).length, 1, "the one arrow of the one record given, nothing else drawn");
+    assert.match(strip, /Open the record/);
     const none = text(live({ cards: [] }));
     assert.doesNotMatch(none, /Real records, not reviews/);
     assert.match(none, /Inside one record\./, "the recorded record still stands");
   });
 
-  it("Buy with confidence: three cards, each the real app (no stand-in photograph), and the data line, no tabs that shift the page", () => {
+  it("Buy with confidence: three cards, each one panel of the real app held still (no stand-in photograph, no video), and the data line, no tabs that shift the page", () => {
     const out = live();
     assert.equal((out.match(/role="tab"/g) ?? []).length, 0);
     const cards = /<section data-tone="dark" aria-labelledby="home-confidence"[\s\S]*?<\/section>/.exec(out)![0];
     for (const s of ["Forced-labour lists, checked for you.", "Contacts stay locked until they are given."]) assert.match(text(cards), new RegExp(s));
-    for (const s of ["sanctions", "uflpa", "locked"]) assert.match(cards, new RegExp(`poster="/site/home/clip-${s}\\.webp"`), s);
-    assert.doesNotMatch(cards, /(?:seal|loupe|lock)-1200/);
+    for (const s of ["sanctions", "uflpa", "locked"]) assert.match(cards, new RegExp(`src="/site/home/still-${s}\\.webp"`), s);
+    assert.doesNotMatch(cards, /<video|(?:seal|loupe|lock)-1200/);
     assert.match(out, /href="\/security"/);
   });
 
