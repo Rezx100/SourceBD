@@ -80,8 +80,15 @@ describe("the public Discover page: the start", () => {
   it("is a label, one h1, a line and a GET search box that submits q to /discover, and reads nothing without a query", async () => {
     const out = await visit();
     assert.equal((out.match(/<h1\b/g) ?? []).length, 1);
-    assert.match(out, /<h1[^>]*>Find a verified factory<\/h1>/);
-    assert.match(text(out), /Discover Find a verified factory Search by certification, product, or district\./);
+    // The site's hero (critique 22 Oct): a full stop, centred, Search drawn secondary; before a query, the common searches.
+    assert.match(out, /<h1[^>]*>Find a verified factory\.<\/h1>/);
+    assert.match(text(out), /Discover Find a verified factory\. Search by certification, product, or district\./);
+    assert.match(out, /aria-labelledby="discover-common"/);
+    assert.match(text(out), /Common searches/);
+    // The nine searches the app offers, each a link, named once by the heading.
+    for (const t of ["GOTS-certified knitwear", "Lingerie and intimates", "Buying houses in Dhaka"]) assert.ok(text(out).includes(t), t);
+    assert.doesNotMatch(out, /aria-label="Common searches"/);
+    assert.match(out, /<button type="submit" class="[^"]*border-line-strong[^"]*"/, "Search is the secondary button");
     assert.match(out, /<form[^>]*method="get"[^>]*action="\/discover"[^>]*role="search"|<form[^>]*role="search"[^>]*>/);
     assert.match(out, /<form[^>]*action="\/discover"/);
     assert.match(out, /<input[^>]*type="search"[^>]*name="q"/);

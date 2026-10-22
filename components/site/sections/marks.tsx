@@ -1,6 +1,7 @@
-// 5 · Source marks strip (Paper `1EW0-0` / `1F7O-0`): the registers we read, each framed with its code under it.
-// Only codes with a row in context/logos.lock.md; BEPZA and DIFE are listed there but hold no records, so they
-// are not on the strip.
+// 5 · Source marks strip (Paper `1EW0-0` / `1F7O-0`): the registers we read, each in its 32 px frame with its code under
+// it, loaded with the page (critique 22 Oct: lazy marks left nine empty boxes for seconds). The frame stays: it is what
+// says the mark is an outside authority's (context/logos.lock.md §1), so the critique's "drop the boxes" is not taken.
+// Only codes with a row in the lock; BEPZA and DIFE are listed there but hold no records, so they are not on the strip.
 
 import { cn } from "@/lib/utils";
 import { Reveal } from "./reveal";
@@ -19,8 +20,8 @@ export function MarksStrip() {
         <Reveal as="ul" className="grid grid-cols-3 gap-x-6 gap-y-7 sm:flex sm:flex-wrap sm:justify-center sm:gap-9">
           {STRIP.map((c, i) => (
             <li key={c} style={{ transitionDelay: `${i * 40}ms` }} className="flex w-16 flex-col items-center gap-2.5 transition-opacity duration-slow motion-reduce:transition-none group-data-[reveal=wait]/reveal:opacity-0">
-              <Mark code={c} large />
-              <span className="font-mono text-xs text-ink-subtle">{c}</span>
+              <Mark code={c} large lazy={false} />
+              <span className="text-xs font-medium text-ink-subtle">{c}</span>
             </li>
           ))}
         </Reveal>

@@ -18,20 +18,20 @@ export type Chip = { key: string; title: string; href: string; count: number | n
 /** The searches the hero offers. */
 const HERO = SEARCH_TEMPLATES.slice(0, 5);
 
-/** The hero's five with their counts from `counts`, or null where none was read: with no counts, the chips the first paint draws. */
-export function chipsOf(counts: Record<string, number | null> = {}): Chip[] {
-  return HERO.map((t) => ({ key: t.key, title: t.title, href: discoverHref(t.state), count: counts[t.key] ?? null }));
+/** The searches with their counts from `counts` (the hero's five unless `templates` names others), null where none was read: with no counts, the chips the first paint draws. */
+export function chipsOf(counts: Record<string, number | null> = {}, templates: typeof SEARCH_TEMPLATES = HERO): Chip[] {
+  return templates.map((t) => ({ key: t.key, title: t.title, href: discoverHref(t.state), count: counts[t.key] ?? null }));
 }
 
-/** The hero's five with their counts, or null for a count that was not read in time. Never throws. */
-export async function loadChips(): Promise<Chip[]> {
-  return chipsOf(await readTemplateCounts(HERO).catch((): Record<string, number | null> => ({})));
+/** The searches with their counts (the hero's five unless `templates` names others), or null for a count not read in time. Never throws. */
+export async function loadChips(templates: typeof SEARCH_TEMPLATES = HERO): Promise<Chip[]> {
+  return chipsOf(await readTemplateCounts(templates).catch((): Record<string, number | null> => ({})), templates);
 }
 
 /** `pending`: the counts are still being read, so each chip keeps a count's room and the strip does not grow when they land. */
-export function Chips({ chips, pending = false }: { chips: Chip[]; pending?: boolean }) {
+export function Chips({ chips, pending = false, labelledBy }: { chips: Chip[]; pending?: boolean; /** A heading that names the list, in place of its own label. */ labelledBy?: string }) {
   return (
-    <ul aria-label="Common searches" className="flex w-full max-w-[900px] gap-2 pt-1 max-md:-mx-5 max-md:w-[calc(100%+40px)] max-md:overflow-x-auto max-md:px-5 max-md:[mask-image:linear-gradient(to_right,black_calc(100%_-_24px),transparent)] max-md:after:w-5 max-md:after:shrink-0 max-md:after:content-[''] md:flex-wrap md:justify-center md:pt-3">
+    <ul aria-label={labelledBy ? undefined : "Common searches"} aria-labelledby={labelledBy} className="flex w-full max-w-[900px] gap-2 pt-1 max-md:-mx-5 max-md:w-[calc(100%+40px)] max-md:overflow-x-auto max-md:px-5 max-md:[mask-image:linear-gradient(to_right,black_calc(100%_-_24px),transparent)] max-md:after:w-5 max-md:after:shrink-0 max-md:after:content-[''] md:flex-wrap md:justify-center md:pt-3">
       {chips.map((c) => (
         <li key={c.key} className="shrink-0">
           <Link href={c.href} prefetch={false} className={cn("flex h-[34px] items-center max-md:h-11 gap-2 rounded-full border border-line bg-surface px-3.5 hover:border-line-strong", ring)}>

@@ -1,4 +1,6 @@
 // Book a demo (B9e; Paper `30 Marketing · Contact sales`): what we can cover, beside the form that emails the founder.
+// The headline runs across the top; the form's card starts level with "What we can cover", under it (critique 22 Oct:
+// the card's edge ran from above the headline).
 
 import { ContactForm } from "@/components/site/contact-form";
 import { Display, Label, Lede, measure } from "@/components/site/sections/ui";
@@ -16,26 +18,24 @@ export function Contact() {
   return (
     <main className="font-sans text-ink">
       <section className="pb-14 pt-10 md:pb-section md:pt-24">
+        <div className={cn(measure, "flex flex-col gap-6 pb-10 md:pb-14")}>
+          <Label>Company · Book a demo</Label>
+          <Display level={1} as="h1">
+            Book a demo or ask a question.
+          </Display>
+          <Lede>Tell us what you buy. Your message goes to the founder by email.</Lede>
+        </div>
         <div className={cn(measure, "grid gap-16 lg:grid-cols-[1fr_minmax(0,520px)] max-lg:gap-10")}>
-          <div className="flex flex-col gap-10">
-            <div className="flex flex-col gap-6">
-              <Label>Company · Book a demo</Label>
-              <Display level={1} as="h1">
-                Book a demo or ask a question.
-              </Display>
-              <Lede>Tell us what you buy. Your message goes to the founder by email.</Lede>
-            </div>
-            <div className="flex flex-col gap-4">
-              <p className="text-site-body font-medium text-ink-subtle">What we can cover</p>
-              <dl className="flex flex-col gap-5">
-                {COVER.map(([t, b]) => (
-                  <div key={t} className="flex flex-col gap-1 border-t border-ink pt-3">
-                    <dt className="text-lg font-semibold text-ink">{t}</dt>
-                    <dd className="text-md text-ink-2">{b}</dd>
-                  </div>
-                ))}
-              </dl>
-            </div>
+          <div className="flex flex-col gap-4">
+            <p className="text-site-body font-medium text-ink-subtle">What we can cover</p>
+            <dl className="flex flex-col gap-5">
+              {COVER.map(([t, b]) => (
+                <div key={t} className="flex flex-col gap-1 border-t border-ink pt-3">
+                  <dt className="text-lg font-semibold text-ink">{t}</dt>
+                  <dd className="text-md text-ink-2">{b}</dd>
+                </div>
+              ))}
+            </dl>
           </div>
           <div className="flex flex-col gap-6 rounded-lg border border-line bg-surface p-8 max-sm:p-5">
             <h2 className="text-xl font-semibold text-ink">Your message</h2>

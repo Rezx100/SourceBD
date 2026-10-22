@@ -1,8 +1,8 @@
 // The two solutions pages (M4, handoff-mercury-m4-onward.md §4.2): the words of `PAGES["solutions/*"]`, pinned by
 // `pages.test.ts`, in the home page's frame. Each hero plays the demo of what the team does first (the Ask: three
 // picked from a search, one RFQ; the Watch: the saved suppliers checked), then a pinned tour of three product demos for
-// that team on the night ground, then its rows, each with its demo (critique 22 Oct: no 3 Oct screenshot), its
-// outcome, three products chosen for the team, and the close.
+// that team on the night ground, then its rows, each with its demo (critique 22 Oct: no 3 Oct screenshot), three
+// products chosen for the team, and the close, whose line is the team's outcome.
 
 import type { ReactNode } from "react";
 import { DemoCompliance, DemoFilters, DemoQuotes, DemoRecord, DemoRfq, DemoStatement } from "@/components/site/demos";
@@ -10,8 +10,7 @@ import { ToneShift } from "@/components/site/motion";
 import { PAGES, type Page } from "@/components/site/pages";
 import { Closing } from "@/components/site/sections/closing";
 import { CrossSell } from "@/components/site/sections/cross-sell";
-import { Display, FeatureRow, HeroActions, HeroCentered, Label, Section, measure } from "@/components/site/sections/ui";
-import { cn } from "@/lib/utils";
+import { FeatureRow, HeroActions, HeroCentered, Section } from "@/components/site/sections/ui";
 import { ComplianceTour, SourcingTour } from "./solutions-tours";
 
 export const SOURCING_KEY = "solutions/sourcing";
@@ -42,21 +41,12 @@ function SolutionsPage({ p, hero, media, tour, products }: { p: Page; hero: Reac
             </Section>
           );
         })}
-        {p.outcome ? (
-          <section className="py-14 md:py-section">
-            <div className={cn(measure, "flex flex-col items-center gap-4 text-center")}>
-              <Label>The outcome</Label>
-              <Display as="h2" className="max-w-[880px] font-light">
-                {p.outcome}
-              </Display>
-            </div>
-          </section>
-        ) : null}
       </div>
 
       <div data-tone="dark">
         <CrossSell only={products} />
-        <Closing headline={p.close} lede="Free during beta. No card needed." />
+        {/* The outcome is the close's own line (critique 22 Oct: a kicker over one line, on a page that already closes). */}
+        <Closing headline={p.close} lede={`${p.outcome ? `${p.outcome} ` : ""}Free during beta. No card needed.`} />
       </div>
     </ToneShift>
   );

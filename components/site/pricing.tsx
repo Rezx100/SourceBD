@@ -64,7 +64,7 @@ const FAQ = [
 
 function Plan({ name, tag, headline, lede, cta, listLabel, items, className }: { name: string; tag: string; headline: string; lede: string; cta: ReactNode; listLabel: string; items: string[]; className?: string }) {
   return (
-    <article className={cn("flex flex-col gap-6 rounded-card border border-line bg-surface p-8 max-sm:p-5", className)}>
+    <article className={cn("flex flex-col gap-6 rounded-frame border border-line-strong bg-surface p-8 shadow-sm max-sm:p-5", className)}>
       <div className="flex flex-col gap-2">
         <h3 className="text-lg font-semibold text-ink">{name}</h3>
         <p className="text-sm text-ink-3">{tag}</p>
@@ -93,11 +93,12 @@ export function Pricing({ facts }: { facts: SiteFacts }) {
   const beta = BETA.map((b) => (count ? b.replace("{n}", count) : b.replace("Search {n} suppliers", "Search suppliers")));
   return (
     <main className="font-sans text-ink">
-      <HeroCentered label="Pricing" title="Free during beta." lede="Everything in SourceBD is free while we are in beta. No card needed.">
+      {/* The plans follow the hero at once: no empty band of paper between them (critique 22 Oct). */}
+      <HeroCentered label="Pricing" title="Free during beta." lede="Everything in SourceBD is free while we are in beta. No card needed." className="pb-10 md:pb-16">
         <HeroActions center />
       </HeroCentered>
 
-      <section aria-labelledby="plans" className="bg-surface py-14 md:py-section">
+      <section aria-labelledby="plans">
         <div className={cn(measure, "flex flex-col gap-8")}>
           <div className="flex flex-col gap-2">
             <h2 id="plans" className="text-site-body font-medium text-ink-subtle">

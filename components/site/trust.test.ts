@@ -150,6 +150,17 @@ describe("the About page", () => {
     assert.doesNotMatch(text(about(NO_FACTS)), /latest register read/);
   });
 
+  it("says who runs SourceBD only from what the site already says, and ends on the closing band (critique 22 Oct)", () => {
+    const t = text(about());
+    assert.match(t, /Who runs SourceBD\./);
+    assert.match(t, /goes to the founder by email/);
+    assert.match(t, /We do not manufacture goods, and we are not a broker or buying agent\./);
+    assert.match(t, /governed by the laws of England and Wales/);
+    assert.match(t, /our UK ICO registration is pending/);
+    assert.match(t, /AWS region us-west-1/);
+    assert.match(about(), /aria-labelledby="site-close"/);
+  });
+
   it("prints no supplier count when none was read", () => {
     assert.doesNotMatch(text(about(NO_FACTS)), /\d,\d{3} suppliers by name/);
   });

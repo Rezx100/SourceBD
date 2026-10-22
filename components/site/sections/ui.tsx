@@ -103,9 +103,9 @@ export function HeroActions({ search = false, center = false }: { search?: boole
 }
 
 /** Every inner page's first section: label, a light headline of 56 at most, the lede and what follows, centred. */
-export function HeroCentered({ label, title, lede, children, stage }: { label?: ReactNode; title: ReactNode; lede?: ReactNode; children?: ReactNode; stage?: ReactNode }) {
+export function HeroCentered({ label, title, lede, children, stage, className }: { label?: ReactNode; title: ReactNode; lede?: ReactNode; children?: ReactNode; stage?: ReactNode; className?: string }) {
   return (
-    <section className="pb-14 pt-10 md:pb-section md:pt-24">
+    <section className={cn("pb-14 pt-10 md:pb-section md:pt-24", className)}>
       <div className={cn(measure, "flex flex-col items-center gap-6 text-center md:gap-7")}>
         {label ? <Label>{label}</Label> : null}
         <Display level={1} as="h1" className="max-w-[880px]">
