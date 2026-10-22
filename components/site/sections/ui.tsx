@@ -20,10 +20,10 @@ export const ring = "outline-none focus-visible:outline focus-visible:outline-2 
 /** A link in running text: ink, underlined. */
 export const inkLink = cn("font-medium text-ink-strong underline decoration-1 underline-offset-4 hover:decoration-2", ring);
 
-/** The wordmark: the one green word on the site besides the main button. */
+/** The wordmark: the one green word on the site besides the main button; on the night ground (the footer, the bar over a dark section) its green is the night set's, so it still reads. */
 export function Wordmark({ className }: { className?: string }) {
   return (
-    <Link href="/" className={cn("w-fit text-xl font-semibold tracking-tight text-brand", ring, className)}>
+    <Link href="/" className={cn("w-fit text-xl font-semibold tracking-tight text-brand-ink", ring, className)}>
       SourceBD
     </Link>
   );

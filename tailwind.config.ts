@@ -119,7 +119,7 @@ const config: Config = {
         "ds-scrim-in": { from: { opacity: "0" }, to: { opacity: "0.32" } },
         "ds-pending": { from: { transform: "translateX(-100%)" }, to: { transform: "translateX(300%)" } },
         // Marketing (`motion` in the token file): a block rising into view, and a tab's content swapping.
-        "mk-reveal": { from: { opacity: "0", transform: `translateY(${motion.risePx}px)` }, to: { opacity: "1", transform: "none" } },
+        "mk-reveal": { from: { opacity: "0", transform: `translateY(${motion.risePx}px)`, filter: `blur(${motion.revealBlurPx}px)` }, to: { opacity: "1", transform: "none", filter: "blur(0)" } },
         "mk-swap-out": { from: { opacity: "1", filter: "blur(0)" }, to: { opacity: "0", filter: `blur(${motion.swapBlurPx}px)` } },
         "mk-click": { from: { opacity: "1", transform: "scale(0.4)" }, to: { opacity: "0", transform: "scale(1.4)" } },
         "mk-swap-in": { from: { opacity: "0", transform: `translateY(${motion.swapRisePx}px)` }, to: { opacity: "1", transform: "none" } },

@@ -45,7 +45,7 @@ function routeExists(href: string, dir = join(process.cwd(), "app"), segs = href
 
 
 describe("the home page", () => {
-  it("opens with one line of headline, the live published count and the two ways in, and no small print under the form", () => {
+  it("opens with one line of headline, the live published count and one way in, centred, and no small print under the form", () => {
     const out = page();
     assert.match(out, /<h1[^>]*>Bangladesh sourcing, on the record\.<\/h1>/);
     assert.match(text(out), /Search 10,278 verified garment suppliers\. Every fact on a record names the public register it came from and the day we read it\./);
@@ -54,7 +54,10 @@ describe("the home page", () => {
     const signup = /<form [^>]*action="\/signup"[^>]*>([\s\S]*?)<\/form>/.exec(out)![1]!;
     assert.match(signup, /type="email"/);
     assert.doesNotMatch(signup, /<(input|select|textarea)[^>]*name=/);
-    assert.match(out, /href="\/suppliers\/aboni-knitwear"[^>]*>See a real record/);
+    // The form is the one call to action over the laptop (his review of 22 Oct 14:18): the field and Start free, centred, no link beside them.
+    assert.doesNotMatch(signup, /<a /);
+    assert.doesNotMatch(out, />See a real record</);
+    assert.match(/<form [^>]*action="\/signup"[^>]*>/.exec(out)![0], /md:justify-center/);
     assert.doesNotMatch(text(out), /Search is free\. No card needed\./);
   });
 

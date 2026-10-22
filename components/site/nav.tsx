@@ -7,8 +7,11 @@
 // wordmark, Start free and a Menu button that opens every link in a sheet.
 //
 // The bar sticks to the top of the window. On the home page (`over`), after mercury.com's and the founder's recording
-// of 22 Oct 2026 13:17, it starts clear over the studio photograph, with no ground and no line under it, and takes a
-// frosted ground the moment the page scrolls; everywhere else it has its ground from the first paint.
+// of 22 Oct 2026 13:17 and his review of 14:18, it starts as glass over the studio photograph, with no ground and no
+// line under it, and once the page scrolls it takes the ground of the section under it: the night set while a dark
+// section (the opening's scene, the brands, Buy with confidence) is under the bar, the paper's white over the rest,
+// each fading into the other in a moment. Never a white bar over the dark scene. Phones keep the solid bar; everywhere
+// else it has its ground from the first paint.
 
 import { CaretDown, List } from "@phosphor-icons/react";
 import Link from "next/link";
@@ -56,8 +59,10 @@ function Panel({ menu }: { menu: Menu }) {
 export function SiteNav({ over = false }: { /** The home page: the bar floats clear over the opening until the page scrolls. */ over?: boolean }) {
   const [open, setOpen] = useState<Menu | null>(null);
   const [sheet, setSheet] = useState(false);
-  const [atTop, setAtTop] = useState(true);
+  // What is under the bar: the page's top (the bar is glass over the studio), a dark section (the night set) or paper.
+  const [under, setUnder] = useState<"top" | "night" | "paper">(over ? "top" : "paper");
   const path = usePathname();
+  const head = useRef<HTMLElement>(null);
   const bar = useRef<HTMLElement>(null);
   const triggers = useRef<Partial<Record<Menu, HTMLButtonElement | null>>>({});
 
@@ -67,17 +72,45 @@ export function SiteNav({ over = false }: { /** The home page: the bar floats cl
     setSheet(false);
   }, [path]);
 
-  // Over the opening: clear while the page sits at its top, frosted once it has scrolled a little.
+  // Over the opening: glass while the page sits at its top; once it has scrolled a little, the ground of the section
+  // whose bounds hold the bar's lower edge (night for a dark one, from 1024 up; phones keep the solid bar).
   useEffect(() => {
     if (!over) return;
-    const read = () => setAtTop(scrollY < 16);
+    const wide = matchMedia("(min-width: 1024px)");
+    let raf = 0;
+    const read = () => {
+      raf = 0;
+      let next: "top" | "night" | "paper" = scrollY < 16 ? "top" : "paper";
+      if (next === "paper" && wide.matches) {
+        const edge = head.current?.offsetHeight ?? 0;
+        for (const s of document.querySelectorAll('main [data-tone="dark"]')) {
+          const r = s.getBoundingClientRect();
+          if (r.top <= edge && r.bottom > edge) {
+            next = "night";
+            break;
+          }
+        }
+      }
+      setUnder(next);
+    };
+    const onScroll = () => {
+      if (!raf) raf = requestAnimationFrame(read);
+    };
     read();
-    addEventListener("scroll", read, { passive: true });
-    return () => removeEventListener("scroll", read);
+    addEventListener("scroll", onScroll, { passive: true });
+    addEventListener("resize", onScroll);
+    wide.addEventListener("change", onScroll);
+    return () => {
+      cancelAnimationFrame(raf);
+      removeEventListener("scroll", onScroll);
+      removeEventListener("resize", onScroll);
+      wide.removeEventListener("change", onScroll);
+    };
   }, [over]);
 
   // A menu open over the photograph needs the ground too, so its panel reads.
-  const clear = over && atTop && !open;
+  const clear = under === "top" && !open;
+  const night = under === "night";
 
   useEffect(() => {
     if (!open) return;
@@ -99,7 +132,14 @@ export function SiteNav({ over = false }: { /** The home page: the bar floats cl
   }, [open]);
 
   return (
-    <header className={cn("sticky top-0 z-raised border-b font-sans transition-[background-color,border-color] duration-slow motion-reduce:transition-none", clear ? "border-transparent bg-transparent" : "border-line bg-surface/90 backdrop-blur-md supports-[backdrop-filter]:bg-surface/80")}>
+    <header
+      ref={head}
+      data-ground={night ? "night" : undefined}
+      className={cn(
+        "sticky top-0 z-raised border-b font-sans backdrop-blur-md transition-[background-color,border-color,color] duration-slow motion-reduce:transition-none [&_a]:transition-colors [&_button]:transition-colors",
+        clear ? "border-transparent bg-transparent" : "border-line bg-surface/90 supports-[backdrop-filter]:bg-surface/80",
+      )}
+    >
       <nav ref={bar} aria-label="Main" className="relative" onMouseLeave={() => setOpen(null)}>
         <div className={cn(measure, "flex h-[72px] items-center justify-between")}>
           <div className="flex items-center gap-12">

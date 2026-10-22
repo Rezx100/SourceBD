@@ -574,6 +574,7 @@ export const transitionTimingFunction = {
 export const motion = {
   revealMs: 700,
   risePx: 24,
+  revealBlurPx: 8, // a block coming in from a soft blur to sharp, as glass clearing (the founder's review of 22 Oct 2026, after mercury.com)
   staggerMs: 70,
   swapOutMs: 200,
   swapInMs: 320,

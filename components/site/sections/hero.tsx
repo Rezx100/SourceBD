@@ -1,16 +1,15 @@
 // The home page's hero copy, drawn over the studio photograph by `Opening` (opening.tsx). The lede carries the live
 // published count when it was read and says the same thing without a number when it was not. The email field hands its
-// address to sign-up in this tab's storage, never the URL; the record link opens Aboni Knitwear's public record. Since
-// the founder's videos of 22 Oct 2026: one line of headline from 1024 up, no small print under the form (the closing
-// band says free and no card), and the common searches open the tour's Find.
+// address to sign-up in this tab's storage, never the URL. Since the founder's videos of 22 Oct 2026: one line of
+// headline from 1024 up, no small print under the form (the closing band says free and no card); since his review of
+// 22 Oct 14:18 the form is the one call to action, centred over the laptop, with no link beside it to throw the
+// composition off (the real records have their own section).
 
 import { buttonClass } from "@/components/kit/button-class";
 import { withCommas } from "@/lib/site-facts";
 import { cn } from "@/lib/utils";
 import { HeroEmailForm } from "./hero-email";
-import { TextLink, measure } from "./ui";
-
-export const RECORD_HREF = "/suppliers/aboni-knitwear";
+import { measure } from "./ui";
 
 export function heroLede(suppliers: number | null): string {
   return suppliers !== null
@@ -32,7 +31,7 @@ export function HeroCopy({ suppliers }: { suppliers: number | null }) {
         Bangladesh sourcing, on the record.
       </h1>
       <p className="max-w-[340px] text-md text-ink-muted md:max-w-[600px] md:text-site-lede">{heroLede(suppliers)}</p>
-      <HeroEmailForm className="flex w-full max-w-[350px] flex-col gap-2.5 pt-1 md:w-auto md:max-w-none md:flex-row md:items-center">
+      <HeroEmailForm className="flex w-full max-w-[350px] flex-col gap-2.5 pt-1 md:w-auto md:max-w-none md:flex-row md:items-center md:justify-center">
         <label htmlFor="home-email" className="sr-only">
           Work email
         </label>
@@ -46,9 +45,6 @@ export function HeroCopy({ suppliers }: { suppliers: number | null }) {
         <button type="submit" className={buttonClass({ kind: "primary", size: "lg", className: "h-12 rounded-frame px-[22px] text-site-body" })}>
           Start free
         </button>
-        <TextLink href={RECORD_HREF} className="h-12 justify-center px-3.5">
-          See a real record
-        </TextLink>
       </HeroEmailForm>
     </div>
   );

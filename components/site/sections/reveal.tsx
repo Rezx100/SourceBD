@@ -4,7 +4,9 @@
 // comes into view. The server's HTML is the end state, so with no script, under reduced motion, or for anything
 // already on screen when the page opens, nothing moves and nothing is ever hidden. Only an element still below the
 // fold is held back (`data-reveal="wait"`) until it scrolls in; its children style themselves with the
-// `group-data-[reveal=wait]/reveal:` variant.
+// `group-data-[reveal=wait]/reveal:` variant, and the block itself comes in from a soft blur to sharp, as glass
+// clearing (mercury.com's sections; the founder's review of 22 Oct 14:18). Reduced motion stills every transition
+// (app/ds.css), so the blur never shows there.
 
 import { useEffect, useRef, useState, type ReactNode, type Ref } from "react";
 import { cn } from "@/lib/utils";
@@ -37,7 +39,7 @@ export function Reveal({ children, className, as: As = "div" }: { children: Reac
     return stop || undefined;
   }, []);
   return (
-    <As ref={ref as Ref<never>} data-reveal={state} className={cn("group/reveal", className)}>
+    <As ref={ref as Ref<never>} data-reveal={state} className={cn("group/reveal transition-[filter] duration-reveal ease-reveal motion-reduce:transition-none data-[reveal=wait]:blur", className)}>
       {children}
     </As>
   );

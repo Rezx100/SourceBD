@@ -22,6 +22,9 @@ export const SCREENS = {
 
 export type ScreenName = keyof typeof SCREENS;
 
+/** The file a screen plays from (`/site/home/<file>.webm|mp4`, its first frame `<file>.webp`). */
+export const screenFile = (name: ScreenName): string => `app-${name}`;
+
 /**
  * The ledger of app moments (founder's video 3: "do not repeat any dashboard image"): every video the home page plays,
  * by file, and the one moment of the app it shows. `sections/page.test.ts` fails when two sections show one moment.
@@ -106,8 +109,10 @@ function usePlayback(video: RefObject<HTMLVideoElement | null>, on: boolean, bar
  * `active` says it is the one showing (a list stacks several and crossfades, so the place is never empty); `onEnded`
  * lets the list move on, and it loops without it. `delay` holds its start (ms) the first time it comes into view, so a
  * grid of them does not move all at once. `playing` is the visitor's pause; `bar` the open item's progress line.
+ * `restart` rewinds it to its first frame (the home's opening covers the recordings with that frame while its scene
+ * moves, so the frame under the cover is the one that plays next).
  */
-export function Video({ file, active = true, playing = true, eager = false, delay = 0, onEnded, bar, className }: { file: string; active?: boolean; playing?: boolean; eager?: boolean; delay?: number; onEnded?: () => void; bar?: RefObject<HTMLElement | null>; className?: string }) {
+export function Video({ file, active = true, playing = true, eager = false, delay = 0, restart = false, onEnded, bar, className }: { file: string; active?: boolean; playing?: boolean; eager?: boolean; delay?: number; restart?: boolean; onEnded?: () => void; bar?: RefObject<HTMLElement | null>; className?: string }) {
   const box = useRef<HTMLDivElement>(null);
   const video = useRef<HTMLVideoElement>(null);
   const seen = useInView(box, 0.3);
@@ -123,6 +128,9 @@ export function Video({ file, active = true, playing = true, eager = false, dela
   useEffect(() => {
     if (active && video.current) video.current.currentTime = 0;
   }, [active]);
+  useEffect(() => {
+    if (restart && video.current) video.current.currentTime = 0;
+  }, [restart]);
   usePlayback(video, active && seen && playing && !still && !held, active ? bar : undefined);
   const src = `/site/home/${file}`;
   return (
@@ -135,9 +143,9 @@ export function Video({ file, active = true, playing = true, eager = false, dela
   );
 }
 
-/** One of the tour's recordings of the real app (`app-<name>`). */
+/** One of the tour's recordings of the real app (`screenFile`). */
 export function AppVideo({ name, ...rest }: { name: ScreenName } & Omit<Parameters<typeof Video>[0], "file">) {
-  return <Video file={`app-${name}`} {...rest} />;
+  return <Video file={screenFile(name)} {...rest} />;
 }
 
 /**
