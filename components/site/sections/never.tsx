@@ -1,7 +1,10 @@
-// 16 · Three things we never do (Paper `Z3A-0`, desktop only on the boards; the phone stacks it under the screen).
+// 16 · Three things we never do (Paper `Z3A-0`, desktop only on the boards; the phone stacks it under the picture):
+// beside them, Aboni Knitwear's record at its Sources section, every register in trust order with the day it was
+// read (critique 22 Oct: the 3 Oct window is gone).
 
+import { DemoRecord } from "@/components/site/demos";
 import { cn } from "@/lib/utils";
-import { Screen, Still, measure } from "./ui";
+import { measure } from "./ui";
 
 export const NEVER: [string, string][] = [
   ["Score a supplier", "We show what the registers say and when we read them. You decide what it means."],
@@ -13,9 +16,8 @@ export function NeverDo() {
   return (
     <section aria-labelledby="home-never" className="border-y border-line-subtle bg-surface py-14 md:py-section">
       <div className={cn(measure, "flex flex-col gap-10 lg:flex-row lg:items-center lg:gap-20")}>
-        <div className="relative isolate flex items-center justify-center overflow-hidden rounded-card px-4 py-6 max-lg:order-2 md:rounded-stage md:p-10 lg:h-[560px] lg:w-[720px] lg:shrink-0">
-          <Still name="hangtag" className="object-[50%_40%]" sizes="(min-width: 1440px) 720px, 100vw" />
-          <Screen name="full" phone={null} alt="A supplier's full record: every row with its source and the day it was read" sizes="(min-width: 1440px) 640px, 90vw" className="mx-auto max-w-[640px]" />
+        <div className="min-w-0 max-lg:order-2 lg:w-[720px] lg:shrink-0">
+          <DemoRecord tab="sources" stage="weave" />
         </div>
         <div className="flex flex-col gap-8 md:gap-10 lg:w-[480px]">
           <h2 id="home-never" className="text-site-h2-sm text-ink-strong md:text-site-h2">

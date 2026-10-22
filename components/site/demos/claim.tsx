@@ -12,7 +12,7 @@ import type { CursorState, Step } from "@/components/site/motion";
 import { displayName } from "@/lib/dashboard/facts";
 import { motion } from "@/lib/design/tokens";
 import { SNAPSHOT } from "@/lib/marketing/demo-snapshot";
-import { Bar, Demo, Field, Window, endOf, typed } from "./stage";
+import { Bar, Demo, Field, Window, endOf, typed, type Frame } from "./stage";
 
 const { check } = SNAPSHOT;
 const NAME = displayName(check.name);
@@ -47,9 +47,9 @@ export const STEPS: Step<S>[] = [
   { at: t4, state: still({ step: 3 }) },
 ];
 
-export function DemoClaim({ className }: { className?: string }) {
+export function DemoClaim(frame: Frame) {
   return (
-    <Demo steps={STEPS} description={`${NAME} found by its BGMEA number, a claim asked for with an email at the company, and the record marked Claimed.`} className={className}>
+    <Demo {...frame} steps={STEPS} description={`${NAME} found by its BGMEA number, a claim asked for with an email at the company, and the record marked Claimed.`}>
       {(s) => (
         <Window>
           <Bar title="Claim your company" />

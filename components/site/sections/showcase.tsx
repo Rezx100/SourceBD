@@ -1,39 +1,38 @@
-// 7 · Showcase (Paper `Z12-0` / `Z6A-0`): three rows that alternate copy and screen, then rows 4 and 5 side by side.
-// On a phone every row is the screen first, then its words. Each screen is the app as shipped (b4b85e8).
+// 7 · Showcase (Paper `Z12-0` / `Z6A-0`): three rows that alternate copy and the product, then rows 4 and 5 side by
+// side. On a phone every row is the product first, then its words. Each picture is a demo on the snapshot's real
+// records, on the weave every feature row stands on (critique 22 Oct, S2 and S3: the 3 Oct screenshots are gone):
+// one RFQ reviewed before it goes, the quotes landing side by side, the certificates that end soon, the record's
+// safety beside the results, and a reply under the RFQ it answers.
 
+import type { ComponentType } from "react";
+import { DemoCompliance, DemoQuotes, DemoRecord, DemoReview, DemoThread } from "@/components/site/demos";
+import type { Frame } from "@/components/site/demos/stage";
 import { cn } from "@/lib/utils";
-import { Reveal } from "./reveal";
-import { H2, Screen, Still, TextLink, measure, type ScreenName, type StillName } from "./ui";
+import { H2, TextLink, measure } from "./ui";
 
-type Row = { title: string; body: string; link: [string, string]; screen: ScreenName; phone?: ScreenName; alt: string; still: StillName; at: string };
+type Row = { title: string; body: string; link: [string, string]; Demo: ComponentType<Frame> };
+
+const Expiry = (f: Frame) => <DemoCompliance view="expiry" {...f} />;
+const Safety = (f: Frame) => <DemoRecord tab="safety" {...f} />;
 
 export const ROWS: Row[] = [
   {
     title: "Shortlist. Ask once. Compare.",
     body: "Save the suppliers you like. Send one RFQ and each gets its own copy. Quotes return side by side, with the record a click away.",
     link: ["How RFQs work", "/product/rfqs"],
-    screen: "saved-selected",
-    alt: "Saved suppliers with three picked and Send one RFQ ready",
-    still: "hero-cotton",
-    at: "object-left-bottom",
+    Demo: DemoReview,
   },
   {
     title: "Quotes beside the facts.",
     body: "Unit price, lead time and minimum order, each quote against the supplier's own record. Accept one and the order starts from there.",
     link: ["See a quote comparison", "/product/rfqs"],
-    screen: "rfq-detail",
-    alt: "An RFQ for men's cotton trousers with two quotes side by side",
-    still: "thread-cones",
-    at: "object-[50%_78%]",
+    Demo: DemoQuotes,
   },
   {
     title: "The list changes. We check again.",
     body: "Expiring certificates, register changes and the UFLPA Entity List, checked against your saved suppliers. We say what we found, never “clear”.",
     link: ["Inside the Compliance hub", "/product/compliance"],
-    screen: "compliance",
-    alt: "The Compliance hub: certificates that need attention, UFLPA checks and expiry dates",
-    still: "weave",
-    at: "object-center",
+    Demo: Expiry,
   },
 ];
 
@@ -42,32 +41,15 @@ export const HALVES: Row[] = [
     title: "Search, and never lose your place.",
     body: "Open a record beside the results. The list keeps its filters, its ticks and its page; the record carries its own tabs, and the arrow keys walk the list while the pane follows.",
     link: ["See the record pane", "/product/records"],
-    screen: "record",
-    phone: "results",
-    alt: "Search results with Aboni Knitwear Ltd's record open in the pane beside them",
-    still: "thread-cone",
-    at: "object-center",
+    Demo: Safety,
   },
   {
     title: "Every message beside its RFQ.",
     body: "A supplier's reply lands in Messages under the RFQ it answers: the date it was sent, the quantity, the ship-by date and the state of the quote on one line above the thread.",
     link: ["How messages work", "/product/rfqs"],
-    screen: "messages-thread",
-    alt: "A message thread with a supplier under the RFQ it answers",
-    still: "carton",
-    at: "object-[50%_40%]",
+    Demo: DemoThread,
   },
 ];
-
-function Stage({ row, wide, delay = 0 }: { row: Row; wide: boolean; delay?: number }) {
-  // The screen rises 16 px and fades in once as its row scrolls in.
-  return (
-    <Reveal className={cn("relative isolate flex items-center justify-center overflow-hidden rounded-card px-4 py-6 md:rounded-stage", wide ? "md:p-12 lg:h-[560px]" : "md:p-8 lg:h-[420px]")}>
-      <Still name={row.still} className={row.at} sizes={wide ? "(min-width: 1440px) 816px, 100vw" : "(min-width: 1440px) 608px, 100vw"} />
-      <Screen name={row.screen} phone={row.phone} alt={row.alt} sizes={wide ? "(min-width: 1440px) 720px, 90vw" : "(min-width: 1440px) 544px, 90vw"} className={cn("mx-auto transition duration-reveal ease-out motion-reduce:transition-none max-md:max-w-[318px] group-data-[reveal=wait]/reveal:translate-y-4 group-data-[reveal=wait]/reveal:opacity-0", delay ? "delay-[120ms]" : "", wide ? "max-w-[720px]" : "max-w-[544px]")} />
-    </Reveal>
-  );
-}
 
 function Copy({ row, half }: { row: Row; half: boolean }) {
   return (
@@ -95,14 +77,14 @@ export function Showcase() {
               <Copy row={row} half={false} />
             </div>
             <div className="min-w-0 lg:max-w-[816px] lg:flex-1">
-              <Stage row={row} wide />
+              <row.Demo stage="weave" />
             </div>
           </div>
         ))}
         <div className="grid w-full gap-14 lg:grid-cols-2 lg:gap-16">
-          {HALVES.map((row, i) => (
+          {HALVES.map((row) => (
             <div key={row.title} className="flex flex-col gap-5 md:gap-6">
-              <Stage row={row} wide={false} delay={i} />
+              <row.Demo stage="weave" />
               <Copy row={row} half />
             </div>
           ))}

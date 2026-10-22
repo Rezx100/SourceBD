@@ -1,23 +1,15 @@
 // The four product pages and the two solutions pages (Paper `30 Marketing · Product` and `Solutions`): one template,
-// because Paper draws them as one: a label, a one-line promise, the search and the two calls to action, a real screen
-// of the product, then numbered sections that each say one thing and show the screen that proves it, and a close.
-// Every screen is a real v4 capture (`public/site/*.png`, taken 3 Oct 2026); the RFQ and quote screens hold sample
-// figures and say so under the picture. Laid out in the home page's look (M1): a centred hero over the product on a
-// textile stage, then rows of text beside the screen that proves it.
-// The figure and date in the hero come from the site's live facts and are left out when they were not read.
-// M4 (15 Oct 2026): the pages move one by one into the home's frame with the demos as their proof, each keeping its
-// words here; `/product/records` is `components/site/product/records.tsx`, which the route draws instead of `SitePage`.
+// because Paper draws them as one: a label, a one-line promise, one way in (the search on the search page, Start free
+// elsewhere), the product, then sections that each say one thing and show what proves it, and a close.
+// M4 (15 Oct 2026): every page moved into the home's frame with the demos as its proof (`components/site/product/*.tsx`,
+// which the routes draw); the words stay here. Since the 22 Oct critique no page shows a 3 Oct screenshot: each row's
+// picture is a demo the page chooses.
 
-import Image from "next/image";
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
-import { FeatureRow, HeroActions, HeroCentered, Label, Section, Stage, measure, type StillName } from "@/components/site/sections/ui";
-import { Closing } from "@/components/site/sections/closing";
-import { readDay, withCommas, type SiteFacts } from "@/lib/site-facts";
-import { cn } from "@/lib/utils";
 
-export type Shot = { src: string; alt: string; caption: string };
-export type Block = { n: string; label: string; headline: string; lede: string; shot?: Shot; extra?: ReactNode };
+/** A section of a page: `n` finds it in the page's code, `label` is its name above the headline (never its number: critique 22 Oct, S13). */
+export type Block = { n: string; label: string; headline: string; lede: string; extra?: ReactNode };
 export type Page = {
   group: "Product" | "Solutions";
   name: string;
@@ -27,44 +19,16 @@ export type Page = {
   lede: string;
   title: string;
   description: string;
-  /** The hero's screen; a page rebuilt on a demo (M4) has none. */
-  hero?: Shot;
   blocks: Block[];
   outcome?: string;
   close: string;
 };
-
-/** A real screen on a textile stage, the caption under it. */
-export function Figure({ shot, still, sizes = "(min-width: 1440px) 1152px, 100vw", eager = false }: { shot: Shot; still: StillName; sizes?: string; eager?: boolean }) {
-  return (
-    <figure className="flex flex-col gap-3">
-      <Stage still={still} eager={eager}>
-        <Image src={shot.src} alt={shot.alt} width={1440} height={900} sizes={sizes} priority={eager} className="h-auto w-full rounded-frame border border-ink-strong/10 shadow-lg" />
-      </Stage>
-      <figcaption className="text-sm text-ink-subtle">{shot.caption}</figcaption>
-    </figure>
-  );
-}
-
-const STILLS: StillName[] = ["weave", "thread-cones", "selvedge", "carton"];
-
-const shot = (name: string, alt: string, caption: string): Shot => ({ src: `/site/${name}.png`, alt, caption });
 
 const STATES: [string, string][] = [
   ["Expired", "with the date it ended"],
   ["Expires in N days", "with the date it ends"],
   ["Valid until", "with the date"],
   ["Listed as valid", "when the body publishes no date"],
-];
-
-/** The lists the Compliance page screens against, as read on the days shown (captured 3 Oct 2026; the product shows today's). */
-const LISTS: [string, string, string, string][] = [
-  ["UFLPA Entity List", "US Department of Homeland Security", "160", "14 May 2026"],
-  ["Specially Designated Nationals (SDN) list", "US Treasury, OFAC", "9,799", "27 Jun 2026"],
-  ["Consolidated list of financial sanctions targets", "UK Treasury, OFSI", "1,286", "26 Jun 2026"],
-  ["EU sanctions map", "European Union", "1,589", "26 Jun 2026"],
-  ["Withhold Release Orders and Findings", "US Customs and Border Protection", "75", "30 Jul 2026"],
-  ["List of Goods Produced by Child Labor or Forced Labor", "US Department of Labor, ILAB", "457", "26 Jun 2026"],
 ];
 
 
@@ -77,11 +41,10 @@ export const PAGES: Record<string, Page> = {
     lede: "Filter by HS code, certificate, place and size. Open any supplier beside your results.",
     title: "Supplier search — SourceBD",
     description: "Search Bangladesh garment suppliers by name, product or HS code. Filter by certificate, district and size, and open each record beside your results.",
-    // The hero and the records row play the Find and Check demos (M4, `product/search.tsx`); only the filter panel still shows its 3 Oct screen.
     blocks: [
-      { n: "01", label: "Filters", headline: "Filters that match how you buy.", lede: "HS code, certificate and its status, district, workers, brand supplier lists, BGMEA or BKMEA member. The button shows how many suppliers you will get.", shot: shot("search-filters", "The filter panel open over the results, showing the certificate, district and size filters.", "Real screen · knit, filters open · 4,645 suppliers") },
+      { n: "01", label: "Filters", headline: "Filters that match how you buy.", lede: "HS code, certificate and its status, district, workers, brand supplier lists, BGMEA or BKMEA member. The button shows how many suppliers you will get." },
       { n: "02", label: "Records", headline: "The record opens beside your list.", lede: "Check certificates, safety and sources, then move to the next row. You never lose your search." },
-      { n: "03", label: "Results", headline: "Every row says what needs a look.", lede: "The first certificate problem shows in the list, with its date. Sources counts the lists that name the supplier." },
+      { n: "03", label: "Results", headline: "Every row says which to open.", lede: "What it makes, where it is, its workers, the certificate schemes it holds today and how many sources hold it. The dates are on the record, one click away." },
     ],
     close: "Try it on your next product.",
   },
@@ -93,7 +56,6 @@ export const PAGES: Record<string, Page> = {
     lede: "Each fact names its source and the date we checked it.",
     title: "Supplier records — SourceBD",
     description: "Every fact on a Bangladesh garment supplier names its source and the date we read it. Certificates with dates, safety inspections as text, and both numbers when sources disagree.",
-    // The hero and the certificates row play the record demo and the vignettes (M4, `product/records.tsx`); only safety still shows its 3 Oct screen.
     blocks: [
       { n: "01", label: "Sources", headline: "Sources in words, not badges.", lede: "“From BGMEA · checked 24 Jul 2026.” When a fact has no source linked yet, we say so." },
       {
@@ -125,7 +87,7 @@ export const PAGES: Record<string, Page> = {
           </div>
         ),
       },
-      { n: "04", label: "Safety", headline: "Safety inspections, as text.", lede: "RSC reports as figures with their date. Never a progress bar.", shot: shot("records-safety", "The safety tab: RSC inspections covered, 100% of initial items fixed, training completed, and links to the fire, electrical, structural and boiler reports.", "Real screen · Aboni Knitwear Ltd. · certificates and safety") },
+      { n: "04", label: "Safety", headline: "Safety inspections, as text.", lede: "RSC reports as figures with their date. Never a progress bar." },
       { n: "05", label: "Contacts", headline: "Contact details are locked.", lede: "You see what is on file. Send an RFQ and the supplier replies in SourceBD." },
     ],
     close: "Check one supplier now.",
@@ -138,11 +100,10 @@ export const PAGES: Record<string, Page> = {
     lede: "Send one request, compare quotes side by side, keep every reply in one place.",
     title: "RFQs and messages — SourceBD",
     description: "Send one RFQ to up to 50 Bangladesh suppliers, compare FOB, MOQ and lead time side by side, and keep every reply in one thread per supplier.",
-    hero: shot("rfq-one", "The new RFQ form: the supplier, the product, quantity, target price, ship-by date and questions, with a preview of what the supplier receives.", "Real screen · RFQ to Aboni Knitwear Ltd., ready to send"),
     blocks: [
-      { n: "01", label: "Quotes", headline: "Quotes side by side.", lede: "FOB per piece, MOQ, lead time and valid until. Suppliers that have not replied stay on the list.", shot: shot("rfq-quotes", "An RFQ with two quotes listed best first, each with price per piece, MOQ, lead time and valid-until date, and a third supplier that has not replied.", "Sample state · figures are examples; supplier names and the RFQ are real") },
-      { n: "02", label: "Messages", headline: "Replies in one thread per supplier.", lede: "Files, read receipts and the supplier’s record, one click away.", shot: shot("rfq-thread", "A message thread with one supplier, with the supplier’s record beside it.", "Real screen · thread with Thermax Woven Dyeing") },
-      { n: "03", label: "Many at once", headline: "Write it once, send it to 50.", lede: "Product, quantity, target FOB, tech pack. Review every supplier before it goes. A supplier on the UFLPA Entity List can’t receive an RFQ.", shot: shot("rfq-fifty", "The new RFQ form addressed to 50 suppliers, with a button to review all 50 before sending.", "Sample state · review all 50 suppliers before sending") },
+      { n: "01", label: "Quotes", headline: "Quotes side by side.", lede: "FOB per piece, MOQ, lead time and valid until. Suppliers that have not replied stay on the list." },
+      { n: "02", label: "Messages", headline: "Replies in one thread per supplier.", lede: "Files, read receipts and the supplier’s record, one click away." },
+      { n: "03", label: "Many at once", headline: "Write it once, send it to 50.", lede: "Product, quantity, target FOB, tech pack. Review every supplier before it goes. A supplier on the UFLPA Entity List can’t receive an RFQ." },
     ],
     close: "Send your first RFQ today.",
   },
@@ -154,41 +115,11 @@ export const PAGES: Record<string, Page> = {
     lede: "Watch your saved suppliers for expiry and Entity List changes, with the date of every check.",
     title: "Compliance — SourceBD",
     description: "Watch your saved Bangladesh suppliers for certificate expiry and UFLPA Entity List changes, with the date of every check. “No link found” is never a clearance.",
-    hero: shot("comp-expiry", "The Compliance page listing certificates on saved suppliers, expired first, with a request for the renewal on each.", "Real screen · certificate expiry, expired first"),
     blocks: [
-      { n: "01", label: "Needs attention", headline: "Expired first, then expiring.", lede: "“Expires in 5 days · 8 Oct 2026.” One action on each: ask for the renewal.", shot: shot("compliance-hub", "The Compliance page: certificates that need a look, expired first, with an ask for the new certificate on each.", "Real screen · needs attention, from your saved suppliers") },
-      { n: "02", label: "UFLPA", headline: "UFLPA screening, with the list and its date.", lede: "We check supplier names against the UFLPA Entity List. Three answers: on the list, possible Xinjiang link, no link found. “No link found” is not a clearance.", shot: shot("comp-uflpa", "UFLPA checks on saved suppliers: how many are on the list, how many have a possible Xinjiang link, and how many have no link found, with each supplier’s result.", "Real screen · UFLPA checks on your saved suppliers") },
-      {
-        n: "",
-        label: "The lists",
-        headline: "The lists we check, and when we read them.",
-        lede: "Entries and read dates as of 3 Oct 2026. The product shows the day each list was last read.",
-        extra: (
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[640px] border-collapse text-left">
-              <caption className="sr-only">The lists we check, who keeps them, how many entries and when we last read them</caption>
-              <thead>
-                <tr className="border-b border-ink text-sm text-ink-3">
-                  <th scope="col" className="py-2 pr-4 font-medium">List</th>
-                  <th scope="col" className="py-2 pr-4 font-medium">Kept by</th>
-                  <th scope="col" className="py-2 pr-4 text-right font-medium">Entries</th>
-                  <th scope="col" className="py-2 font-medium">Last read</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-line">
-                {LISTS.map(([l, by, n, d]) => (
-                  <tr key={l} className="align-top text-md">
-                    <th scope="row" className="py-3 pr-4 font-semibold text-ink">{l}</th>
-                    <td className="py-3 pr-4 text-ink-2">{by}</td>
-                    <td className="py-3 pr-4 text-right font-mono text-ink">{n}</td>
-                    <td className="py-3 text-ink-2">{d}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        ),
-      },
+      { n: "01", label: "Needs attention", headline: "Expired first, then expiring.", lede: "“Expires in 5 days · 8 Oct 2026.” One action on each: ask for the renewal." },
+      { n: "02", label: "UFLPA", headline: "UFLPA screening, with the list and its date.", lede: "We check supplier names against the UFLPA Entity List. Three answers: on the list, possible Xinjiang link, no link found. “No link found” is not a clearance." },
+      // The table is drawn from the live facts by the page (`product/compliance.tsx`); with none read, the lede says so instead.
+      { n: "", label: "The lists", headline: "The lists we check, and when we read them.", lede: "Each list's entries and the day of its last full read, as the product holds them now." },
       { n: "03", label: "Modern slavery statement", headline: "A statement you confirm, line by line.", lede: "A draft built from your saved suppliers. Every claim we can’t confirm is marked “[Confirm: …]”. You can’t download until you confirm each one." },
     ],
     close: "Watch your saved suppliers.",
@@ -201,11 +132,10 @@ export const PAGES: Record<string, Page> = {
     lede: "For sourcing managers buying clothing from Bangladesh.",
     title: "For sourcing teams — SourceBD",
     description: "For sourcing managers buying clothing from Bangladesh: find factories by HS code and district, check certificates and safety, and send one RFQ to up to 50 suppliers.",
-    hero: shot("saved-selected", "The Saved page with three suppliers picked, and the bar offering one RFQ to all three.", "Real screen · sample list, live facts · 3 suppliers chosen for one RFQ"),
     blocks: [
-      { n: "01", label: "Find", headline: "Find factories that make your product.", lede: "Search by HS code, district and workers. Each row shows the first certificate problem and how many sources name the supplier.", shot: shot("search-filters", "The filter panel open over the results for “knit”.", "Real screen · knit, filters open · 4,645 suppliers") },
-      { n: "02", label: "Check", headline: "Check them before you ask.", lede: "Certificates with dates, safety inspections, and the source of every fact. Save the ones that pass.", shot: shot("search-pane", "A supplier’s record open in a panel beside the results list.", "Real screen · Aboni Knitwear Ltd. open beside the results") },
-      { n: "03", label: "Ask", headline: "Ask many at once.", lede: "One RFQ to up to 50 suppliers. Quotes come back side by side: FOB per piece, MOQ, lead time.", shot: shot("rfq-quotes", "An RFQ with two quotes listed best first, and a third supplier that has not replied.", "Sample state · figures are examples; supplier names and the RFQ are real") },
+      { n: "01", label: "Find", headline: "Find factories that make your product.", lede: "Search by HS code, district and workers. Each row shows the certificate schemes a supplier holds today and how many sources name it." },
+      { n: "02", label: "Check", headline: "Check them before you ask.", lede: "Certificates with dates, safety inspections, and the source of every fact. Save the ones that pass." },
+      { n: "03", label: "Ask", headline: "Ask many at once.", lede: "One RFQ to up to 50 suppliers. Quotes come back side by side: FOB per piece, MOQ, lead time." },
     ],
     outcome: "A shortlist your compliance team can check, source by source.",
     close: "Build your shortlist today.",
@@ -218,11 +148,10 @@ export const PAGES: Record<string, Page> = {
     lede: "For compliance and due diligence staff checking Bangladesh suppliers.",
     title: "For compliance teams — SourceBD",
     description: "For compliance and due diligence staff: certificates with dates, UFLPA and sanctions screening with the day each list was read, expiry watch, and the source of every fact.",
-    hero: shot("compliance-hub", "The Compliance page: certificates that need a look, expired first, with an ask for the new certificate on each.", "Real screen · needs attention across your saved suppliers"),
     blocks: [
-      { n: "01", label: "Certificates", headline: "Check certificates and their dates.", lede: "Number, issued by, valid until. Expired first. Each one links to the issuer’s own page.", shot: shot("records-certs", "The certificates tab: four certificates, one expired.", "Real screen · Aboni Knitwear Ltd. · 4 certificates, 1 expired") },
-      { n: "02", label: "Screening", headline: "Screen against the UFLPA Entity List.", lede: "And five more sanctions and forced labour lists, each with the date we read it. “No link found” is not a clearance.", shot: shot("comp-uflpa", "UFLPA checks on saved suppliers, each with its result.", "Real screen · UFLPA checks on your saved suppliers") },
-      { n: "03", label: "Watch", headline: "Watch for expiry.", lede: "Expired and expiring certificates on your saved suppliers, with one action each: ask for the renewal.", shot: shot("comp-expiry", "Certificates on saved suppliers, expired first, with a request for the renewal on each.", "Real screen · certificate expiry, expired first") },
+      { n: "01", label: "Certificates", headline: "Check certificates and their dates.", lede: "Number, issued by, valid until. Expired first. Each one links to the issuer’s own page." },
+      { n: "02", label: "Screening", headline: "Screen against the UFLPA Entity List.", lede: "And five more sanctions and forced labour lists, each with the date we read it. “No link found” is not a clearance." },
+      { n: "03", label: "Watch", headline: "Watch for expiry.", lede: "Expired and expiring certificates on your saved suppliers, with one action each: ask for the renewal." },
       { n: "04", label: "Statement", headline: "Draft the modern slavery statement.", lede: "Built from your saved suppliers. Every claim we can’t confirm stays marked until you confirm it." },
     ],
     outcome: "Evidence you can show an auditor: the source, the number, the date.",
@@ -236,56 +165,3 @@ export const siteMetadata = (key: string): Metadata | null => {
   const site = process.env.NEXT_PUBLIC_SITE_URL ?? "https://sourcebd.net";
   return { title: p.title, description: p.description, alternates: { canonical: `${site}/${key}` }, openGraph: { title: p.title, description: p.description, url: `${site}/${key}`, siteName: "SourceBD", locale: "en_GB", type: "website" } };
 };
-
-export function SitePage({ pageKey, facts }: { pageKey: string; facts: SiteFacts }) {
-  const p = PAGES[pageKey]!;
-  const count = facts.suppliers !== null ? withCommas(facts.suppliers) : null;
-  const updated = readDay(facts.latestRead);
-  const h1 = count ? p.h1.replace("{n}", count) : p.h1.includes("{n}") ? p.h1Plain : p.h1;
-  return (
-    <main className="font-sans text-ink">
-      <HeroCentered
-        label={`${p.group} · ${p.name}`}
-        title={h1}
-        lede={p.lede}
-        stage={
-          p.hero || count ? (
-            <div className="flex flex-col gap-3">
-              {p.hero ? <Figure shot={p.hero} still="hero-cotton" eager /> : null}
-              {count ? (
-                <p className="text-sm text-ink-subtle">
-                  {count} published suppliers{updated ? ` · updated ${updated}` : ""}
-                </p>
-              ) : null}
-            </div>
-          ) : undefined
-        }
-      >
-        <HeroActions center />
-      </HeroCentered>
-
-      {p.blocks.map((b, i) =>
-        b.shot ? (
-          <FeatureRow key={b.headline} label={b.n ? `${b.n} · ${b.label}` : b.label} headline={b.headline} lede={b.lede} flip={i % 2 === 1} tone={i % 2 === 0 ? "subtle" : "paper"} media={<Figure shot={b.shot} still={STILLS[i % STILLS.length]!} sizes="(min-width: 1440px) 720px, 100vw" />}>
-            {b.extra}
-          </FeatureRow>
-        ) : (
-          <Section key={b.headline} label={b.n ? `${b.n} · ${b.label}` : b.label} headline={b.headline} lede={b.lede} tone={i % 2 === 0 ? "subtle" : "paper"}>
-            {b.extra}
-          </Section>
-        ),
-      )}
-
-      {p.outcome ? (
-        <section className="py-14 md:py-section">
-          <div className={cn(measure, "flex flex-col items-center gap-4 text-center")}>
-            <Label>The outcome</Label>
-            <p className="max-w-[880px] text-site-h2-sm font-light text-ink-strong [text-wrap:balance] md:text-site-h2">{p.outcome}</p>
-          </div>
-        </section>
-      ) : null}
-
-      <Closing headline={p.close} lede="Free during beta. No card needed." />
-    </main>
-  );
-}

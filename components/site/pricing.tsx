@@ -64,10 +64,10 @@ const FAQ = [
 
 function Plan({ name, tag, headline, lede, cta, listLabel, items, className }: { name: string; tag: string; headline: string; lede: string; cta: ReactNode; listLabel: string; items: string[]; className?: string }) {
   return (
-    <article className={cn("flex flex-col gap-6 rounded-card border border-line bg-surface p-8 max-sm:p-5", className)}>
+    <article className={cn("flex flex-col gap-6 rounded-frame border border-line-strong bg-surface p-8 shadow-sm max-sm:p-5", className)}>
       <div className="flex flex-col gap-2">
         <h3 className="text-lg font-semibold text-ink">{name}</h3>
-        <p className="font-mono text-sm text-ink-3">{tag}</p>
+        <p className="text-sm text-ink-3">{tag}</p>
       </div>
       <div className="flex flex-col gap-2">
         <p className="text-site-h2-sm font-light text-ink-strong md:text-site-h2">{headline}</p>
@@ -75,7 +75,7 @@ function Plan({ name, tag, headline, lede, cta, listLabel, items, className }: {
       </div>
       <div>{cta}</div>
       <div className="flex flex-col gap-3 border-t border-line pt-5">
-        <p className="font-mono text-sm text-ink-3">{listLabel}</p>
+        <p className="text-sm text-ink-3">{listLabel}</p>
         <ul className="flex flex-col gap-2 text-md text-ink">
           {items.map((i) => (
             <li key={i} className="flex gap-3">
@@ -93,17 +93,18 @@ export function Pricing({ facts }: { facts: SiteFacts }) {
   const beta = BETA.map((b) => (count ? b.replace("{n}", count) : b.replace("Search {n} suppliers", "Search suppliers")));
   return (
     <main className="font-sans text-ink">
-      <HeroCentered label="Pricing" title="Free during beta." lede="Everything in SourceBD is free while we are in beta. No card needed.">
-        <HeroActions center tryLine={count ? `Search ${count} suppliers by name, product or HS code` : "Search suppliers by name, product or HS code"} />
+      {/* The plans follow the hero at once: no empty band of paper between them (critique 22 Oct). */}
+      <HeroCentered label="Pricing" title="Free during beta." lede="Everything in SourceBD is free while we are in beta. No card needed." className="pb-10 md:pb-16">
+        <HeroActions center />
       </HeroCentered>
 
-      <section aria-labelledby="plans" className="bg-surface py-14 md:py-section">
+      <section aria-labelledby="plans">
         <div className={cn(measure, "flex flex-col gap-8")}>
           <div className="flex flex-col gap-2">
             <h2 id="plans" className="text-site-body font-medium text-ink-subtle">
               Two plans, as they really are today
             </h2>
-            <p className="text-sm text-ink-3">No prices yet · updated 3 Oct 2026</p>
+            <p className="text-sm text-ink-3">No prices yet</p>
           </div>
           <div className="grid gap-6 md:grid-cols-2">
             <Plan
@@ -136,7 +137,7 @@ export function Pricing({ facts }: { facts: SiteFacts }) {
         </div>
       </section>
 
-      <Section label="01 · Compare" headline="What is in the product today." lede="Only what ships now. Designs that are not built yet are not on this list.">
+      <Section label="Compare" headline="What is in the product today." lede="Only what ships now. Designs that are not built yet are not on this list.">
         <div tabIndex={0} role="region" aria-label="What each plan includes, scrolls sideways" className="overflow-x-auto outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent">
           <table className="w-full min-w-[640px] border-collapse text-left">
             <caption className="sr-only">What each plan includes today</caption>

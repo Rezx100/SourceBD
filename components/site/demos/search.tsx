@@ -3,20 +3,23 @@
 // Find (handoff-mercury-motion-sitewide.md §4.3): "knit GOTS" is typed, the two filter chips appear, the rows the
 // search found stream in, and the cursor rests on Aboni Knitwear. The rows are the snapshot's, drawn with the
 // results table's own parts (the kit's table, `Products`, `HeldMarks`): the app's `ResultsTable` needs the
-// selection and router context a marketing page does not have, so this is the same columns drawn still.
+// selection and router context a marketing page does not have, so this is the same columns drawn still. As the
+// table stands on development (rounds 2 and 3, 14–15 Oct 2026; critique 22 Oct): the town alone, one worker figure,
+// the schemes held today by name with no state, the sources count, and Save and Open at the row's end, seen on the
+// hovered row. The exports column is left out: the snapshot holds no customs record.
 
-import { MagnifyingGlass } from "@phosphor-icons/react";
+import { BookmarkSimple, MagnifyingGlass, SidebarSimple } from "@phosphor-icons/react";
 import type { ReactNode } from "react";
-import { FilterChip, SelectCell, Table, Td, Th, Tr, Unpublished } from "@/components/kit";
+import { SelectCell, Table, Td, Th, Tr, Unpublished, buttonClass } from "@/components/kit";
 import { ABSENT, certSummary } from "@/components/patterns/words";
 import { matchedProducts } from "@/components/search/model";
 import { HeldMarks, Products } from "@/components/search/row-parts";
 import type { CursorState, Step } from "@/components/site/motion";
-import { displayName, formatCount, splitQualifier } from "@/lib/dashboard/facts";
+import { daysUntil, displayName, formatCount, splitQualifier } from "@/lib/dashboard/facts";
 import { motion } from "@/lib/design/tokens";
 import { SNAPSHOT, TODAY, certInput } from "@/lib/marketing/demo-snapshot";
 import { cn } from "@/lib/utils";
-import { Bar, Demo, Window, endOf, streamed, typed } from "./stage";
+import { Bar, Chip, Demo, Window, endOf, streamed, typed, type Frame } from "./stage";
 
 const { search } = SNAPSHOT;
 const QUERY = search.chips.join(" ");
@@ -43,46 +46,83 @@ export const STEPS: Step<S>[] = [
   { at: t2 + motion.cursorMs + 100, state: still({ cursor: `row-${HOVER.slug}`, hover: true }) },
 ];
 
-/** The snapshot's rows as the table draws them: the product writes the name, the words that answered the search are lit, the certificates held today. */
+/**
+ * The snapshot's rows as the table draws them: the product writes the name, the products that answered the search
+ * come first, and the schemes held today are named (an ended certificate is not among them, as `resultRow` builds
+ * them; a supplier whose every certificate has ended says so).
+ */
 export const ROWS = search.rows.map((r) => {
-  const held = certSummary(r.certs.filter((c) => !c.expiresOn || c.expiresOn >= SNAPSHOT.readAt).map(certInput), TODAY);
-  return { ...r, name: displayName(r.name), products: matchedProducts(r.products, search.q), held: held ? [held.first, ...held.others] : [] };
+  const held = certSummary(r.certs.filter((c) => (daysUntil(c.expiresOn, TODAY) ?? 0) >= 0).map(certInput), TODAY);
+  return { ...r, name: displayName(r.name), products: matchedProducts(r.products, search.q), held: held ? [held.first, ...held.others] : [], anyOnFile: r.certs.length > 0 };
 });
 type Row = (typeof ROWS)[number];
 
-/** The results table: the same columns at every width, the place and the workers hidden under 640 wide; `hot` is the hovered row's slug. */
-function Rows({ rows, hot }: { rows: readonly Row[]; hot?: string | null }) {
+/** Where a column steps out as the window narrows: the place under 640, the sources and the row's end under 520, the workers under 480. */
+const place = "[@container_(max-width:639px)]:hidden";
+const tail = "[@container_(max-width:519px)]:hidden";
+const workers = "[@container_(max-width:479px)]:hidden";
+
+/**
+ * The results table: the app's columns, each stepping out as the window narrows (`place`, `tail`, `workers`), the
+ * supplier and its certificates always drawn. `hot` is the hovered row, whose Save and Open show. Rows from `lit` on stand under a fade until the search
+ * reaches them, so the table is never headers with no rows (critique 22 Oct, S5).
+ */
+function Rows({ rows, hot, lit = rows.length }: { rows: readonly Row[]; hot?: string | null; lit?: number }) {
   return (
     <Table>
       <thead>
         <tr>
           <SelectCell header label="Select all on this page" disabled readOnly checked={false} />
           <Th>Supplier</Th>
-          <Th className="w-28 [@container_(max-width:639px)]:hidden">Location</Th>
-          <Th align="right" className="w-20 [@container_(max-width:639px)]:hidden">
+          <Th className={cn("w-28", place)}>Location</Th>
+          <Th align="right" className={cn("w-20", workers)}>
             Workers
           </Th>
-          <Th className="w-28">Certificates</Th>
+          <Th className="w-[150px]">Certificates</Th>
+          <Th align="right" className={cn("w-[72px]", tail)}>
+            Sources
+          </Th>
+          <th scope="col" className={cn("h-row-head w-[76px] border-b border-line bg-subtle p-0", tail)}>
+            <span className="sr-only">Actions</span>
+          </th>
         </tr>
       </thead>
       <tbody>
-        {rows.map((r) => {
+        {rows.map((r, i) => {
           const { base, qualifier } = splitQualifier(r.name);
           return (
-            <Tr key={r.slug} data-cursor={`row-${r.slug}`} className={cn("h-16 animate-swap-in motion-reduce:animate-none", hot === r.slug && "bg-sunken")}>
+            <Tr key={r.slug} data-cursor={`row-${r.slug}`} className={cn("h-16 transition-opacity duration-slow motion-reduce:transition-none", i >= lit && "opacity-40", hot === r.slug && "bg-sunken")}>
               <SelectCell label={`Select ${r.name}`} disabled readOnly checked={false} />
               <Td className="max-w-0">
                 <span className="block truncate text-base font-semibold text-ink" title={r.name}>
                   {base}
                 </span>
                 {qualifier ? <span className="block truncate text-xs text-ink-3">{qualifier}</span> : null}
-                {r.products ? <Products products={r.products} className="pt-0.5" /> : null}
+                {r.products || r.type !== "Factory" ? (
+                  <span className="flex items-baseline gap-x-[5px] pt-0.5">
+                    {r.type !== "Factory" ? <span className="shrink-0 whitespace-nowrap text-sm text-ink-3">{r.products ? `${r.type} ·` : r.type}</span> : null}
+                    {r.products ? <Products products={r.products} /> : null}
+                  </span>
+                ) : null}
               </Td>
-              <Td className="text-ink [@container_(max-width:639px)]:hidden">{r.place ?? <Unpublished />}</Td>
-              <Td align="right" className="tabular-nums text-ink [@container_(max-width:639px)]:hidden">
+              <Td className={cn("max-w-0 text-ink", place)}>{r.place ? <span className="block truncate">{r.place.split(",")[0]}</span> : <Unpublished />}</Td>
+              <Td align="right" className={cn("whitespace-nowrap tabular-nums text-ink", workers)}>
                 {formatCount(r.workers) ?? <Unpublished />}
               </Td>
-              <Td>{r.held.length ? <HeldMarks held={r.held} /> : <Unpublished>{ABSENT.certificates}</Unpublished>}</Td>
+              <Td className="py-1.5">{r.held.length ? <HeldMarks held={r.held} words /> : <Unpublished>{r.anyOnFile ? ABSENT.certificatesLapsed : ABSENT.certificates}</Unpublished>}</Td>
+              <Td align="right" className={cn("tabular-nums text-ink", tail)}>
+                {r.sources}
+              </Td>
+              <td className={cn("w-[76px] border-b border-line p-0 align-middle", tail)}>
+                <span className={cn("flex items-center justify-center gap-1 transition-opacity duration-fast", hot === r.slug ? "opacity-100" : "opacity-0")}>
+                  <span className={buttonClass({ kind: "quiet", size: "icon-32" })}>
+                    <BookmarkSimple size={20} className="shrink-0" aria-hidden />
+                  </span>
+                  <span className={buttonClass({ kind: "quiet", size: "icon-32" })}>
+                    <SidebarSimple size={20} className="shrink-0 -scale-x-100" aria-hidden />
+                  </span>
+                </span>
+              </td>
             </Tr>
           );
         })}
@@ -96,46 +136,71 @@ function Chips({ chips }: { chips: readonly string[] }) {
   return (
     <div className="flex h-10 shrink-0 items-center gap-2 border-b border-line px-4">
       {chips.map((c) => (
-        <FilterChip key={c} removeHref="#" removeLabel={`Remove ${c}`}>
-          {c}
-        </FilterChip>
+        <Chip key={c}>{c}</Chip>
       ))}
     </div>
   );
 }
 
 /**
- * The results as a still (M4, the search page's carousel): the chips in the bar and under it, `rows` of the
- * snapshot, nothing moving, so no pause button. `right` is the bar's count; `description` is the one sentence a
- * screen reader gets instead of the table, as a demo's stage gives.
+ * The results as a still: the chips in the bar and under it, `rows` of the snapshot, nothing moving, so no pause
+ * button. `right` is the bar's count; `description` is the one sentence a screen reader gets instead of the table, as
+ * a demo's stage gives; `hot` draws one row hovered.
  */
-export function SearchStill({ chips, rows, right, description, className }: { chips: readonly string[]; rows: readonly Row[]; right?: ReactNode; description: string; className?: string }) {
+export function SearchStill({ chips, rows, right, description, className, hot }: { chips: readonly string[]; rows: readonly Row[]; right?: ReactNode; description: string; className?: string; hot?: string | null }) {
   return (
-    <figure data-ground="day" className={cn("rounded-frame shadow-lg", className)}>
+    <figure data-ground="day" className={cn("w-full rounded-frame shadow-lg", className)}>
       <figcaption className="sr-only">{description}</figcaption>
-      <div aria-hidden className="select-none">
-      <Window>
-        <Bar
-          title={
-            <span className="flex items-center gap-2">
-              <MagnifyingGlass size={16} className="shrink-0 text-ink-3" aria-hidden />
-              <span className="truncate">{chips.join(" ")}</span>
-            </span>
-          }
-        >
-          {right ? <span className="shrink-0 text-sm text-ink-3">{right}</span> : null}
-        </Bar>
-        <Chips chips={chips} />
-        <Rows rows={rows} />
-      </Window>
+      <div aria-hidden className="pointer-events-none select-none">
+        <Window>
+          <Bar
+            title={
+              <span className="flex items-center gap-2">
+                <MagnifyingGlass size={16} className="shrink-0 text-ink-3" aria-hidden />
+                <span className="truncate">{chips.join(" ")}</span>
+              </span>
+            }
+          >
+            {right ? <span className="shrink-0 text-sm text-ink-3">{right}</span> : null}
+          </Bar>
+          <Chips chips={chips} />
+          <Rows rows={rows} hot={hot} />
+        </Window>
       </div>
     </figure>
   );
 }
 
-export function DemoSearch({ className, caption }: { className?: string; caption?: boolean }) {
+/** The search's first rows as a still, the second hovered (the search page's results row). A client export, so a server page draws it without reading the rows itself. */
+export function SearchFirst({ n = 3, className }: { n?: number; className?: string }) {
   return (
-    <Demo steps={STEPS} description={`A search for ${QUERY}: ${formatCount(search.total) ?? "the"} suppliers found, with their place, workers and the certificates they hold today.`} caption={caption} className={className}>
+    <SearchStill
+      chips={search.chips}
+      rows={ROWS.slice(0, n)}
+      hot={ROWS[1]?.slug}
+      className={className}
+      description={`${Math.min(n, ROWS.length)} rows of the search results: each supplier's products, place, workers, the certificate schemes it holds today and how many sources hold it, with Save and Open on the hovered row.`}
+    />
+  );
+}
+
+/** The search's end frame as a still: every row, Aboni Knitwear hovered (the home's hero, which hands over to the tour's Find). */
+export function SearchEnd({ className }: { className?: string }) {
+  return (
+    <SearchStill
+      chips={search.chips}
+      rows={ROWS}
+      hot={HOVER.slug}
+      right={`${formatCount(search.total) ?? ROWS.length} suppliers`}
+      description={`A search for ${QUERY}: ${formatCount(search.total) ?? "the"} suppliers found, with their place, workers, the certificate schemes they hold today and how many sources hold them.`}
+      className={className}
+    />
+  );
+}
+
+export function DemoSearch(frame: Frame) {
+  return (
+    <Demo {...frame} steps={STEPS} description={`A search for ${QUERY}: ${formatCount(search.total) ?? "the"} suppliers found, with their place, workers, the certificate schemes they hold today and how many sources hold them.`}>
       {(s) => (
         <Window>
           <Bar
@@ -150,7 +215,7 @@ export function DemoSearch({ className, caption }: { className?: string; caption
             {s.chips ? <span className="shrink-0 text-sm text-ink-3">{formatCount(search.total)} suppliers</span> : null}
           </Bar>
           <Chips chips={s.chips ? search.chips : []} />
-          <Rows rows={ROWS.slice(0, s.rows)} hot={s.hover ? HOVER.slug : null} />
+          <Rows rows={ROWS} lit={s.rows} hot={s.hover ? HOVER.slug : null} />
         </Window>
       )}
     </Demo>

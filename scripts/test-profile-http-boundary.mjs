@@ -1213,6 +1213,21 @@ const CASES = [
     path: "/product/records",
     expect: { status: 200, bodyIncludes: "Every fact, with its receipt." },
   },
+  {
+    name: "site: /product/compliance in the home's frame is 200",
+    path: "/product/compliance",
+    expect: { status: 200, bodyIncludes: "Know before a certificate expires." },
+  },
+  {
+    name: "site: /solutions/sourcing in the home's frame is 200",
+    path: "/solutions/sourcing",
+    expect: { status: 200, bodyIncludes: "From search to RFQ in one sitting." },
+  },
+  {
+    name: "site: /solutions/compliance in the home's frame is 200",
+    path: "/solutions/compliance",
+    expect: { status: 200, bodyIncludes: "Show where every fact came from." },
+  },
   { name: "site: /legal/privacy is 200", path: "/legal/privacy", expect: { status: 200, bodyIncludes: "Who we are" } },
   { name: "site: /legal/trademarks is 200", path: "/legal/trademarks", expect: { status: 200, bodyIncludes: "All third-party trademarks" } },
   { name: "site: /security is 200", path: "/security", expect: { status: 200, bodyIncludes: "Security, stated plainly." } },

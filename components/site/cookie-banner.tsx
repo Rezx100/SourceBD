@@ -4,7 +4,9 @@
 // the same button, side by side, so saying no is exactly as easy as saying yes; "Choose cookies" opens the one
 // real choice (page counts, off until turned on). Nothing is set before a choice, and the banner never blocks the
 // page. The choice is one cookie (`lib/consent.ts`); the analytics provider reads it before it starts anything and
-// listens for the change. "Cookie settings" in the footer reopens it.
+// listens for the change. "Cookie settings" in the footer reopens it. On a phone it is a compact sheet along the bottom
+// edge: the sentence with "Choose cookies" at its end, then the two equal buttons (critique 22 Oct, S10); it still
+// shows as soon as the page runs, since it asks for consent.
 
 import { useEffect, useId, useState } from "react";
 import { Button, Switch } from "@/components/kit";
@@ -30,14 +32,23 @@ export function CookieCard({ view, analytics, onAnalytics, onReject, onAccept, o
 }) {
   const id = useId();
   return (
-    <section role="region" aria-labelledby={`${id}-t`} className="fixed bottom-4 left-4 z-toast flex w-[calc(100vw-2rem)] max-w-[440px] flex-col gap-4 rounded-lg border border-line bg-surface p-5 font-sans text-ink shadow-dialog">
+    <section
+      role="region"
+      aria-labelledby={`${id}-t`}
+      className="fixed bottom-4 left-4 z-toast flex w-[calc(100vw-2rem)] max-w-[440px] flex-col gap-4 rounded-lg border border-line bg-surface p-5 font-sans text-ink shadow-dialog max-sm:inset-x-0 max-sm:bottom-0 max-sm:w-full max-sm:max-w-none max-sm:gap-3 max-sm:rounded-none max-sm:rounded-t-lg max-sm:border-x-0 max-sm:border-b-0 max-sm:px-4 max-sm:pb-[max(1rem,env(safe-area-inset-bottom))] max-sm:pt-4"
+    >
       {view === "ask" ? (
         <>
           <div className="flex flex-col gap-1.5">
-            <h2 id={`${id}-t`} className="text-md font-medium">
+            <h2 id={`${id}-t`} className="text-md font-medium max-sm:sr-only">
               Cookies
             </h2>
-            <p className="text-base text-ink-2">We use cookies that keep you signed in. With your OK, we would also count which pages people read. Nothing is set until you choose.</p>
+            <p className="text-base text-ink-2 max-sm:text-sm">
+              We use cookies that keep you signed in. With your OK, we would also count which pages people read. Nothing is set until you choose.{" "}
+              <button type="button" className="font-medium text-ink underline decoration-1 underline-offset-2 sm:hidden" onClick={onChoose}>
+                Choose cookies
+              </button>
+            </p>
           </div>
           <div className="flex flex-wrap gap-2">
             {/* The same kind and size: no choice is made to look like the one we want. */}
@@ -47,7 +58,7 @@ export function CookieCard({ view, analytics, onAnalytics, onReject, onAccept, o
             <Button kind="secondary" size="md" className="max-sm:h-input-touch max-sm:flex-1" onClick={onAccept}>
               Accept all
             </Button>
-            <Button kind="quiet" size="md" className="max-sm:h-input-touch" onClick={onChoose}>
+            <Button kind="quiet" size="md" className="max-sm:hidden" onClick={onChoose}>
               Choose cookies
             </Button>
           </div>

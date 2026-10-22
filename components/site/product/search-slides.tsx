@@ -1,12 +1,13 @@
 "use client";
 
-// The search page's carousel (M4): the snapshot's one search, "knit GOTS", then its first page narrowed twice with a
-// chip, by district and by size, the way a buyer narrows a search. Every row is the snapshot's, so no narrowed slide
-// claims a count of its own: it says how many of this page remain; the two narrowing chips are this page's words for
-// the filters, not chips the product wrote. A client file because the slides hold components.
+// The search page's narrowing (M4; three stacked steps since the 22 Oct critique, which said a carousel hides two
+// thirds of its content): the snapshot's one search, "knit GOTS", then its first page narrowed twice with a chip, by
+// district and by size, the way a buyer narrows a search. Every row is the snapshot's, so no narrowed step claims a
+// count of its own: it says how many of this page remain; the two narrowing chips are this page's words for the
+// filters, not chips the product wrote. A client file because the steps hold components.
 
+import type { ReactNode } from "react";
 import { ROWS, SearchStill } from "@/components/site/demos/search";
-import type { Slide } from "@/components/site/sections/carousel";
 import { formatCount } from "@/lib/dashboard/facts";
 import { CAPTION, SNAPSHOT } from "@/lib/marketing/demo-snapshot";
 
@@ -15,6 +16,9 @@ const PLACE = "Gazipur";
 const MIN_WORKERS = 1000;
 
 type Row = (typeof ROWS)[number];
+
+/** One step: its title, its words, and the still that shows it. */
+export type Slide = { key: string; title: string; body: string; Slide: () => ReactNode };
 
 const still = (more: string[], rows: readonly Row[], right: string, note: string) =>
   function SearchSlide() {
@@ -55,3 +59,20 @@ export const SEARCH_SLIDES: readonly Slide[] = [
 
 /** Every company the slides name. */
 export const SLIDE_NAMES = ROWS.map((r) => r.name);
+
+/** The three steps, one under the other: the words on the left, the still on the right from 1024. */
+export function SearchSteps() {
+  return (
+    <ol aria-label="One search narrowed step by step" className="flex flex-col gap-14 md:gap-20">
+      {SEARCH_SLIDES.map((s) => (
+        <li key={s.key} className="grid items-center gap-6 lg:grid-cols-[minmax(0,4fr)_minmax(0,8fr)] lg:gap-14">
+          <div className="flex flex-col gap-2">
+            <h3 className="text-site-title font-medium text-ink-strong">{s.title}</h3>
+            <p className="max-w-[440px] text-site-body text-ink-muted">{s.body}</p>
+          </div>
+          <s.Slide />
+        </li>
+      ))}
+    </ol>
+  );
+}

@@ -797,4 +797,6 @@ test("cn keeps every token size beside an ink and lets a token radius replace an
   for (const k of Object.keys(borderRadius).filter((k) => k !== "DEFAULT")) assert.equal(cn("rounded-full", `rounded-${k}`), `rounded-${k}`, `rounded-${k}`);
   // A named height gives way to a caller's (the marketing buttons measured 40px on a phone, not their 48).
   for (const k of Object.keys(spacing)) assert.equal(cn(`h-${k}`, "h-12"), "h-12", `h-${k}`);
+  // A named padding gives way to a caller's too (the pricing hero kept the section's 120 px, critique 22 Oct review).
+  for (const k of Object.keys(spacing)) assert.equal(cn(`md:pb-${k}`, "md:pb-16"), "md:pb-16", `md:pb-${k}`);
 });

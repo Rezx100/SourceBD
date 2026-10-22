@@ -37,7 +37,7 @@ export function Lede({ children, className }: { children: ReactNode; className?:
   return <p className={cn("max-w-[680px] text-md text-ink-muted md:text-site-lede", className)}>{children}</p>;
 }
 
-/** The small label above a headline: "02 · Who are they?". */
+/** The small label above a headline: a hero's breadcrumb ("Product · Supplier search") or a row's name ("Filters"); never a number (critique 22 Oct, S13). */
 export function Label({ children, className }: { children: ReactNode; className?: string }) {
   return <p className={cn("text-site-body font-medium text-ink-subtle", className)}>{children}</p>;
 }
@@ -60,8 +60,23 @@ export function TextLink({ href, children, className }: { href: string; children
   );
 }
 
-/** The search that runs on public Discover, then Start free and Book a demo: every inner page's hero actions. */
-export function HeroActions({ tryLine = "Try “knit dresses Gazipur” or “GOTS”", center = false }: { tryLine?: string; center?: boolean }) {
+/**
+ * An inner page's one hero action (critique 22 Oct, S8): the green Start free with Book a demo as a text link, or, on
+ * the search page alone (`search`), the search that runs on public Discover, its button drawn secondary.
+ */
+export function HeroActions({ search = false, center = false }: { search?: boolean; center?: boolean }) {
+  if (!search) {
+    return (
+      <div className={cn("flex flex-wrap items-center gap-2.5", center && "justify-center")}>
+        <ButtonLink href="/signup" prefetch={false} kind="primary" size="lg" className="h-12 rounded-frame px-5 text-site-body">
+          Start free
+        </ButtonLink>
+        <TextLink href="/contact" className="px-4">
+          Book a demo
+        </TextLink>
+      </div>
+    );
+  }
   return (
     <div className={cn("flex w-full flex-col gap-4", center && "items-center")}>
       <form action="/discover" method="get" role="search" className="flex w-full max-w-[560px] flex-col gap-2">
@@ -81,24 +96,16 @@ export function HeroActions({ tryLine = "Try “knit dresses Gazipur” or “GO
             Search
           </button>
         </div>
-        <p className={cn("text-sm text-ink-subtle", center && "text-center")}>{tryLine}</p>
+        <p className={cn("text-sm text-ink-subtle", center && "text-center")}>Try “knit dresses Gazipur” or “GOTS”</p>
       </form>
-      <div className="flex flex-wrap items-center gap-2.5">
-        <ButtonLink href="/signup" prefetch={false} kind="primary" size="lg" className="h-12 rounded-frame px-5 text-site-body">
-          Start free
-        </ButtonLink>
-        <TextLink href="/contact" className="px-4">
-          Book a demo
-        </TextLink>
-      </div>
     </div>
   );
 }
 
 /** Every inner page's first section: label, a light headline of 56 at most, the lede and what follows, centred. */
-export function HeroCentered({ label, title, lede, children, stage }: { label?: ReactNode; title: ReactNode; lede?: ReactNode; children?: ReactNode; stage?: ReactNode }) {
+export function HeroCentered({ label, title, lede, children, stage, className }: { label?: ReactNode; title: ReactNode; lede?: ReactNode; children?: ReactNode; stage?: ReactNode; className?: string }) {
   return (
-    <section className="pb-14 pt-10 md:pb-section md:pt-24">
+    <section className={cn("pb-14 pt-10 md:pb-section md:pt-24", className)}>
       <div className={cn(measure, "flex flex-col items-center gap-6 text-center md:gap-7")}>
         {label ? <Label>{label}</Label> : null}
         <Display level={1} as="h1" className="max-w-[880px]">
@@ -147,7 +154,11 @@ export function FeatureRow({ label, headline, lede, children, media, flip = fals
   );
 }
 
-export type StillName = "hero-cotton" | "thread-cones" | "weave" | "thread-cone" | "carton" | "paper-seal" | "hangtags-fanned" | "selvedge" | "night-eyelet" | "cutting-table" | "hangtag" | "night-floor";
+/**
+ * The site's cloths (critique 22 Oct, S3): cotton under a hero, weave under every feature row. The third material,
+ * night, is no photograph: `NightStage` and the closing band draw it.
+ */
+export type StillName = "hero-cotton" | "weave";
 
 const set = (name: StillName, ext: "avif" | "webp") => `/site/home/${name}-1600.${ext} 1600w, /site/home/${name}-2560.${ext} 2560w`;
 
@@ -172,43 +183,29 @@ export function Still({ name, className, eager = false, sizes = "(min-width: 144
   );
 }
 
-/** The screens with a phone export of their own; the rest draw the desktop screen at every width. */
-const PHONE = new Set(["results", "saved-selected", "rfq-detail", "compliance", "messages-thread", "full-certs2"]);
-
-export type ScreenName = "results" | "saved-selected" | "rfq-detail" | "compliance" | "record" | "messages-thread" | "full-certs2" | "record-sanctioned" | "full" | "settings-members" | "landing";
-
-/**
- * A product screen as shipped, framed as Paper frames it (12 px corner, hairline, soft drop). Below 768 the phone
- * export when there is one (`phone` names a different one, as the board does). `alt` says what it shows.
- */
-export function Screen({ name, phone, alt, sizes = "(min-width: 1440px) 1152px, 90vw", className, eager = false }: { name: ScreenName; phone?: ScreenName | null; alt: string; sizes?: string; className?: string; eager?: boolean }) {
-  const p = phone === null ? null : (phone ?? name);
-  const hasPhone = p !== null && PHONE.has(p);
-  return (
-    <picture>
-      {hasPhone ? <source media="(max-width: 767px)" type="image/webp" srcSet={`/site/home/screen-${p}-m-390.webp 390w, /site/home/screen-${p}-m-780.webp 780w`} sizes="calc(100vw - 72px)" width={390} height={844} /> : null}
-      <source type="image/webp" srcSet={`/site/home/screen-${name}-1440.webp 1440w, /site/home/screen-${name}-2880.webp 2880w`} sizes={sizes} width={1440} height={900} />
-      {/* eslint-disable-next-line @next/next/no-img-element -- pre-sized in public/site/home (PROVENANCE.md) */}
-      <img
-        src={`/site/home/screen-${name}-1440.webp`}
-        alt={alt}
-        width={1440}
-        height={900}
-        loading={eager ? "eager" : "lazy"}
-        fetchPriority={eager ? "high" : undefined}
-        decoding="async"
-        className={cn("relative block h-auto w-full rounded-frame border border-ink-strong/10 object-cover object-left-top shadow-lg", className)}
-      />
-    </picture>
-  );
-}
-
-/** A screenshot on a photo stage, the home page's way of showing the product (the textile still behind it). */
+/** The product on a cloth stage, the home page's way of showing it (the textile still behind it). */
 export function Stage({ still = "weave", children, className, eager = false }: { still?: StillName; children: ReactNode; className?: string; eager?: boolean }) {
   return (
     <div className={cn("relative isolate flex items-center justify-center overflow-hidden rounded-card px-4 py-6 md:rounded-stage md:px-16 md:py-16", className)}>
       <Still name={still} eager={eager} />
       <div className="relative w-full">{children}</div>
+    </div>
+  );
+}
+
+/** The night material's one soft glow: light from above (`top`) or a horizon rising from below (`bottom`). */
+const GLOW = { top: "bg-[radial-gradient(120%_70%_at_50%_0%,rgb(var(--ds-ink)/0.12),transparent_65%)]", bottom: "bg-[radial-gradient(90%_60%_at_50%_100%,rgb(var(--ds-ink)/0.14),transparent_70%)]" };
+
+/**
+ * The night material (critique 22 Oct, S3, S4): the night ground, a hairline and one soft glow, never a photograph. A
+ * demo on the tour or in the cross-sell stands on it under a light from above, so a light window is never a bare
+ * rectangle on black; the closing band stands on it over a horizon. Night in either page tone.
+ */
+export function NightStage({ children, className, glow = "top" }: { children: ReactNode; className?: string; glow?: keyof typeof GLOW }) {
+  return (
+    <div data-ground="night" className={cn("relative isolate overflow-hidden rounded-card border border-ink/10 bg-surface p-3 md:rounded-stage md:p-6", className)}>
+      <div aria-hidden className={cn("pointer-events-none absolute inset-0 -z-10", GLOW[glow])} />
+      {children}
     </div>
   );
 }

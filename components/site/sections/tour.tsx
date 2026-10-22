@@ -8,15 +8,16 @@
 // reduced motion, never past the last). Below 1024 nothing pins: each item stacks with its own demo, which plays in
 // view. The server draws Find open.
 
-import { memo, useCallback, useEffect, useRef, useState, type ComponentType, type KeyboardEvent } from "react";
+import { memo, useCallback, useEffect, useRef, useState, type CSSProperties, type ComponentType, type KeyboardEvent, type ReactNode } from "react";
 import { DemoCompliance, DemoRecord, DemoRfq, DemoSearch } from "@/components/site/demos";
+import type { Frame } from "@/components/site/demos/stage";
 import { stillPreferred } from "@/components/site/motion";
 import { motion } from "@/lib/design/tokens";
 import { cn } from "@/lib/utils";
 import { HomeIcon, type IconName } from "./icons";
 import { H2, TextLink, measure, ring } from "./ui";
 
-export type TourItem = { key: string; icon: IconName; title: string; body: string; href: string; Demo: ComponentType<{ className?: string }> };
+export type TourItem = { key: string; icon: IconName; title: string; body: string; href: string; Demo: ComponentType<Frame> };
 
 export const TOUR: readonly TourItem[] = [
   { key: "find", icon: "search", title: "Find", body: "Search by product, district, certificate or source. Open a record beside the results and never lose your place.", href: "/product/search", Demo: DemoSearch },
@@ -25,28 +26,33 @@ export const TOUR: readonly TourItem[] = [
   { key: "watch", icon: "bell", title: "Watch", body: "Certificates that expire, registers that change, names that appear on the UFLPA list. We check again and tell you.", href: "/product/compliance", Demo: DemoCompliance },
 ];
 
-const N = TOUR.length;
+/** The home's heading; a solutions page passes its own line. */
+const HOME_HEADING = (
+  <>
+    Everything you do to vet a factory.
+    <br className="max-md:hidden" /> In one record.
+  </>
+);
 
-function Heading({ id }: { id?: string }) {
-  return (
-    <H2 id={id}>
-      Everything you do to vet a factory.
-      <br className="max-md:hidden" /> In one record.
-    </H2>
-  );
+function Heading({ id, children }: { id?: string; children: ReactNode }) {
+  return <H2 id={id}>{children}</H2>;
 }
 
-/** The open item's demo, swapping out then in. Memoised: the scroll re-renders the tour every frame for its bar, not the demo. */
-const TourDemo = memo(function TourDemo({ shown, leaving }: { shown: number; leaving: boolean }) {
-  const Shown = TOUR[shown]!.Demo;
+/** The open item's demo on the night material, swapping out then in. Memoised: the scroll re-renders the tour every frame for its bar, not the demo. */
+const TourDemo = memo(function TourDemo({ Shown, shown, leaving }: { Shown: ComponentType<Frame>; shown: number; leaving: boolean }) {
   return (
     <div key={shown} className={cn(leaving ? "animate-swap-out" : "animate-swap-in", "motion-reduce:animate-none")}>
-      <Shown />
+      <Shown stage="night" />
     </div>
   );
 });
 
-export function PinnedTour() {
+/**
+ * `items` (the home's four by default; a solutions page passes three), `id` for the heading the section is labelled
+ * by, `heading` the line above the items. The pinned run is 90vh per item (M4: `--tour-n` sets it).
+ */
+export function PinnedTour({ items = TOUR, id = "home-tour", heading = HOME_HEADING }: { items?: readonly TourItem[]; id?: string; heading?: ReactNode }) {
+  const N = items.length;
   const section = useRef<HTMLElement>(null);
   const [active, setActive] = useState(0);
   const [shown, setShown] = useState(0);
@@ -60,7 +66,7 @@ export function PinnedTour() {
   const go = useCallback((i: number) => {
     const at = Math.max(0, Math.min(N - 1, i));
     window.scrollTo({ top: geometry.current.top + (at / N) * geometry.current.span + 1, behavior: stillPreferred() ? "auto" : "smooth" });
-  }, []);
+  }, [N]);
 
   useEffect(() => {
     const el = section.current;
@@ -115,7 +121,7 @@ export function PinnedTour() {
       document.removeEventListener("visibilitychange", arm);
       grew?.disconnect();
     };
-  }, [go]);
+  }, [go, N]);
 
   // The demo swaps out (200 ms, blur) before the next swaps in (320 ms, rise); at once under reduced motion.
   useEffect(() => {
@@ -140,14 +146,14 @@ export function PinnedTour() {
   };
 
   return (
-    <section ref={section} data-tone="dark" aria-labelledby="home-tour" className="relative lg:h-[360vh]">
+    <section ref={section} data-tone="dark" aria-labelledby={id} className="relative lg:h-[calc(var(--tour-n)*90vh)]" style={{ "--tour-n": N } as CSSProperties}>
       {/* From 1024: the pinned box. */}
       <div className="sticky top-0 hidden h-screen lg:block">
         <div className={cn(measure, "grid h-full grid-cols-12 items-center gap-10 xl:gap-16")}>
           <div className="col-span-5 flex flex-col gap-8">
-            <Heading id="home-tour" />
+            <Heading id={id}>{heading}</Heading>
             <ol className="flex flex-col border-t border-line">
-              {TOUR.map((t, i) => {
+              {items.map((t, i) => {
                 const on = i === active;
                 return (
                   <li key={t.key} className="relative border-b border-line">
@@ -177,15 +183,15 @@ export function PinnedTour() {
             </ol>
           </div>
           <div className="col-span-7 min-w-0">
-            <TourDemo shown={shown} leaving={leaving} />
+            <TourDemo Shown={items[shown]!.Demo} shown={shown} leaving={leaving} />
           </div>
         </div>
       </div>
       {/* Below 1024: each item with its own demo, in flow. */}
       <div className={cn(measure, "flex flex-col gap-14 py-14 lg:hidden")}>
-        <Heading />
+        <Heading>{heading}</Heading>
         <ol className="flex flex-col gap-14">
-          {TOUR.map((t) => (
+          {items.map((t) => (
             <li key={t.key} className="flex flex-col gap-5">
               <div className="flex flex-col gap-2.5">
                 <h3 className="flex items-center gap-3 text-site-title font-medium text-ink-strong">
@@ -195,7 +201,7 @@ export function PinnedTour() {
                 <p className="text-md text-ink-muted">{t.body}</p>
                 <TextLink href={t.href}>See how</TextLink>
               </div>
-              <t.Demo />
+              <t.Demo stage="night" />
             </li>
           ))}
         </ol>

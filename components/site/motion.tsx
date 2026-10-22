@@ -6,9 +6,11 @@
 // in: a visible pause button, a drawn cursor, and a sentence for screen readers) and `ToneShift` (the page's ground
 // crossfading between paper and dark as sections reach the middle of the viewport).
 //
-// The server renders every scene's LAST step, so the page reads complete with no script and paints fast; the
-// script then rewinds a scene to its first step when it starts. Reduced motion and Save-Data keep the last step and
-// offer play instead; app/ds.css stills every CSS transition under reduced motion.
+// The server renders every scene's LAST step, so the page reads complete with no script and paints fast. A demo on
+// screen when it mounts holds that step, then loops; one out of sight is set to its first step before it is seen,
+// so no visitor sees a finished demo empty itself (critique 22 Oct, S5).
+// Reduced motion and Save-Data keep the last step and offer play instead; app/ds.css stills every CSS transition
+// under reduced motion.
 
 import { Pause, Play } from "@phosphor-icons/react";
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode, type RefObject } from "react";
@@ -54,12 +56,17 @@ export function stepAt<S>(steps: readonly Step<S>[], ms: number): number {
 /** How long the last step holds before a looping scene starts again. */
 export const HOLD_MS = 2400;
 
+/** Whether a box is in the window: any part of it between the top and the bottom edge. */
+export const onScreen = (box: { top: number; bottom: number }, height: number): boolean => box.top < height && box.bottom > 0;
+
 /**
  * Plays `steps` while `ref` is half in view, the tab is visible and the visitor has not paused it; loops after the
- * last step holds for `HOLD_MS`. Starts on the last step (the server's end state); under reduced motion it stays
- * there, paused, until the visitor presses play.
+ * last step holds for `HOLD_MS`. The server draws the last step. A scene on screen when it mounts starts its clock
+ * there, so the finished demo holds before it loops; one out of sight moves to its first step before the browser
+ * paints and plays from there when it comes into view. Under reduced motion it stays on the last step, paused, until
+ * the visitor presses play.
  */
-export function useScene<S>(steps: readonly Step<S>[], ref: RefObject<Element | null>): { state: S; index: number; paused: boolean; toggle: () => void } {
+export function useScene<S>(steps: readonly Step<S>[], ref: RefObject<Element | null>): { state: S; index: number; paused: boolean; looping: boolean; toggle: () => void } {
   const last = steps.length - 1;
   const [index, setIndex] = useState(last);
   const [paused, setPaused] = useState(false);
@@ -67,11 +74,17 @@ export function useScene<S>(steps: readonly Step<S>[], ref: RefObject<Element | 
   const inView = useInView(ref, 0.5);
   const latest = useRef(steps);
   latest.current = steps;
-  // Where the clock stood when it last stopped; null until the scene first runs (it is then on the server's last step).
+  // Where the clock stood when it last stopped; null until the scene first runs (it then starts from its first step).
   const elapsed = useRef<number | null>(null);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
+    const box = ref.current?.getBoundingClientRect();
     if (stillPreferred()) setPaused(true);
+    else if (box && onScreen(box, innerHeight)) elapsed.current = latest.current[latest.current.length - 1]!.at;
+    else setIndex(0);
+  }, [ref]);
+
+  useEffect(() => {
     const still = matchMedia("(prefers-reduced-motion: reduce)");
     const onStill = (e: MediaQueryListEvent) => e.matches && setPaused(true);
     const onVis = () => setHidden(document.hidden);
@@ -84,11 +97,14 @@ export function useScene<S>(steps: readonly Step<S>[], ref: RefObject<Element | 
     };
   }, []);
 
+  // True for a moment after the scene starts again, while the last step fades away over the first.
+  const [looping, setLooping] = useState(false);
   const running = inView && !hidden && !paused;
   useEffect(() => {
     if (!running) return;
     let t0 = performance.now() - (elapsed.current ?? 0);
     let timer = 0;
+    let fade = 0;
     const tick = () => {
       const s = latest.current;
       const total = s[s.length - 1]!.at + HOLD_MS;
@@ -96,6 +112,12 @@ export function useScene<S>(steps: readonly Step<S>[], ref: RefObject<Element | 
       if (ms >= total) {
         t0 += total * Math.floor(ms / total);
         ms = performance.now() - t0;
+        // A scene of one step has nothing to fade between.
+        if (s.length > 1) {
+          setLooping(true);
+          window.clearTimeout(fade);
+          fade = window.setTimeout(() => setLooping(false), motion.swapOutMs);
+        }
       }
       elapsed.current = ms;
       const i = stepAt(s, ms);
@@ -105,11 +127,13 @@ export function useScene<S>(steps: readonly Step<S>[], ref: RefObject<Element | 
     tick();
     return () => {
       window.clearTimeout(timer);
+      window.clearTimeout(fade);
+      setLooping(false);
       elapsed.current = performance.now() - t0;
     };
   }, [running]);
 
-  return { state: steps[Math.min(index, last)]!.state, index, paused, toggle: () => setPaused((p) => !p) };
+  return { state: steps[Math.min(index, last)]!.state, index, paused, looping, toggle: () => setPaused((p) => !p) };
 }
 
 /** What a demo step may say about the drawn cursor: the `data-cursor` name it rests on, and whether it clicks. */
@@ -120,29 +144,45 @@ import { ring } from "./sections/ui";
 /**
  * The frame a product demo plays in. `children` draws one step's state; elements the cursor visits carry
  * `data-cursor="<name>"`. The demo itself is `aria-hidden`: `description` says in one sentence what it shows, and the
- * real copy sits beside it. The pause button is always there (WCAG 2.2.2), pressed while the demo is stopped.
+ * real copy sits beside it. The window keeps the product's light ground on any page tone; `frame` sets it on a stage
+ * (a cloth, the night). Under it, never over it, a row holds `foot` (the caption) and the pause button, which is
+ * always there (WCAG 2.2.2), pressed while the demo is stopped (critique 22 Oct, S6). When the scene starts again,
+ * its last step fades away over the first.
  */
-export function DemoStage<S extends CursorState>({ steps, description, className, children }: { steps: readonly Step<S>[]; description: string; className?: string; children: (state: S) => ReactNode }) {
+export function DemoStage<S extends CursorState>({ steps, description, className, frame, windowClass, foot, children }: {
+  steps: readonly Step<S>[];
+  description: string;
+  className?: string;
+  frame?: (win: ReactNode) => ReactNode;
+  windowClass?: string;
+  foot?: ReactNode;
+  children: (state: S) => ReactNode;
+}) {
   const stage = useRef<HTMLElement>(null);
-  const { state, paused, toggle } = useScene(steps, stage);
+  const box = useRef<HTMLDivElement>(null);
+  const { state, paused, looping, toggle } = useScene(steps, stage);
   const [at, setAt] = useState<{ x: number; y: number } | null>(null);
 
   // The cursor moves to the centre of its target, measured once per step (never in a scroll handler).
   useLayoutEffect(() => {
-    const box = stage.current;
-    const target = state.cursor ? box?.querySelector<HTMLElement>(`[data-cursor="${CSS.escape(state.cursor)}"]`) : null;
-    if (!box || !target) return setAt(null);
-    const b = box.getBoundingClientRect();
+    const b = box.current;
+    const target = state.cursor ? b?.querySelector<HTMLElement>(`[data-cursor="${CSS.escape(state.cursor)}"]`) : null;
+    if (!b || !target) return setAt(null);
+    const r = b.getBoundingClientRect();
     const t = target.getBoundingClientRect();
-    setAt({ x: t.left - b.left + t.width / 2, y: t.top - b.top + t.height / 2 });
+    setAt({ x: t.left - r.left + t.width / 2, y: t.top - r.top + t.height / 2 });
   }, [state]);
 
-  return (
-    <figure ref={stage} className={cn("relative isolate overflow-hidden", className)}>
-      <figcaption className="sr-only">{description}</figcaption>
+  const win = (
+    <div ref={box} data-ground="day" className={cn("relative isolate overflow-hidden rounded-frame", windowClass)}>
       <div aria-hidden className="pointer-events-none select-none">
         {children(state)}
       </div>
+      {looping ? (
+        <div aria-hidden className="pointer-events-none absolute inset-0 select-none animate-swap-out">
+          {children(steps[steps.length - 1]!.state)}
+        </div>
+      ) : null}
       {at ? (
         <span aria-hidden className="pointer-events-none absolute left-0 top-0 z-raised ease-in-out motion-reduce:transition-none" style={{ transform: `translate(${at.x}px, ${at.y}px)`, transitionProperty: "transform", transitionDuration: `${motion.cursorMs}ms` }}>
           {state.click ? <span key={String(state.cursor)} className="absolute -left-3 -top-3 size-6 animate-click rounded-full border-2 border-ink/40" /> : null}
@@ -151,15 +191,25 @@ export function DemoStage<S extends CursorState>({ steps, description, className
           </svg>
         </span>
       ) : null}
-      <button
-        type="button"
-        aria-label="Pause demo"
-        aria-pressed={paused}
-        onClick={toggle}
-        className={cn("absolute bottom-3 left-3 z-raised flex size-11 items-center justify-center rounded-full border border-line bg-surface text-ink shadow-menu hover:bg-sunken", ring)}
-      >
-        {paused ? <Play size={16} weight="fill" aria-hidden /> : <Pause size={16} weight="fill" aria-hidden />}
-      </button>
+    </div>
+  );
+
+  return (
+    <figure ref={stage} className={cn("flex flex-col gap-3", className)}>
+      <figcaption className="sr-only">{description}</figcaption>
+      {frame ? frame(win) : win}
+      <div className="flex min-h-11 items-center justify-between gap-4">
+        <div className="min-w-0">{foot}</div>
+        <button
+          type="button"
+          aria-label="Pause demo"
+          aria-pressed={paused}
+          onClick={toggle}
+          className={cn("flex size-11 shrink-0 items-center justify-center rounded-full border border-line bg-surface text-ink hover:bg-sunken", ring)}
+        >
+          {paused ? <Play size={16} weight="fill" aria-hidden /> : <Pause size={16} weight="fill" aria-hidden />}
+        </button>
+      </div>
     </figure>
   );
 }
@@ -168,14 +218,21 @@ export type Tone = "paper" | "dark" | "photo";
 
 /**
  * The page's `<main>`. Each section says its tone with `data-tone`; the one crossing the middle of the viewport sets
- * the ground. Dark swaps in the night colour set (`data-ground="night"`, tailwind.config.ts), so every token reads
- * dark; the ground fades over `duration-tone`, and so does every colour inside that sets no transition of its own
- * (the zero-specificity rule in tailwind.config.ts), so text never flips ahead of its ground. Sections under it keep
- * a transparent ground.
+ * the ground. Only the ground fades, over `duration-tone`, evenly, so it is mid-grey half way; the ink, the lines and
+ * the fills step once at that moment, when the night colour set (`data-ground="night"`, tailwind.config.ts) comes in
+ * or goes, so text never passes through grey on grey (critique 22 Oct, S1). Sections under it keep a transparent
+ * ground.
  */
 export function ToneShift({ initial = "paper", id = "main-content", className, children }: { initial?: Tone; /** The skip link's anchor; null where the shell around the page already carries it. */ id?: string | null; className?: string; children?: ReactNode }) {
   const main = useRef<HTMLElement>(null);
   const [tone, setTone] = useState<Tone>(initial);
+  const [ink, setInk] = useState<Tone>(initial);
+  useEffect(() => {
+    if (ink === tone) return;
+    // Only reduced motion stills the ground's fade (app/ds.css), so only it moves the ink at once.
+    const t = window.setTimeout(() => setInk(tone), matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : motion.toneMs / 2);
+    return () => window.clearTimeout(t);
+  }, [tone, ink]);
   useEffect(() => {
     const el = main.current;
     if (!el || typeof IntersectionObserver === "undefined") return;
@@ -189,7 +246,13 @@ export function ToneShift({ initial = "paper", id = "main-content", className, c
     return () => io.disconnect();
   }, []);
   return (
-    <main ref={main} id={id ?? undefined} data-tone={tone} data-ground={tone === "dark" ? "night" : undefined} className={cn("bg-surface text-ink transition-colors duration-tone ease-reveal", className)}>
+    <main
+      ref={main}
+      id={id ?? undefined}
+      data-tone={tone}
+      data-ground={ink === "dark" ? "night" : undefined}
+      className={cn("text-ink transition-[background-color] duration-tone ease-[cubic-bezier(0.45,0,0.55,1)]", className, tone === "dark" ? "bg-[rgb(var(--mk-ground-night))]" : "bg-[rgb(var(--mk-ground-paper))]")}
+    >
       {children}
     </main>
   );

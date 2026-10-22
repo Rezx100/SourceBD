@@ -54,10 +54,11 @@ export function ContactForm() {
       </Field>
       <fieldset className="flex flex-col gap-1.5" aria-describedby={f.markets ? "markets-error" : undefined}>
         <legend className="mb-1.5 text-sm font-medium text-ink">Markets you sell in</legend>
-        <div className="flex flex-wrap gap-x-6 gap-y-1">
+        {/* One line on a 375 px phone too: the box's own gap and 8 px between them (critique 22 Oct: "Other" wrapped). */}
+        <div className="flex flex-wrap gap-x-2 gap-y-1 sm:gap-x-6">
           {MARKETS.map((m) => (
             <Checkbox key={m} name="markets" value={m} defaultChecked={v.markets?.includes(m)}>
-              <span className="pl-2">{m}</span>
+              <span className="sm:pl-2">{m}</span>
             </Checkbox>
           ))}
         </div>

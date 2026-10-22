@@ -131,7 +131,7 @@ describe("the Mercury home page", () => {
   it("the ground crossfades section by section: the main landmark carries the hero's tone and no second skip anchor", () => {
     const out = page();
     // React hoists the marks' image preloads ahead of the tree, so the landmark is the first element, not the first tag.
-    assert.match(out, /^(?:<link [^>]*>)*<main data-tone="photo" class="[^"]*bg-canvas/);
+    assert.match(out, /^(?:<link [^>]*>)*<main data-tone="photo" class="[^"]*bg-\[rgb\(var\(--mk-ground-paper\)\)\]/);
     assert.doesNotMatch(out, /id="main-content"/, "the shell carries the skip link's anchor");
     const tones = [...out.matchAll(/data-tone="(photo|dark|paper)"/g)].map((m) => m[1]).slice(1);
     assert.deepEqual(tones, ["photo", "dark", "paper", "dark", "paper", "photo", "paper", "dark"]);
@@ -167,13 +167,55 @@ describe("the Mercury home page", () => {
     assert.ok(/href="\/signup\?role=supplier"[^>]*>(?:<[^>]+>)*\s*Claim your record/.test(out), "a claim button");
   });
 
-  it("every screen says what it shows, and every backdrop is decoration", () => {
+  it("no screenshot anywhere: every backdrop is decoration and the hero is the search's end frame, drawn from the snapshot (critique 22 Oct, S2)", () => {
     const out = page();
-    for (const img of out.match(/<img [^>]*>/g) ?? []) {
-      if (/\/site\/home\/screen-/.test(img)) assert.match(img, /alt="[^"]{12,}"/, img);
-      else if (/\/site\/home\//.test(img)) assert.match(img, /alt=""/, img);
+    for (const img of out.match(/<img [^>]*>/g) ?? []) if (/\/site\/home\//.test(img)) assert.match(img, /alt=""/, img);
+    assert.doesNotMatch(out, /\/site\/home\/screen-|\/site\/[a-z-]+\.png/);
+    const hero = out.slice(out.indexOf('class="mk-hero'), out.indexOf('aria-labelledby="home-tour"'));
+    assert.match(hero, /<figcaption class="sr-only">A search for knit GOTS: /);
+    assert.match(hero, /hero-cotton-1600\.webp"[^>]*fetchPriority="high"|fetchPriority="high"[^>]*hero-cotton/);
+  });
+
+  it("everything else a sourcing desk needs: a two-column hairline list, no icons, no bordered cards (critique 22 Oct)", () => {
+    const out = page();
+    const grid = /<section aria-labelledby="home-grid"[\s\S]*?<\/section>/.exec(out)![0];
+    assert.equal((grid.match(/<li /g) ?? []).length, 8);
+    assert.match(grid, /md:grid-cols-2/);
+    assert.doesNotMatch(grid, /<svg|rounded-card/);
+  });
+
+  it("the strip of registers loads its nine framed marks with the page, never as empty boxes (critique 22 Oct; the frame is the logos lock's)", () => {
+    const strip = /<section aria-labelledby="home-marks"[\s\S]*?<\/section>/.exec(page())![0];
+    assert.equal((strip.match(/<img /g) ?? []).length, 9);
+    assert.doesNotMatch(strip, /loading="lazy"/);
+    assert.doesNotMatch(strip, /font-mono/);
+  });
+
+  it("one material system: the backdrops are cotton and weave only, and the night is drawn, never photographed (critique 22 Oct, S3)", () => {
+    const stills = new Set([...page().matchAll(/\/site\/home\/([a-z-]+)-1600\.(?:avif|webp)/g)].map((m) => m[1]));
+    for (const s of stills) assert.ok(s === "hero-cotton" || s === "weave", s);
+    assert.ok(stills.has("weave"));
+  });
+
+  it("the first paint waits for no slow read: the chips' counts and the three records stream in (critique 22 Oct, S9)", () => {
+    const route = readFileSync(join(process.cwd(), "app/(home)/page.tsx"), "utf8");
+    assert.match(route, /<Suspense fallback=\{<Chips chips=\{chipsOf\(\)\} pending \/>\}>/);
+    const body = route.slice(route.indexOf("export default async function HomePage"));
+    assert.ok(body.length < route.length, "the page function");
+    assert.doesNotMatch(body, /loadChips|await loadHomeRecords|await Promise\.all/);
+  });
+
+  it("the streamed parts land in their own places: the chips in the hero, the record and the three cards in the proof", () => {
+    const mark = (id: string) => createElement("p", { "data-slot": id }, id);
+    const t = text(draw(createElement(HomeMercury, { facts: LIVE, slots: { chips: mark("chips-slot"), inside: mark("inside-slot"), records: mark("records-slot") } })));
+    const order = ["on the record.", "chips-slot", "Everything you do to vet a factory.", "Vetting used to be a chase.", "inside-slot", "records-slot", "Four moments from a day's sourcing."];
+    let at = -1;
+    for (const s of order) {
+      const i = t.indexOf(s, at + 1);
+      assert.ok(i > at, `"${s}" comes after the one before it`);
+      at = i;
     }
-    assert.match(out, /alt="SourceBD search results[^"]*"[^>]*fetchPriority="high"|fetchPriority="high"[^>]*alt="SourceBD search results/);
+    assert.doesNotMatch(t, /Inside one record\./, "a slot takes the section's place");
   });
 
   it("every link on the page and in its footer is a route of the site", () => {
@@ -209,8 +251,9 @@ describe("the Mercury home page", () => {
     for (const a of page().match(/<a [^>]*>/g) ?? []) if (/text-brand(?![-\w])/.test(a)) assert.match(a, /href="\/"/, a);
   });
 
-  it("the announcement links to the Compliance hub", () => {
+  it("the announcement links to the Compliance hub, in one line on a phone with the sentence kept for a screen reader (critique 22 Oct, S10)", () => {
     const bar = draw(createElement(Announcement));
+    assert.match(bar, /<span class="max-md:sr-only">UFLPA and sanctions checks now run on every saved supplier<\/span>/);
     assert.match(text(bar), /UFLPA and sanctions checks now run on every saved supplier See the Compliance hub/);
     assert.match(bar, /href="\/compliance"/);
     assert.match(bar, /aria-label="Dismiss announcement"/);
@@ -232,6 +275,13 @@ describe("the live sections", () => {
     assert.match(bare, /0 scores, grades or stars on any supplier/);
   });
 
+  it("the hero offers five common searches, not nine (critique 22 Oct, S8)", () => {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports -- loaded after the test build exists.
+    const { chipsOf } = require("@/components/site/sections/chips") as typeof import("@/components/site/sections/chips");
+    assert.equal(chipsOf().length, 5);
+    assert.ok(chipsOf().every((c) => c.count === null), "with no counts read, none is drawn");
+  });
+
   it("a chip shows its count only when the count was read, and links to its search", () => {
     const out = live();
     assert.match(out, /href="\/app\/discover\?hs=6109"[^>]*>.*?GOTS-certified knitwear<\/span><span[^>]*>205<\/span>/);
@@ -251,21 +301,22 @@ describe("the live sections", () => {
     assert.match(none, /Inside one record\./, "the dated screen still stands");
   });
 
-  it("Buy with confidence: four tabs, every panel in the page, the sanctioned company a placeholder", () => {
+  it("Buy with confidence: four tabs, every panel in the page, the sanctioned company the site's example, captioned as one", () => {
     const out = live();
     assert.equal((out.match(/role="tab"/g) ?? []).length, 4);
     assert.equal((out.match(/role="tabpanel"/g) ?? []).length, 4);
     assert.equal((out.match(/aria-selected="true"/g) ?? []).length, 1);
     assert.match(text(out), /A sanctioned supplier is marked on every surface\./);
-    assert.match(out, /alt="A placeholder supplier, Example Apparel Ltd, marked sanctioned/);
+    assert.match(out, /Example Apparel Ltd, an example company, among them: its row turns maroon/);
+    assert.match(text(out), /Example Apparel Ltd is an example company, not a real supplier/);
     assert.match(text(out), /“No link found” is not a clearance/);
   });
 
-  it("a callout the record no longer holds leaves its slot empty: the others keep their own rows", () => {
-    const out = live({ callouts: [null, { ...CALLOUT, title: "GOTS-31587 · valid to 12 May 2027", tone: undefined }, null] });
-    // Slot 2 of the board: the card at (880, 290) of the 1280×830 stage.
-    assert.match(out, /left:68\.75%;top:34\.93975903614458%"><span[^>]*>GOTS-31587/);
-    assert.doesNotMatch(out, /top:22\.89156626506024%/, "slot 1 is empty");
+  it("a fact the record no longer holds is left out; the others keep their order beside the record", () => {
+    const out = live({ callouts: [null, { ...CALLOUT, title: "GOTS-31587 · valid to 12 May 2027", tone: undefined }, CALLOUT] });
+    const list = text(out.slice(out.indexOf('aria-label="What the record shows"'), out.indexOf("</ul>", out.indexOf('aria-label="What the record shows"'))));
+    assert.ok(list.indexOf("GOTS-31587") < list.indexOf("GOTS-27605"), "the order of the callouts");
+    assert.equal((out.match(/aria-label="What the record shows"/g) ?? []).length, 1);
   });
 
   it("the real records say how many were read", () => {
@@ -275,6 +326,9 @@ describe("the live sections", () => {
 
   it("motion never hides anything on the server: no element waits, the figures are final, and the loop is not in the first paint", () => {
     const out = live();
+    // No figure counts up under "Not rounded" (critique 22 Oct, S7).
+    // eslint-disable-next-line @typescript-eslint/no-require-imports -- loaded after the test build exists.
+    assert.equal("CountUp" in require("@/components/site/sections/reveal"), false);
     assert.doesNotMatch(out, /data-reveal=/, "only the browser holds a section back, and only one below the fold");
     assert.doesNotMatch(out, /<video/, "the loop is added after load, never under reduced motion or Save-Data");
     assert.match(text(out), /10,278 Bangladesh garment suppliers published/);
