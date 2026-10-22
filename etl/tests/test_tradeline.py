@@ -50,6 +50,20 @@ def test_plan_skips_suppliers_already_in_production(monkeypatch, tmp_path):
     assert [r["id"] for r in volza_launch.plan()] == ["b"]
 
 
+def test_saved_rows_keep_each_paid_supplier_once_and_drop_expired(tmp_path):
+    # 22 Oct 2026: what was paid for goes to the server (0156); a resumed run's partial line never does
+    import tradeline
+
+    f = tmp_path / "launch_2026-10-22.jsonl"
+    f.write_text('{"id": "a", "partial": true, "fetched_at": "2026-10-22T07:44:16+00:00"}\n'
+                 '{"id": "a", "shipments": 3, "fetched_at": "2026-10-22T07:45:00+00:00"}\n'
+                 '{"id": "b", "partial": true, "fetched_at": "2026-10-22T07:46:00+00:00"}\n'
+                 '{"id": "c", "shipments": 0, "fetched_at": "2024-01-01T00:00:00+00:00"}\n')
+    rows = tradeline.kept_rows(f)
+    assert [(r["supplier_id"], r["record"]["shipments"]) for r in rows] == [("a", 3)]
+    assert rows[0]["results_file"] == f.name and rows[0]["expires_at"].startswith("2027-10-22")
+
+
 def test_run_stops_before_using_the_buyers_daily_share():
     # 11 Oct 2026: batch 2 used Volza's 1,000 requests a day and every buyer's reveal failed
     v = volza_live_sample.Live(100.0, 0.0, http=object())
