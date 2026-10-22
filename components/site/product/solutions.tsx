@@ -6,7 +6,7 @@
 
 import type { ReactNode } from "react";
 import { DemoCompliance, DemoFilters, DemoQuotes, DemoRecord, DemoRfq, DemoStatement } from "@/components/site/demos";
-import { ToneShift } from "@/components/site/motion";
+import { PageMain } from "@/components/site/motion";
 import { PAGES, type Page } from "@/components/site/pages";
 import { Closing } from "@/components/site/sections/closing";
 import { CrossSell } from "@/components/site/sections/cross-sell";
@@ -19,7 +19,7 @@ export const COMPLIANCE_TEAMS_KEY = "solutions/compliance";
 /** One solutions page: the template's shape with the tour after the hero and the chosen three products before the close; `hero` and `media` (by row `n`) are its demos. */
 function SolutionsPage({ p, hero, media, tour, products }: { p: Page; hero: ReactNode; media: Record<string, ReactNode>; tour: ReactNode; products: string[] }) {
   return (
-    <ToneShift id={null} initial="paper" className="font-sans text-ink-strong antialiased">
+    <PageMain id={null} className="font-sans text-ink-strong antialiased">
       <div data-tone="paper">
         <HeroCentered label={`${p.group} · ${p.name}`} title={p.h1} lede={p.lede} stage={hero}>
           <HeroActions center />
@@ -48,7 +48,7 @@ function SolutionsPage({ p, hero, media, tour, products }: { p: Page; hero: Reac
         {/* The outcome is the close's own line (critique 22 Oct: a kicker over one line, on a page that already closes). */}
         <Closing headline={p.close} lede={`${p.outcome ? `${p.outcome} ` : ""}Free during beta. No card needed.`} />
       </div>
-    </ToneShift>
+    </PageMain>
   );
 }
 
@@ -56,8 +56,8 @@ export function SolutionsSourcingPage() {
   return (
     <SolutionsPage
       p={PAGES[SOURCING_KEY]!}
-      hero={<DemoRfq stage="hero-cotton" eager />}
-      media={{ "01": <DemoFilters stage="weave" />, "02": <DemoRecord stage="weave" />, "03": <DemoQuotes stage="weave" /> }}
+      hero={<DemoRfq stage="swatches" eager />}
+      media={{ "01": <DemoFilters stage="rail" />, "02": <DemoRecord stage="rail" />, "03": <DemoQuotes stage="rail" /> }}
       tour={<SourcingTour />}
       products={["/product/search", "/product/records", "/product/rfqs"]}
     />
@@ -68,8 +68,8 @@ export function SolutionsCompliancePage() {
   return (
     <SolutionsPage
       p={PAGES[COMPLIANCE_TEAMS_KEY]!}
-      hero={<DemoCompliance stage="hero-cotton" eager />}
-      media={{ "01": <DemoRecord stage="weave" />, "02": <DemoCompliance view="uflpa" stage="weave" />, "03": <DemoCompliance view="expiry" stage="weave" />, "04": <DemoStatement stage="weave" /> }}
+      hero={<DemoCompliance stage="swatches" eager />}
+      media={{ "01": <DemoRecord stage="rail" />, "02": <DemoCompliance view="uflpa" stage="rail" />, "03": <DemoCompliance view="expiry" stage="rail" />, "04": <DemoStatement stage="rail" /> }}
       tour={<ComplianceTour />}
       products={["/product/records", "/product/compliance", "/product/search"]}
     />

@@ -1,25 +1,25 @@
 "use client";
 
-// What every product demo on the site shares (handoff-mercury-m2-m3.md, M2): `Demo` is a `DemoStage` inside a light
-// product window with the snapshot's caption under it, so a demo reads the same on paper and on the night ground
-// (the app has no dark theme: `data-ground="day"` keeps the window light inside any tone). `typed` and `streamed`
-// write the steps a scene needs to type a search or let rows arrive one at a time, at the motion tokens' pace.
+// What every coded product demo on the site shares (handoff-mercury-m2-m3.md, M2; the founder's videos of 22 Oct 2026):
+// `Demo` is a `DemoStage` drawn at the app's proportions inside the same desktop browser window as the recordings of
+// the real app (`sections/browser.tsx`), its pause button in the window's corner and no caption under it. The app has
+// no dark theme: `data-ground="day"` keeps the window light inside any tone. `typed` and `streamed` write the steps a
+// scene needs to type a search or let rows arrive one at a time, at the motion tokens' pace.
 
 import { X } from "@phosphor-icons/react";
 import type { ReactNode } from "react";
 import { DemoStage, type CursorState, type Step } from "@/components/site/motion";
-import { NightStage, Stage, type StillName } from "@/components/site/sections/ui";
+import { BrowserFrame, FitPage, PauseButton } from "@/components/site/sections/browser";
+import { Stage, type StillName } from "@/components/site/sections/ui";
 import { motion } from "@/lib/design/tokens";
-import { CAPTION } from "@/lib/marketing/demo-snapshot";
 import { cn } from "@/lib/utils";
 
 /**
- * Where a demo sits on its page (critique 22 Oct): `stage` puts it on a cloth (`hero-cotton` in a hero, `weave` in a
- * row) or on the night material (the tour, the cross-sell); `eager` loads its cloth first (a hero's); `after` is a line
- * under the caption (the search page's live count). `caption={false}` leaves the caption to the page; a string is a
- * caption of its own (the sanctioned example's, which is not a real record).
+ * Where a demo sits on its page: `stage` puts its window on a photograph (a hero's or a row's) or straight on the night
+ * ground (`night`); `eager` loads the photograph first (a hero's); `after` is a line under the window (the search
+ * page's live count); `url` is what the window's address bar says.
  */
-export type Frame = { className?: string; caption?: boolean | string; stage?: StillName | "night"; eager?: boolean; after?: ReactNode };
+export type Frame = { className?: string; stage?: StillName | "night"; eager?: boolean; after?: ReactNode; url?: string };
 
 /** Steps that type `text` one character at a time from `from` ms, each drawing what has been typed so far. */
 export function typed<S>(text: string, from: number, draw: (typed: string) => S): Step<S>[] {
@@ -43,12 +43,28 @@ export function Window({ children, className }: { children: ReactNode; className
   );
 }
 
-/** A demo: the window on its stage, then the caption that dates what it shows with the pause button beside it. */
-export function Demo<S extends CursorState>({ steps, description, className, caption = true, stage, eager = false, after, children }: Frame & { steps: readonly Step<S>[]; description: string; children: (state: S) => ReactNode }) {
-  const frame = stage === "night" ? (win: ReactNode) => <NightStage>{win}</NightStage> : stage ? (win: ReactNode) => <Stage still={stage} eager={eager}>{win}</Stage> : undefined;
+/** A demo: its window in the browser, on its stage, with the pause button in the window's corner. */
+export function Demo<S extends CursorState>({ steps, description, className, stage, eager = false, after, url = "sourcebd.net/app", children }: Frame & { steps: readonly Step<S>[]; description: string; children: (state: S) => ReactNode }) {
+  const frame = (win: ReactNode, pause: { paused: boolean; toggle: () => void }) => {
+    const browser = (
+      <BrowserFrame url={url}>
+        <FitPage>
+          <div className="p-8">{win}</div>
+        </FitPage>
+        <PauseButton paused={pause.paused} onToggle={pause.toggle} label="Pause demo" />
+      </BrowserFrame>
+    );
+    return stage && stage !== "night" ? (
+      <Stage still={stage} eager={eager}>
+        {browser}
+      </Stage>
+    ) : (
+      browser
+    );
+  };
   return (
-    <div className={cn("flex flex-col gap-3", className)}>
-      <DemoStage steps={steps} description={description} frame={frame} windowClass={stage ? "shadow-lg" : "shadow-sm"} foot={caption ? <p className="text-sm text-ink-subtle">{caption === true ? CAPTION : caption}</p> : null}>
+    <div className={cn("flex flex-col gap-4", className)}>
+      <DemoStage steps={steps} description={description} frame={frame} windowClass="shadow-sm">
         {children}
       </DemoStage>
       {after}

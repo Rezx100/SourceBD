@@ -1,95 +1,53 @@
-// 7 · Showcase (Paper `Z12-0` / `Z6A-0`): three rows that alternate copy and the product, then rows 4 and 5 side by
-// side. On a phone every row is the product first, then its words. Each picture is a demo on the snapshot's real
-// records, on the weave every feature row stands on (critique 22 Oct, S2 and S3: the 3 Oct screenshots are gone):
-// one RFQ reviewed before it goes, the quotes landing side by side, the certificates that end soon, the record's
-// safety beside the results, and a reply under the RFQ it answers.
+"use client";
 
-import type { ComponentType } from "react";
-import { DemoCompliance, DemoQuotes, DemoRecord, DemoReview, DemoThread } from "@/components/site/demos";
-import type { Frame } from "@/components/site/demos/stage";
-import { cn } from "@/lib/utils";
-import { H2, TextLink, measure } from "./ui";
+// 7 · Showcase (since the founder's videos of 22 Oct 2026, the home's feature list after mercury.com's): four things the
+// record does for a buyer, one open at a time, each shown by a part of the real app on the product panel. It replaced
+// three long alternating rows and two halves that a visitor had to scroll through one by one.
 
-type Row = { title: string; body: string; link: [string, string]; Demo: ComponentType<Frame> };
+import { AppVideo, BrowserFrame, Cut, LiveCut, SCREENS } from "./browser";
+import { FeatureTour, type Feature } from "./features";
 
-const Expiry = (f: Frame) => <DemoCompliance view="expiry" {...f} />;
-const Safety = (f: Frame) => <DemoRecord tab="safety" {...f} />;
-
-export const ROWS: Row[] = [
+export const ROWS: readonly Feature[] = [
   {
     title: "Shortlist. Ask once. Compare.",
-    body: "Save the suppliers you like. Send one RFQ and each gets its own copy. Quotes return side by side, with the record a click away.",
+    body: "Save the suppliers you like and send one RFQ to as many as 50. Each gets its own copy, and the quotes come back side by side.",
     link: ["How RFQs work", "/product/rfqs"],
-    Demo: DemoReview,
+    picture: <LiveCut name="saved" box={[236, 180, 1188, 560]} />,
   },
   {
-    title: "Quotes beside the facts.",
-    body: "Unit price, lead time and minimum order, each quote against the supplier's own record. Accept one and the order starts from there.",
-    link: ["See a quote comparison", "/product/rfqs"],
-    Demo: DemoQuotes,
+    title: "See who they already make for.",
+    body: "Every record names the brands a factory ships to, from the brands' own supplier lists and from customs records.",
+    link: ["Inside a record", "/product/records"],
+    picture: <Cut name="buyers" />,
   },
   {
     title: "The list changes. We check again.",
-    body: "Expiring certificates, register changes and the UFLPA Entity List, checked against your saved suppliers. We say what we found, never “clear”.",
+    body: "Certificates that lapse and names that appear on forced-labour lists, checked across your saved suppliers.",
     link: ["Inside the Compliance hub", "/product/compliance"],
-    Demo: Expiry,
+    picture: <Cut name="attention" className="mx-auto max-w-[520px]" />,
   },
-];
-
-export const HALVES: Row[] = [
   {
-    title: "Search, and never lose your place.",
-    body: "Open a record beside the results. The list keeps its filters, its ticks and its page; the record carries its own tabs, and the arrow keys walk the list while the pane follows.",
+    title: "Never lose your place.",
+    body: "Open a record beside your results. Your search, your filters and your ticks stay exactly where you left them.",
     link: ["See the record pane", "/product/records"],
-    Demo: Safety,
-  },
-  {
-    title: "Every message beside its RFQ.",
-    body: "A supplier's reply lands in Messages under the RFQ it answers: the date it was sent, the quantity, the ship-by date and the state of the quote on one line above the thread.",
-    link: ["How messages work", "/product/rfqs"],
-    Demo: DemoThread,
+    picture: (
+      <BrowserFrame url={SCREENS.check.url}>
+        <AppVideo name="check" />
+      </BrowserFrame>
+    ),
   },
 ];
-
-function Copy({ row, half }: { row: Row; half: boolean }) {
-  return (
-    <div className={cn("flex flex-col", half ? "gap-2.5 md:px-1" : "gap-4")}>
-      <h3 className={cn("text-site-title text-ink-strong", half ? "md:text-xl" : "md:text-site-h2-sm")}>{row.title}</h3>
-      <p className={cn("text-site-body text-ink-muted", half ? "md:text-md" : "md:text-site-lede")}>{row.body}</p>
-      <div className={half ? "pt-1" : "pt-2"}>
-        <TextLink href={row.link[1]}>{row.link[0]}</TextLink>
-      </div>
-    </div>
-  );
-}
 
 export function Showcase() {
   return (
-    <section aria-labelledby="home-showcase" className="bg-surface py-14 md:py-section">
-      <div className={cn(measure, "flex flex-col items-center gap-14 md:gap-24")}>
-        <H2 id="home-showcase" className="text-center">
-          Vetting used to be a chase.
-          <br className="max-md:hidden" /> Now it is a record.
-        </H2>
-        {ROWS.map((row, i) => (
-          <div key={row.title} className={cn("flex w-full flex-col-reverse gap-5 lg:items-center lg:justify-between lg:gap-[72px]", i % 2 === 1 ? "lg:flex-row-reverse" : "lg:flex-row")}>
-            <div className="lg:w-[392px] lg:shrink-0">
-              <Copy row={row} half={false} />
-            </div>
-            <div className="min-w-0 lg:max-w-[816px] lg:flex-1">
-              <row.Demo stage="weave" />
-            </div>
-          </div>
-        ))}
-        <div className="grid w-full gap-14 lg:grid-cols-2 lg:gap-16">
-          {HALVES.map((row) => (
-            <div key={row.title} className="flex flex-col gap-5 md:gap-6">
-              <row.Demo stage="weave" />
-              <Copy row={row} half />
-            </div>
-          ))}
-        </div>
-      </div>
-    </section>
+    <FeatureTour
+      id="home-showcase"
+      heading={
+        <>
+          Vetting used to be a chase. <span className="text-ink-subtle">Now it is a record.</span>
+        </>
+      }
+      items={ROWS}
+    />
   );
 }

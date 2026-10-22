@@ -8,7 +8,7 @@
 // One part alone where a page shows one thing (critique 22 Oct: the compliance pages' UFLPA, expiry and screening
 // rows were 3 Oct screenshots): `view="uflpa"` plays the checks and their counts, `view="expiry"` the expiry list,
 // and `view="screen"` the checks with the site's sanctioned example among the saved suppliers, its row turning maroon
-// as it is found on the list. That example is never a real company, and the caption says so.
+// as it is found on the list. That example is never a real company, and its name says so.
 
 import { Clock, Scales, XCircle } from "@phosphor-icons/react";
 import { buttonClass } from "@/components/kit";
@@ -17,7 +17,7 @@ import { UFLPA_WORDS, expiredHeading, uflpaCounts, uflpaSourceLine, within30Head
 import type { CursorState, Step } from "@/components/site/motion";
 import { daysUntil, displayName, formatDay } from "@/lib/dashboard/facts";
 import { certName } from "@/lib/dashboard/needs-attention";
-import { CAPTION, SANCTIONED_SAMPLE, SNAPSHOT, TODAY } from "@/lib/marketing/demo-snapshot";
+import { SANCTIONED_SAMPLE, SNAPSHOT, TODAY } from "@/lib/marketing/demo-snapshot";
 import { cn } from "@/lib/utils";
 import { Bar, Demo, Window, endOf, streamed, type Frame } from "./stage";
 
@@ -145,9 +145,8 @@ function Checks({ s, rows, sample }: { s: S; rows: readonly { slug: string; name
 
 export function DemoCompliance({ view = "all", ...frame }: Frame & { view?: ComplianceView }) {
   const rows = view === "screen" ? SCREEN_ROWS : SAVED;
-  const caption = view === "screen" && frame.caption !== false ? `${CAPTION} · ${SANCTIONED_SAMPLE} is an example company, not a real supplier` : frame.caption;
   return (
-    <Demo {...frame} caption={caption} steps={SCENES[view]} description={DESCRIPTION[view]}>
+    <Demo {...frame} steps={SCENES[view]} description={DESCRIPTION[view]}>
       {(s) => (
         <Window>
           <Bar title="Compliance">

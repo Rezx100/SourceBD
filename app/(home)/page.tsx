@@ -10,7 +10,6 @@ import { Suspense } from "react";
 import { HomeMercury } from "@/components/site/home";
 import { Chips, chipsOf, loadChips } from "@/components/site/sections/chips";
 import { homeDescription } from "@/components/site/sections/hero";
-import { InsideRecord } from "@/components/site/sections/inside-record";
 import { RealRecords } from "@/components/site/sections/real-records";
 import { loadHomeRecords } from "@/lib/home-records";
 import { loadSiteFacts } from "@/lib/site-facts";
@@ -38,14 +37,10 @@ const HOME_METADATA: Metadata = {
 };
 
 async function LiveChips() {
-  return <Chips chips={await loadChips()} />;
+  return <Chips chips={await loadChips()} className="md:justify-start" />;
 }
 
 type Records = ReturnType<typeof loadHomeRecords>;
-
-async function LiveInside({ records }: { records: Records }) {
-  return <InsideRecord callouts={(await records).callouts} />;
-}
 
 async function LiveRecords({ records }: { records: Records }) {
   return <RealRecords cards={(await records).cards} />;
@@ -74,13 +69,8 @@ export default async function HomePage() {
         facts={facts}
         slots={{
           chips: (
-            <Suspense fallback={<Chips chips={chipsOf()} pending />}>
+            <Suspense fallback={<Chips chips={chipsOf()} pending className="md:justify-start" />}>
               <LiveChips />
-            </Suspense>
-          ),
-          inside: (
-            <Suspense fallback={<InsideRecord callouts={[]} />}>
-              <LiveInside records={records} />
             </Suspense>
           ),
           records: (

@@ -1,30 +1,29 @@
-// 5 · Source marks strip (Paper `1EW0-0` / `1F7O-0`): the registers we read, each in its 32 px frame with its code under
-// it, loaded with the page (critique 22 Oct: lazy marks left nine empty boxes for seconds). The frame stays: it is what
-// says the mark is an outside authority's (context/logos.lock.md §1), so the critique's "drop the boxes" is not taken.
-// Only codes with a row in the lock; BEPZA and DIFE are listed there but hold no records, so they are not on the strip.
+// 5 · The registers we read (the founder's video of 22 Oct 2026: the marks were too small, faded and black, the heading
+// too quiet). Each mark at 48 px in its frame, which says it is an outside authority's (context/logos.lock.md §1), at
+// full strength with its code under it, loaded with the page. Only codes with a row in the lock; BEPZA and DIFE are
+// listed there but hold no records, so they are not on the strip.
 
+import { SourceMark } from "@/components/patterns/source-mark";
 import { cn } from "@/lib/utils";
-import { Reveal } from "./reveal";
-import { Mark, measure } from "./ui";
+import { measure } from "./ui";
 
 export const STRIP = ["EPB", "RSC", "BGMEA", "BKMEA", "BTMA", "BGAPMEA", "GOTS", "OEKO-TEX", "WRAP"] as const;
 
 export function MarksStrip() {
   return (
-    <section aria-labelledby="home-marks" className={cn(measure, "pb-14 md:pb-section")}>
-      <div className="flex flex-col items-center gap-7 border-y border-line py-12">
-        <h2 id="home-marks" className="text-site-body text-ink-subtle">
-          Read from the registers that matter
+    <section aria-labelledby="home-marks" className={cn(measure, "py-16 md:py-24")}>
+      <div className="flex flex-col items-center gap-10 md:gap-12">
+        <h2 id="home-marks" className="max-w-[640px] text-center text-xl text-ink-strong [text-wrap:balance] md:text-site-h3">
+          Every fact comes from a register you already trust.
         </h2>
-        {/* The marks fade in left to right, 40 ms apart, once. */}
-        <Reveal as="ul" className="grid grid-cols-3 gap-x-6 gap-y-7 sm:flex sm:flex-wrap sm:justify-center sm:gap-9">
-          {STRIP.map((c, i) => (
-            <li key={c} style={{ transitionDelay: `${i * 40}ms` }} className="flex w-16 flex-col items-center gap-2.5 transition-opacity duration-slow motion-reduce:transition-none group-data-[reveal=wait]/reveal:opacity-0">
-              <Mark code={c} large lazy={false} />
-              <span className="text-xs font-medium text-ink-subtle">{c}</span>
+        <ul className="grid grid-cols-3 gap-x-6 gap-y-8 sm:flex sm:flex-wrap sm:justify-center sm:gap-x-10 md:gap-x-14">
+          {STRIP.map((c) => (
+            <li key={c} className="flex flex-col items-center gap-3">
+              <SourceMark source={c} lazy={false} className="size-12 border-ink-strong/10 bg-surface shadow-sm [&>img]:max-h-[34px] [&>img]:max-w-[34px]" />
+              <span className="text-sm font-medium text-ink-muted">{c}</span>
             </li>
           ))}
-        </Reveal>
+        </ul>
       </div>
     </section>
   );

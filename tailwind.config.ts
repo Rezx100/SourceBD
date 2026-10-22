@@ -123,6 +123,9 @@ const config: Config = {
         "mk-swap-out": { from: { opacity: "1", filter: "blur(0)" }, to: { opacity: "0", filter: `blur(${motion.swapBlurPx}px)` } },
         "mk-click": { from: { opacity: "1", transform: "scale(0.4)" }, to: { opacity: "0", transform: "scale(1.4)" } },
         "mk-swap-in": { from: { opacity: "0", transform: `translateY(${motion.swapRisePx}px)` }, to: { opacity: "1", transform: "none" } },
+        // The home's brands strip drifting left by one copy of its list, and a feature's progress line filling.
+        "mk-marquee": { from: { transform: "translateX(0)" }, to: { transform: "translateX(-50%)" } },
+        "mk-progress": { from: { transform: "scaleX(0)" }, to: { transform: "scaleX(1)" } },
       },
       animation: {
         fade: `ds-fade ${transitionDuration.DEFAULT} ${transitionTimingFunction.out} both`,
@@ -134,6 +137,8 @@ const config: Config = {
         "swap-out": `mk-swap-out ${motion.swapOutMs}ms ${transitionTimingFunction.in} both`,
         click: `mk-click ${motion.clickMs}ms ${transitionTimingFunction.out} both`,
         "swap-in": `mk-swap-in ${motion.swapInMs}ms ${transitionTimingFunction.reveal} both`,
+        marquee: `mk-marquee ${motion.marqueeMs}ms linear infinite`,
+        progress: `mk-progress ${motion.featureMs}ms linear both`,
       },
     },
   },
@@ -154,8 +159,9 @@ const config: Config = {
         ":root": { ...colorVars(light), ...paneMaterial.light, "--mk-ground-paper": toChannels(resolve(light, "canvas")), "--mk-ground-night": toChannels(resolve(dark, "canvas")) },
         "@media (prefers-color-scheme: dark)": { ":root:has([data-theme-auto])": darkSet },
         '[data-ground="night"]': night,
-        // ToneShift (components/site/motion.tsx) fades the page's ground alone and steps every other colour half way
-        // through, so nothing inside carries a tone transition of its own (critique 22 Oct, S1).
+        // A marketing section in the dark tone (components/site/motion.tsx, `PageMain`): the night set, its ground and
+        // its ink, fixed, so nothing crossfades between paper and dark as the page scrolls (founder's video, 22 Oct 2026).
+        '[data-tone="dark"]': { ...night, "background-color": "rgb(var(--mk-ground-night))", color: "rgb(var(--ds-ink))" },
         // The product's own pieces, staged in the film on a night ground: the app has no dark theme, so a window
         // of it is light in either theme and inside any night scene.
         '[data-ground="day"]': { ...colorVars(light), ...paneMaterial.light, "color-scheme": "light" },

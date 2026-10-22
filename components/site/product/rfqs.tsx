@@ -5,7 +5,7 @@
 // screenshot). Then the other three products and the close on the night ground.
 
 import { DemoQuotes, DemoReview, DemoRfq, DemoThread } from "@/components/site/demos";
-import { ToneShift } from "@/components/site/motion";
+import { PageMain } from "@/components/site/motion";
 import { PAGES } from "@/components/site/pages";
 import { Closing } from "@/components/site/sections/closing";
 import { CrossSell } from "@/components/site/sections/cross-sell";
@@ -18,13 +18,13 @@ const row = (n: string) => P.blocks.find((b) => b.n === n)!;
 export function RfqsPage() {
   const [quotes, messages, many] = [row("01"), row("02"), row("03")];
   return (
-    <ToneShift id={null} initial="paper" className="font-sans text-ink-strong antialiased">
+    <PageMain id={null} className="font-sans text-ink-strong antialiased">
       <div data-tone="paper">
         <HeroCentered
           label={`${P.group} · ${P.name}`}
           title={P.h1}
           lede={P.lede}
-          stage={<DemoRfq stage="hero-cotton" eager />}
+          stage={<DemoRfq stage="swatches" eager />}
         >
           <HeroActions center />
         </HeroCentered>
@@ -34,16 +34,16 @@ export function RfqsPage() {
           headline={quotes.headline}
           lede={quotes.lede}
           tone="subtle"
-          media={<DemoQuotes stage="weave" />}
+          media={<DemoQuotes stage="rail" />}
         />
-        <FeatureRow label={messages.label} headline={messages.headline} lede={messages.lede} flip media={<DemoThread stage="weave" />} />
-        <FeatureRow label={many.label} headline={many.headline} lede={many.lede} tone="subtle" media={<DemoReview stage="weave" />} />
+        <FeatureRow label={messages.label} headline={messages.headline} lede={messages.lede} flip media={<DemoThread stage="rail" />} />
+        <FeatureRow label={many.label} headline={many.headline} lede={many.lede} tone="subtle" media={<DemoReview stage="rail" />} />
       </div>
 
       <div data-tone="dark">
         <CrossSell current={`/${RFQS_KEY}`} />
         <Closing headline={P.close} lede="Free during beta. No card needed." />
       </div>
-    </ToneShift>
+    </PageMain>
   );
 }

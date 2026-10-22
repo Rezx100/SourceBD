@@ -496,6 +496,9 @@ export const boxShadow = {
   edge: "inset 0 0 0 1px rgb(221 224 228 / 0.7)",
   bloom: "0 0 0 4px rgb(63 227 116 / 0.28)", // the signal dot's glow (artifact `shadow-signal`; named apart from the colour group so the utilities cannot collide)
   glass: "inset 0 1px 0 rgb(255 255 255 / 0.7), 0 1px 3px rgb(15 19 15 / 0.08)",
+  // The marketing site's browser window around the real app (22 Oct 2026): a long soft fall-off under a close contact
+  // shadow, so the window stands off a photograph, a tinted panel or the night ground alike.
+  window: "0 2px 6px rgb(15 19 15 / 0.08), 0 24px 48px -12px rgb(15 19 15 / 0.22), 0 60px 120px -40px rgb(15 19 15 / 0.30)",
 };
 
 /**
@@ -554,7 +557,6 @@ export const transitionDuration = {
   DEFAULT: "200ms",
   slow: "320ms",
   reveal: "700ms", // marketing: a block rising into view (handoff-mercury-motion-sitewide.md §4)
-  tone: "600ms", // marketing: the page's ground crossfading between paper and dark
 };
 
 export const transitionTimingFunction = {
@@ -566,7 +568,7 @@ export const transitionTimingFunction = {
 
 /**
  * The marketing site's motion (handoff-mercury-motion-sitewide.md §4), for the scripts that time a scene. CSS reads
- * the same values through Tailwind (`duration-reveal`, `ease-reveal`, `duration-tone`, `animate-swap-in|out`).
+ * the same values through Tailwind (`duration-reveal`, `ease-reveal`, `animate-swap-in|out`, `animate-marquee`, `animate-progress`).
  * Transforms and opacity only; every value is stilled by `prefers-reduced-motion` (app/ds.css and `useScene`).
  */
 export const motion = {
@@ -577,8 +579,8 @@ export const motion = {
   swapInMs: 320,
   swapRisePx: 8,
   swapBlurPx: 4,
-  toneMs: 600,
-  tourItemMs: 7000,
+  featureMs: 6500, // a feature list's item before the next opens (the home's showcase)
+  marqueeMs: 60000, // the brands strip, one copy of its list
   cursorMs: 600,
   clickMs: 200,
   typeMs: 45,
