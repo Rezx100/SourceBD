@@ -324,8 +324,7 @@ export const light = overlay(legacy, { ...v4Colors, ...filmColors }, v4Colors[v4
  * `tier`, `meadow`, `smart`…) keep their light values: no dark page draws
  * them, and they go with the last old page (B11).
  */
-function darkLegacy(): typeof legacy {
-  const d = darkColors;
+function darkLegacy(d: Record<keyof typeof darkColors, string> = darkColors): typeof legacy {
   const out: ColorSet = Object.fromEntries(Object.entries(legacy).map(([g, keys]) => [g, { ...keys }]));
   const set = (group: string, keys: Record<string, string>) => Object.assign((out[group] ??= {}), keys);
   set("canvas", { DEFAULT: d.surface });
@@ -349,6 +348,62 @@ function darkLegacy(): typeof legacy {
  * in), and inside any `data-ground="night"` scene in either theme.
  */
 export const dark: typeof light = overlay(darkLegacy(), darkColors, "#000000");
+
+/** `a` with `share` of `b` mixed in, per channel: how the app's dark set steps off the v4 colours. */
+function mix(a: string, b: string, share: number): string {
+  const [x, y] = [toRgb(a), toRgb(b)];
+  return `#${x.map((c, i) => Math.round(c + (y[i]! - c) * share).toString(16).padStart(2, "0")).join("").toUpperCase()}`;
+}
+
+/**
+ * The buyer app's dark theme (founder, 23 Oct 2026: "a dark colour from our design system, not pure black"),
+ * made from the v4 colours only, never from the home page's `darkColors`. The ground is v4's `ink`; the
+ * neutrals are the v4 scale turned over (the light inks become the dark inks, the dark greys the hairlines),
+ * with the two raised grounds a step of white over `ink`. Each signal is its v4 colour lifted toward its own
+ * tint, on a ground of that colour over `ink`. The brand green stays v4's green, with a white label.
+ */
+const APP_GROUND = v4Colors.ink;
+export const appDarkColors: Record<keyof typeof darkColors, string> = {
+  surface: APP_GROUND,
+  subtle: mix(APP_GROUND, v4Colors.surface, 0.04),
+  sunken: mix(APP_GROUND, v4Colors.surface, 0.08),
+  line: v4Colors["ink-2"],
+  "line-strong": v4Colors["line-strong"],
+  disabled: v4Colors["ink-3"],
+  "ink-3": v4Colors.disabled,
+  "ink-2": v4Colors.line,
+  ink: v4Colors.subtle,
+  brand: v4Colors.brand,
+  "brand-hover": v4Colors["brand-hover"],
+  "brand-active": v4Colors["brand-active"],
+  "brand-tint": mix(APP_GROUND, v4Colors.brand, 0.25),
+  "brand-wash": mix(APP_GROUND, v4Colors.brand, 0.12),
+  caution: mix(v4Colors.caution, v4Colors["caution-tint"], 0.6),
+  "caution-icon": mix(v4Colors["caution-icon"], v4Colors["caution-tint"], 0.5),
+  "caution-tint": mix(APP_GROUND, v4Colors.caution, 0.3),
+  danger: mix(v4Colors.danger, v4Colors["danger-tint"], 0.6),
+  "danger-solid": mix(v4Colors["danger-solid"], v4Colors["danger-tint"], 0.5),
+  "danger-active": mix(v4Colors["danger-solid"], v4Colors["danger-tint"], 0.35),
+  "danger-tint": mix(APP_GROUND, v4Colors.danger, 0.3),
+  sanction: mix(v4Colors.sanction, v4Colors["sanction-tint"], 0.7),
+  "sanction-tint": mix(APP_GROUND, v4Colors.sanction, 0.35),
+  info: mix(v4Colors.info, v4Colors["info-tint"], 0.6),
+  "info-tint": mix(APP_GROUND, v4Colors.info, 0.3),
+  "brand-ink": mix(v4Colors.brand, v4Colors["brand-tint"], 0.6),
+  "map-land": mix(APP_GROUND, v4Colors.surface, 0.08),
+  "map-water": mix(APP_GROUND, v4Colors.surface, 0.04),
+  "map-light": v4Colors.subtle,
+};
+
+/**
+ * The app's dark set, a value for every name in `light`. `tailwind.config.ts` emits it on a page whose app frame
+ * carries `data-theme="dark"` (the reader's choice in Settings, a cookie). The primary button keeps its white label.
+ */
+export const appDark: typeof light = (() => {
+  const set = overlay(darkLegacy(appDarkColors), appDarkColors, "#000000");
+  set.brand.on = v4Colors.surface;
+  return set;
+})();
 
 /**
  * The variables a night scene does not set, so they come from the page's theme: the primary button's fill and
@@ -858,6 +913,21 @@ export const filmPairs: ContrastPair[] = [
 
 /** Every pair the dark set is held to: Paper's v4 pairs again, and the film's. */
 export const darkPairs: ContrastPair[] = [...v4Pairs(), ...filmPairs];
+
+/**
+ * Every pair the app's dark set is held to: Paper's v4 pairs, with the primary button's label as `brand.on` (white
+ * in both themes), and without solid `brand` as text, which the app never draws (the shell remaps the link and the
+ * active row to the accent, `frame.test.ts`). The film's pairs too, for the `brand-ink` and map names it shares.
+ */
+export const appDarkPairs: ContrastPair[] = [
+  ...v4Pairs()
+    .filter((p) => p.use !== "v4: link, active nav")
+    .map((p) => (p.use === "v4: primary button" ? { ...p, fg: "brand.on" } : p)),
+  ...filmPairs,
+  { fg: "line.strong", bg: "surface", min: UI, use: "app dark: input outline" },
+  { fg: "accent", bg: "surface", min: UI, use: "app dark: focus ring, the selected bar" },
+  { fg: "ink.subtle", bg: "surface", min: TEXT, use: "app dark: placeholder" },
+];
 
 /**
  * The v4 pairs Paper draws (B0), written with Paper's names. Text is held to

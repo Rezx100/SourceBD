@@ -54,7 +54,7 @@ export function SourceMark({ source, className, lazy }: { source: string; classN
   return (
     <span className={cn("flex size-6 shrink-0 items-center justify-center rounded-md border border-line bg-surface", className)} aria-hidden>
       {/* eslint-disable-next-line @next/next/no-img-element -- a locked one-colour mark, 18px at most */}
-      <img src={`/icons/sources/${m.file}.png`} alt="" loading={lazy ? "lazy" : undefined} decoding={lazy ? "async" : undefined} className="h-auto max-h-[18px] w-auto max-w-[18px] object-contain" />
+      <img src={`/icons/sources/${m.file}.png`} alt="" loading={lazy ? "lazy" : undefined} decoding={lazy ? "async" : undefined} className="h-auto max-h-[18px] w-auto max-w-[18px] object-contain app-dark:invert" />
     </span>
   );
 }

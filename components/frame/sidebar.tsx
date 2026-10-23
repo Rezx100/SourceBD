@@ -141,7 +141,7 @@ function SidebarBody({ badges, extra, account }: { badges: FrameBadges; extra?: 
     <aside aria-label="Menu" className="hidden h-full w-16 shrink-0 flex-col justify-between border-r border-line bg-subtle md:flex 2xl:w-sidebar">
       <div className="flex min-h-0 flex-col">
         <div className="flex h-14 shrink-0 items-center px-5">
-          <Link href="/app" className={cn("hidden rounded-sm text-md font-semibold tracking-tight text-brand 2xl:block", ringInset)}>
+          <Link href="/app" className={cn("hidden rounded-sm text-md font-semibold tracking-tight text-brand 2xl:block app-dark:text-ink", ringInset)}>
             SourceBD
           </Link>
         </div>

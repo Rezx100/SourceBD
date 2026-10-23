@@ -6,6 +6,7 @@
 // Analytics learns who is signed in from the frame's own sign-in read. The
 // onboarding tour mounts after the frame and streams in behind the page.
 
+import { cookies } from "next/headers";
 import { Suspense } from "react";
 import { preload } from "react-dom";
 import { AppFrame } from "@/components/frame";
@@ -15,6 +16,7 @@ import { loadBuyerShell } from "@/lib/dashboard/load-buyer-shell";
 import { SOURCE_LOGO_FILES } from "@/lib/dashboard/source-logos";
 import { PostHogProvider } from "@/lib/posthog/provider";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { THEME_COOKIE, readTheme } from "@/lib/theme";
 
 export default async function BuyerLayout({ children }: { children: React.ReactNode }) {
   // A register's mark is a CSS mask, so its PNG was only asked for when a
@@ -37,11 +39,13 @@ export default async function BuyerLayout({ children }: { children: React.ReactN
   // count; a slow or failed read draws no badge, never a 0.
   const badges = loadFrameBadges(supabase);
   const shell = await loadBuyerShell(supabase);
+  const theme = readTheme((await cookies()).get(THEME_COOKIE)?.value);
   return (
     <PostHogProvider userId={shell.userId}>
       {/* The getting-started card reads beside the page, never ahead of it (and the old product tour is gone: Paper has no tours). */}
       <AppFrame
         account={shell.account}
+        theme={theme}
         badges={badges}
         sidebarExtra={
           <Suspense fallback={null}>

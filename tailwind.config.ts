@@ -1,6 +1,7 @@
 import type { Config } from "tailwindcss";
 import plugin from "tailwindcss/plugin";
 import {
+  appDark,
   borderRadius,
   boxShadow,
   containers,
@@ -170,7 +171,10 @@ const config: Config = {
     },
   },
   plugins: [
-    plugin(({ addBase }) => {
+    plugin(({ addBase, addVariant }) => {
+      // `app-dark:` where the buyer app is in its dark theme: what a colour variable cannot carry (a one-colour mark
+      // drawn light, `context/logos.lock.md`).
+      addVariant("app-dark", ':root:has([data-shell][data-theme="dark"]) &');
       // The dark set is the same variables again, in two places: where the
       // system asks for dark and the page has opted in with `data-theme-auto`
       // (CSS only, so no flash and no script), and inside a night scene, which
@@ -186,6 +190,9 @@ const config: Config = {
         ":root": { ...colorVars(light), ...paneMaterial.light, "--mk-ground-paper": toChannels(resolve(light, "canvas")), "--mk-ground-night": toChannels(homeGrounds.night.ground) },
         "@media (prefers-color-scheme: dark)": { ":root:has([data-theme-auto])": darkSet },
         '[data-ground="night"]': night,
+        // The buyer app's own dark theme (`appDark`, v4's colours), when the reader picked Dark in Settings: on the
+        // root, so a dialog or menu portalled out of the frame turns dark with it.
+        ':root:has([data-shell][data-theme="dark"])': { ...colorVars(appDark), ...paneMaterial.dark, "color-scheme": "dark" },
         // A marketing section in the dark tone (components/site/motion.tsx, `PageMain`): the night set, its ground and
         // its ink, fixed, so nothing crossfades between paper and dark as the page scrolls (founder's video, 22 Oct 2026).
         '[data-tone="dark"]': { ...night, "background-color": "rgb(var(--mk-ground-night))", color: "rgb(var(--ds-ink))" },
