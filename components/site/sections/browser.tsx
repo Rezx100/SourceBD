@@ -228,12 +228,12 @@ export function Clip({ name, says, active = true, delay, onEnded, bar, className
  * ground with a glass edge, the page round it hidden (founder's recording of 22 Oct 13:17: Buy with confidence needs no
  * animation). It fills its parent; `says` is the sentence a screen reader gets in its place.
  */
-export function AppStill({ name, says, className }: { name: string; says: string; className?: string }) {
+export function AppStill({ name, says, className, panel = false }: { name: string; says: string; className?: string; /** In a card of any shape: the panel alone at nine tenths of the card's width, its night ground melting into the card's (lighten). */ panel?: boolean }) {
   return (
     <figure className={cn("absolute inset-0 m-0", className)}>
       <figcaption className="sr-only">{says}</figcaption>
       {/* eslint-disable-next-line @next/next/no-img-element -- pre-sized in public/site/home (PROVENANCE.md), no optimizer pass */}
-      <img src={`/site/home/still-${name}.webp`} alt="" width={1200} height={900} loading="lazy" decoding="async" className="size-full object-cover" />
+      <img src={`/site/home/still-${name}.webp`} alt="" width={1200} height={900} loading="lazy" decoding="async" className={panel ? "absolute left-1/2 top-1/2 w-[112%] max-w-none -translate-x-1/2 -translate-y-1/2 mix-blend-lighten" : "size-full object-cover"} />
     </figure>
   );
 }

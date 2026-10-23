@@ -19,16 +19,16 @@ import { stillPreferred, useInView } from "@/components/site/motion";
 import { motion } from "@/lib/design/tokens";
 import { cn } from "@/lib/utils";
 import { AppVideo, BrowserFrame, PauseButton, SCREENS, pauseOnClick, type ScreenName } from "./browser";
-import { HomeIcon, type IconName } from "./icons";
+import type { IconName } from "./icons";
 import { TextLink, measure, ring } from "./ui";
 
 export type TourItem = { key: string; icon: IconName; title: string; body: string; href: string; screen?: ScreenName; Demo?: ComponentType<Frame> };
 
 export const TOUR: readonly TourItem[] = [
-  { key: "find", icon: "search", title: "Find", body: "Search every verified garment supplier in Bangladesh by product, certificate or district.", href: "/product/search", screen: "find" },
-  { key: "check", icon: "receipt", title: "Check", body: "Open a supplier beside your results: certificates, inspections, exports and buyers, each with its source.", href: "/product/records", screen: "check" },
-  { key: "ask", icon: "send", title: "Ask", body: "Shortlist the ones you like and send one RFQ to up to 50 of them. Quotes come back side by side.", href: "/product/rfqs", screen: "ask" },
-  { key: "watch", icon: "bell", title: "Watch", body: "We keep checking certificates and forced-labour lists across your saved suppliers and tell you what changed.", href: "/product/compliance", screen: "watch" },
+  { key: "find", icon: "search", title: "Supplier search", body: "Search every verified garment supplier in Bangladesh by product, certificate or district.", href: "/product/search", screen: "find" },
+  { key: "check", icon: "receipt", title: "Records you can check", body: "Open a supplier beside your results: certificates, inspections, exports and buyers, each with its source.", href: "/product/records", screen: "check" },
+  { key: "ask", icon: "send", title: "RFQs and quotes", body: "Shortlist the ones you like and send one RFQ to up to 50 of them. Quotes come back side by side.", href: "/product/rfqs", screen: "ask" },
+  { key: "watch", icon: "bell", title: "Compliance alerts", body: "We keep checking certificates and forced-labour lists across your saved suppliers and tell you what changed.", href: "/product/compliance", screen: "watch" },
 ];
 
 /**
@@ -45,39 +45,51 @@ export function Disclosure({ id, open, className, children }: { id: string; open
   );
 }
 
-/** The heading and the items; the open one shows its line, its link and a 2 px line of how far it has played. */
-export function TourList({ id, heading, items, active, onPick, bar }: { id?: string; heading: ReactNode; items: readonly TourItem[]; active: number; onPick: (i: number) => void; bar: RefObject<HTMLSpanElement | null> }) {
+/**
+ * The heading and the items, mercury.com's since the founder's walkthrough of 23 Oct 2026: a two-line headline, then
+ * the items under hairlines, the open one with a dot, its rule drawn in the ink and its line under its name; one link
+ * under the list (`more`), or, where a page asks (`links`, the solutions pages), each item's own way to its product
+ * page. The rule over the open item fills as its recording plays (`bar`).
+ */
+export function TourList({ id, heading, items, active, onPick, bar, more, links = false }: { id?: string; heading: ReactNode; items: readonly TourItem[]; active: number; onPick: (i: number) => void; bar?: RefObject<HTMLSpanElement | null>; more?: readonly [string, string]; links?: boolean }) {
   return (
-    <div className="flex flex-col gap-8">
-      <h2 id={id} className="text-xl text-ink [text-wrap:balance] md:text-site-h3">
+    <div className="flex flex-col">
+      <h2 id={id} className="max-w-[440px] font-display text-xl text-ink md:text-site-lead">
         {heading}
       </h2>
-      <ol className="flex flex-col border-t border-line">
+      <ol className="mt-10 flex flex-col md:mt-16">
         {items.map((t, i) => {
           const on = i === active;
           return (
-            <li key={t.key} className="relative border-b border-line">
+            <li key={t.key} className="relative border-t border-line">
+              {on ? <span ref={bar} aria-hidden className="absolute -top-px left-0 h-px w-full origin-left scale-x-0 bg-ink" /> : null}
               <button
                 type="button"
                 aria-expanded={on}
                 aria-controls={`tour-${t.key}`}
                 onClick={() => onPick(i)}
-                className={cn("flex min-h-14 w-full items-center gap-3 text-left text-site-title font-medium transition-colors duration-slow", ring, on ? "text-ink" : "text-ink-2 hover:text-ink")}
+                className={cn("relative flex min-h-11 w-full items-center text-left font-display text-site-item transition-colors duration-slow", ring, on ? "text-ink" : "text-ink-2 hover:text-ink")}
               >
-                <HomeIcon name={t.icon} size={20} className={cn("transition-colors duration-slow", on ? "text-ink" : "text-ink-2")} />
+                {on ? <span aria-hidden className="absolute -left-3.5 top-1/2 size-1 -translate-y-1/2 rounded-full bg-ink" /> : null}
                 {t.title}
               </button>
-              <Disclosure id={`tour-${t.key}`} open={on} className="flex flex-col gap-3 pb-5 pl-8">
-                <p className="text-site-body text-ink-2">{t.body}</p>
-                <TextLink href={t.href} className="min-h-8 text-ink">
-                  See how
-                </TextLink>
+              <Disclosure id={`tour-${t.key}`} open={on} className="flex flex-col items-start gap-2 pb-4">
+                <p className="max-w-[432px] text-site-item text-ink-2">{t.body}</p>
+                {links ? (
+                  <TextLink href={t.href} className="min-h-8 font-normal text-site-item text-ink">
+                    See how
+                  </TextLink>
+                ) : null}
               </Disclosure>
-              {on ? <span ref={bar} aria-hidden className="absolute -bottom-px left-0 h-0.5 w-full origin-left scale-x-0 bg-ink" /> : null}
             </li>
           );
         })}
       </ol>
+      {more ? (
+        <TextLink href={more[1]} className="mt-4 w-fit font-display text-site-item text-ink">
+          {more[0]}
+        </TextLink>
+      ) : null}
     </div>
   );
 }
@@ -124,7 +136,7 @@ export function Tour({ id, heading, items = TOUR }: { id: string; heading: React
     <section ref={box} data-tone="dark" aria-labelledby={id} className="py-16 md:py-section">
       <div className={cn(measure, "grid items-center gap-10 lg:grid-cols-12 lg:gap-12 xl:gap-16")}>
         <div className="min-w-0 lg:col-span-4">
-          <TourList id={id} heading={heading} items={items} active={active} onPick={setActive} bar={bar} />
+          <TourList id={id} heading={heading} items={items} active={active} onPick={setActive} bar={bar} links />
         </div>
         <div className="min-w-0 lg:col-span-8">
           <TourWindow items={items} active={active} playing onEnded={next} bar={bar} />

@@ -81,10 +81,12 @@ describe("the live facts", () => {
 });
 
 describe("the navigation", () => {
-  it("the wordmark, three menus, Pricing, Sign in, Book a demo and Start free: every one a real link or button", () => {
+  it("the wordmark, three menus, Pricing, Sign in and Start free, mercury.com's bar: every one a real link or button", () => {
     const out = draw(createElement(site().nav.SiteNav));
     const t = text(out);
-    for (const w of ["SourceBD", "Product", "Solutions", "Resources", "Pricing", "Sign in", "Book a demo", "Start free"]) assert.match(t, new RegExp(w));
+    for (const w of ["SourceBD", "Product", "Solutions", "Resources", "Pricing", "Sign in", "Start free"]) assert.match(t, new RegExp(w));
+    // Two actions at the right since the founder's walkthrough of 23 Oct 2026, as mercury.com's; Book a demo stays in the phone's sheet and beside the hero's form.
+    assert.doesNotMatch(t, /Book a demo/);
     assert.match(out, /href="\/signup"[^>]*>Start free/);
     assert.match(out, /href="\/pricing"/);
     assert.match(out, /href="\/login"/);

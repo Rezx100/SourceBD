@@ -73,7 +73,7 @@ export async function MarketingChrome({
         >
           {children}
         </div>
-        {facts ? <Footer facts={facts} year={new Date().getUTCFullYear()} /> : null}
+        {facts ? <Footer facts={facts} year={new Date().getUTCFullYear()} narrow={over} /> : null}
         <CookieBanner />
       </div>
     </PostHogProvider>

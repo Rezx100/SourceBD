@@ -22,7 +22,7 @@ import { cn } from "@/lib/utils";
 import { AppVideo, PauseButton, SCREENS, pauseOnClick, screenFile } from "./browser";
 import { HeroCopy } from "./hero";
 import { TOUR, TourList, useTour, type TourItem } from "./tour";
-import { Still, measure } from "./ui";
+import { Still, tourMeasure } from "./ui";
 
 /** The laptop display's corners in the studio photograph (public/site/home/hero-*: 3840 × 2160), as shares of its size: top left, top right, bottom right, bottom left. */
 export const DISPLAY = [
@@ -35,8 +35,8 @@ export const DISPLAY = [
 const LAPTOP = { x: 0.29219, y: 0.39167, w: 0.41667, h: 0.41667 } as const;
 /** The app's shape: 1440 × 900. */
 const ASPECT = 1.6;
-/** The pinned scene is this many screens tall. */
-const TRACK = 3.2;
+/** The pinned scene is this many screens tall: the push, the fade and the slide take a screen and a half of scroll, as mercury.com's do (the founder's walkthrough of 23 Oct 2026). */
+const TRACK = 2.55;
 /** The camera never pushes in past this, whatever the window's shape (the laptop layer is sharp to about 4×). */
 const MAX_ZOOM = 4.8;
 /** How far the studio round the laptop blurs by the end of the push, in px. */
@@ -195,7 +195,7 @@ export function Opening({ suppliers, items = TOUR }: { suppliers: number | null;
       // The push ends with the display as wide as the app stands on its own, centred where the app will stand (below
       // the bar), so the app never has to move to leave it.
       const zoom = Math.min(MAX_ZOOM, W / ((DISPLAY[1][0] - DISPLAY[0][0]) * sw));
-      const t = span(p, 0.04, 0.46);
+      const t = span(p, 0, 0.72);
       const z = Math.exp(Math.log(zoom) * t);
       const T: Pt = [(vw / 2 - sx - O[0]) * t, (top + H / 2 - sy - O[1]) * t];
       // A point of the photograph, through the camera, on the stage.
@@ -204,8 +204,8 @@ export function Opening({ suppliers, items = TOUR }: { suppliers: number | null;
       sc.style.transform = `translate(-50%, -50%) translate(${T[0]}px, ${T[1]}px) scale(${z})`;
       // The studio round the laptop softens as the camera comes in; the laptop, laid over it, stays sharp.
       if (room.current) room.current.style.filter = t > 0.01 ? `blur(${(BLUR * t) / z}px)` : "";
-      const gone = span(p, 0.54, 0.68);
-      const slide = span(p, 0.74, 0.9);
+      const gone = span(p, 0.74, 0.84);
+      const slide = span(p, 0.86, 0.97);
       const rest = t === 0;
       if (laptop.current) {
         const [lx, ly] = cam(LAPTOP.x, LAPTOP.y);
@@ -237,7 +237,7 @@ export function Opening({ suppliers, items = TOUR }: { suppliers: number | null;
         studio.current.style.visibility = gone >= 1 ? "hidden" : "";
       }
       if (night.current) night.current.style.opacity = String(gone);
-      const c = span(p, 0, 0.14);
+      const c = span(p, 0, 0.4);
       if (copy.current) {
         copy.current.style.opacity = String(1 - c);
         copy.current.style.transform = `translateY(${-40 * c}px)`;
@@ -245,7 +245,7 @@ export function Opening({ suppliers, items = TOUR }: { suppliers: number | null;
       }
       if (edge.current) edge.current.style.opacity = String(slide);
       // The list comes in once the app has cleared its column, never under it.
-      const wds = span(p, 0.88, 0.98);
+      const wds = span(p, 0.93, 1);
       if (words.current) {
         words.current.style.opacity = String(wds);
         words.current.style.transform = `translateY(${(1 - wds) * 20}px)`;
@@ -280,7 +280,7 @@ export function Opening({ suppliers, items = TOUR }: { suppliers: number | null;
 
   return (
     // From 1024 up the opening starts under the navigation, which floats over the studio until the page scrolls.
-    <section ref={section} data-tone="dark" aria-labelledby="home-title" className="relative lg:-mt-nav" style={pinned ? { height: `${TRACK * 100}vh` } : undefined}>
+    <section ref={section} data-mk-tone="night" aria-labelledby="home-title" className="relative lg:-mt-nav" style={pinned ? { height: `${TRACK * 100}vh` } : undefined}>
       <div ref={stage} className={cn(pinned && "sticky top-0 h-screen overflow-hidden")}>
         {/* The studio. In the scene it fills the stage under everything; in flow it is the page's first block. */}
         <div data-ground="day" className={cn("bg-[rgb(var(--mk-ground-paper))] text-ink", pinned ? "absolute inset-0" : "relative flex flex-col lg:block lg:h-screen lg:min-h-[640px] lg:overflow-hidden")}>
@@ -308,21 +308,24 @@ export function Opening({ suppliers, items = TOUR }: { suppliers: number | null;
         {pinned ? <div ref={edge} aria-hidden className="pointer-events-none absolute inset-y-0 right-0 w-[16vw] bg-gradient-to-r from-transparent to-[rgb(var(--mk-ground-night))] opacity-0" /> : null}
         {/* The tour. In the scene it is the stage's last frame, centred on the room below the bar; in flow it is the section after the studio. */}
         <div className={cn(pinned ? "pointer-events-none absolute inset-0 flex items-center pt-nav" : "py-16 md:py-section")}>
-          <div className={cn(measure, "grid items-center gap-10 lg:grid-cols-12 lg:gap-12 xl:gap-16")}>
-            <div ref={words} className="pointer-events-auto min-w-0 lg:col-span-4">
+          <div className={cn(tourMeasure, "grid items-center gap-10 lg:grid-cols-[minmax(0,464px)_minmax(0,1fr)] lg:gap-20")}>
+            <div ref={words} className="pointer-events-auto min-w-0">
               <TourList
                 heading={
                   <>
-                    Everything you do to vet a factory. <span className="text-ink-2">In one place.</span>
+                    Everything you do to vet a factory.
+                    <br />
+                    All in one place.
                   </>
                 }
+                more={["Try the search", "/discover"]}
                 items={items}
                 active={active}
                 onPick={setActive}
                 bar={bar}
               />
             </div>
-            <div ref={slot} className="min-w-0 lg:col-span-8">
+            <div ref={slot} className="min-w-0">
               {/* In flow the app shows at a size a phone can read: its left part, edge to edge in the column. */}
               {pinned ? null : (
                 <div className="relative aspect-[4/3] overflow-hidden rounded-frame shadow-glass">
