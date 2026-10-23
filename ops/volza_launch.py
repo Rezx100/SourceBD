@@ -358,7 +358,7 @@ def run_batch(path: Path, limit: int | None, cap: float, apply: bool) -> None:
     v = Live(cap, prior, start_used=account_used())
     left = v.read_daily()
     print(f"${prior:.2f} already spent in {path.name}, cap ${cap:.2f}; Volza requests left today: {left} "
-          f"(the run stops at {DAILY_RESERVE}, kept for buyers' reveals)", flush=True)
+          f"(the run stops at {DAILY_RESERVE})", flush=True)
     with path.open("a", encoding="utf-8") as out:
         for row in rows:
             rec = new_rec(row)
