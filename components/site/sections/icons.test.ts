@@ -24,7 +24,9 @@ describe("the home icon family", () => {
         const svg = renderToStaticMarkup(createElement(HomeIcon, { name, size }));
         assert.match(svg, /^<svg aria-hidden="true"/, name);
         assert.match(svg, new RegExp(`width="${size}" height="${size}"`), name);
-        assert.equal((svg.match(/class="text-brand"/g) ?? []).length, 1, `${name} has one green detail`);
+        // `brand-ink`, never solid `brand`: on a night ground the dark set lifts it, where v4's green would vanish.
+        assert.equal((svg.match(/class="text-brand-ink"/g) ?? []).length, 1, `${name} has one green detail`);
+        assert.doesNotMatch(svg, /class="text-brand"/, `${name} draws solid brand green`);
       }
     }
   });

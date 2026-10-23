@@ -58,6 +58,7 @@ same PR. Read once per session.
 
 - **Desktop supplier record and search results (Paper page 37)** — `spec-desktop-record-page-37.md` (13 Oct).
 - **Phone record and search (Paper pages 35, 36)** — the changed sections only, five slices; no spec file, the boards are the spec (13 Oct).
+- **Dark theme** (23 Oct) — one `dark` set for the app and the site's night.
   ACTIVE. Slice a merged (PR #488); b the results (PR #489); c the rank and results read (PR #490, 0147 applied 13 Oct). Awaits the deploy and the live check.
 
 ## Queued

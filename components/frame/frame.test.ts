@@ -371,3 +371,28 @@ describe("the list and the pane", () => {
     }
   });
 });
+
+describe("the app's theme (founder, 23 Oct 2026)", () => {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { readTheme, themeCookie } = require("@/lib/theme") as typeof import("@/lib/theme");
+  const account = { initial: "A", name: "Ada", email: "a@example.invalid" };
+  const shell = (theme?: "light" | "dark") => /<div data-shell=""[^>]*>/.exec(renderToStaticMarkup(createElement(AppFrame, { account, theme } as Parameters<typeof AppFrame>[0], "x")))?.[0] ?? "";
+
+  it("is light unless the reader picked dark", () => {
+    assert.doesNotMatch(shell(), /data-theme/);
+    assert.doesNotMatch(shell("light"), /data-theme/);
+    assert.match(shell("dark"), /data-theme="dark"/);
+    for (const v of [undefined, "", "light", "DARK", "night"]) assert.equal(readTheme(v), "light", `${v} is not light`);
+    assert.equal(readTheme("dark"), "dark");
+    assert.equal(themeCookie("dark"), "sb-theme=dark; Path=/; Max-Age=31536000; SameSite=Lax");
+  });
+
+  it("the layout draws the frame in the reader's theme, and Profile carries the switch", () => {
+    const read = (f: string) => readFileSync(path.join(process.cwd(), f), "utf8");
+    assert.match(read("app/(app)/app/layout.tsx"), /const theme = readTheme\(\(await cookies\(\)\)\.get\(THEME_COOKIE\)\?\.value\);[\s\S]*theme=\{theme\}/);
+    const profile = read("app/(app)/app/settings/profile/page.tsx");
+    assert.match(profile, /<Section title="Appearance"[^>]*>\s*<ThemeForm initial=\{theme\} \/>/);
+    // A shared computer: signing out forgets the choice, so the next buyer starts in light.
+    assert.match(read("app/auth/sign-out/route.ts"), /res\.cookies\.delete\(THEME_COOKIE\);\s*return res;/);
+  });
+});
