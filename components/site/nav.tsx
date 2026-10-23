@@ -80,7 +80,7 @@ export function SiteNav({ over = false }: { /** The home page: the bar floats cl
     let raf = 0;
     const read = () => {
       raf = 0;
-      let next: "top" | "night" | "paper" = scrollY < 16 ? "top" : "paper";
+      let next: "top" | "night" | "paper" = scrollY < 16 && wide.matches ? "top" : "paper";
       if (next === "paper" && wide.matches) {
         const edge = head.current?.offsetHeight ?? 0;
         for (const s of document.querySelectorAll('main [data-tone="dark"]')) {

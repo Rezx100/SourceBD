@@ -123,9 +123,8 @@ const config: Config = {
         "mk-swap-out": { from: { opacity: "1", filter: "blur(0)" }, to: { opacity: "0", filter: `blur(${motion.swapBlurPx}px)` } },
         "mk-click": { from: { opacity: "1", transform: "scale(0.4)" }, to: { opacity: "0", transform: "scale(1.4)" } },
         "mk-swap-in": { from: { opacity: "0", transform: `translateY(${motion.swapRisePx}px)` }, to: { opacity: "1", transform: "none" } },
-        // The home's brands strip drifting left by one copy of its list, and a feature's progress line filling.
+        // The home's brands strip drifting left by one copy of its list.
         "mk-marquee": { from: { transform: "translateX(0)" }, to: { transform: "translateX(-50%)" } },
-        "mk-progress": { from: { transform: "scaleX(0)" }, to: { transform: "scaleX(1)" } },
       },
       animation: {
         fade: `ds-fade ${transitionDuration.DEFAULT} ${transitionTimingFunction.out} both`,
@@ -138,7 +137,6 @@ const config: Config = {
         click: `mk-click ${motion.clickMs}ms ${transitionTimingFunction.out} both`,
         "swap-in": `mk-swap-in ${motion.swapInMs}ms ${transitionTimingFunction.reveal} both`,
         marquee: `mk-marquee ${motion.marqueeMs}ms linear infinite`,
-        progress: `mk-progress ${motion.featureMs}ms linear both`,
       },
     },
   },

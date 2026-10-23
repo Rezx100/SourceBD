@@ -200,7 +200,7 @@ export function DemoStage<S extends CursorState>({ steps, description, className
         frame(win, { paused, toggle })
       ) : (
         // A click on the demo pauses it; the button is drawn only when the keyboard reaches it (founder's video 3).
-        <div className="relative" onClick={toggle}>
+        <div className="relative" onClick={(e) => !(e.target as HTMLElement).closest("a") && toggle()}>
           {win}
           <button
             type="button"

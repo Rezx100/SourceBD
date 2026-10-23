@@ -117,7 +117,7 @@ function Dash({ items, active, cover, onEnded, bar }: { items: readonly TourItem
   const toggle = () => setPaused((v) => !v);
   const open = items[active]!;
   return (
-    <figure data-ground="day" className="relative m-0 size-full overflow-hidden bg-surface" onClick={pauseOnClick(toggle)}>
+    <figure data-ground="day" className="relative m-0 size-full overflow-hidden bg-surface" onClick={cover ? undefined : pauseOnClick(toggle)}>
       <figcaption className="sr-only">{open.screen ? SCREENS[open.screen].says : open.body}</figcaption>
       {items.map((t, i) => (t.screen ? <AppVideo key={t.key} name={t.screen} active={i === active} playing={!paused && !cover} restart={cover} eager={i === 0} onEnded={onEnded} bar={bar} /> : null))}
       {open.screen ? (
