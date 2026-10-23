@@ -69,7 +69,7 @@ describe("motion", () => {
   it("a dark section stands on the night ground in the night colour set, fixed, set once in the theme", () => {
     const config = readFileSync(join(process.cwd(), "tailwind.config.ts"), "utf8");
     assert.match(config, /'\[data-tone="dark"\]': \{ \.\.\.night, "background-color": "rgb\(var\(--mk-ground-night\)\)", color: "rgb\(var\(--ds-ink\)\)" \}/);
-    // The night is mercury.com's since the founder's walkthrough of 23 Oct 2026 (`homeGrounds`).
+    // The night is the dark set's ground, our design system's (founder, 23 Oct 2026; `homeGrounds`).
     assert.match(config, /"--mk-ground-paper": toChannels\(resolve\(light, "canvas"\)\), "--mk-ground-night": toChannels\(homeGrounds\.night\.ground\)/, "both grounds come from the tokens");
   });
 

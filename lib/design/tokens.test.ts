@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import path from "node:path";
-import { appDark, appDarkColors, appDarkPairs, borderRadius, boxShadow, containers, darkColors, contrastPairs, contrastRatio, cssVarName, density, densitySizes, filmColors, fontSize, letterSpacing, light, maxWidth, resolve, screens, spacing, tiers, toRgb, transitionDuration, v4CertAliases, v4Colors, v4Ref, zIndex } from "./tokens";
+import { borderRadius, boxShadow, containers, dark, darkColors, darkPairs, homeGrounds, contrastPairs, contrastRatio, cssVarName, density, densitySizes, filmColors, fontSize, letterSpacing, light, maxWidth, resolve, screens, spacing, tiers, toRgb, transitionDuration, v4CertAliases, v4Colors, v4Ref, zIndex } from "./tokens";
 
 // npm test runs from the repo root; the compiled test lives elsewhere.
 const repoRoot = process.cwd();
@@ -362,15 +362,18 @@ test("the contrast table covers every pair the kit needs, at the WCAG threshold 
   for (const p of contrastPairs) assert.ok(p.min >= 3, `${p.fg} on ${p.bg} is checked at ${p.min}:1, which no WCAG rule asks for`);
 });
 
-test("the app's dark set meets every pair it is held to, and is made of v4 colours, not the home page's", () => {
-  for (const p of appDarkPairs) {
-    const ratio = contrastRatio(resolve(appDark, p.fg), resolve(appDark, p.bg));
-    assert.ok(ratio >= p.min, `app dark: ${p.fg} on ${p.bg} (${p.use}) is ${ratio.toFixed(2)}:1, under ${p.min}:1`);
+test("one dark set, the design system's, for the app and the home page, meeting every pair it is held to", () => {
+  for (const p of darkPairs) {
+    const ratio = contrastRatio(resolve(dark, p.fg), resolve(dark, p.bg));
+    assert.ok(ratio >= p.min, `dark: ${p.fg} on ${p.bg} (${p.use}) is ${ratio.toFixed(2)}:1, under ${p.min}:1`);
   }
-  // The founder's ground: v4's ink, not pure black, and none of the home film's own dark values.
-  assert.equal(resolve(appDark, "surface"), v4Colors.ink);
-  const film = new Set<string>(Object.values(darkColors));
-  for (const [name, hex] of Object.entries(appDarkColors)) assert.ok(!film.has(hex), `app dark: ${name} is the home page's ${hex}`);
+  // The founder's ground (23 Oct 2026): v4's ink, not pure black; its inks and hairlines are v4 colours turned over.
+  assert.equal(resolve(dark, "surface"), v4Colors.ink);
+  const v4 = new Set<string>(Object.values(v4Colors));
+  for (const name of ["ink", "ink-2", "ink-3", "line", "line-strong", "disabled", "brand"] as const) assert.ok(v4.has(darkColors[name]), `dark ${name} is not a v4 colour`);
+  // The home page's night is that set, not a ground of its own (it was mercury.com's sampled night until then).
+  const n = homeGrounds.night;
+  assert.deepEqual([n.ground, n.raised, n.ink, n["ink-2"], n["ink-3"], n.line, n.rule], [darkColors.surface, darkColors.subtle, darkColors.ink, darkColors["ink-2"], darkColors["ink-3"], darkColors.line, darkColors["line-strong"]]);
 });
 
 // Cycle 8: §9 fixes the radius scale and `OFF_TOKEN_RADIUS` stops an arbitrary

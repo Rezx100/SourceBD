@@ -1,7 +1,6 @@
 import type { Config } from "tailwindcss";
 import plugin from "tailwindcss/plugin";
 import {
-  appDark,
   borderRadius,
   boxShadow,
   containers,
@@ -185,14 +184,14 @@ const config: Config = {
       const darkSet = { ...colorVars(dark), ...paneMaterial.dark, "color-scheme": "dark" };
       const night = Object.fromEntries(Object.entries(darkSet).filter(([name]) => !NIGHT_INHERITS.includes(name)));
       addBase({
-        // `--mk-ground-*`: the marketing site's two grounds, fixed in either scene; the night is mercury.com's since the
-        // founder's walkthrough of 23 Oct 2026 (`homeGrounds.night`).
+        // `--mk-ground-*`: the marketing site's two grounds, fixed in either scene; the night is the dark set's ground,
+        // our design system's (founder, 23 Oct 2026; `homeGrounds.night`).
         ":root": { ...colorVars(light), ...paneMaterial.light, "--mk-ground-paper": toChannels(resolve(light, "canvas")), "--mk-ground-night": toChannels(homeGrounds.night.ground) },
         "@media (prefers-color-scheme: dark)": { ":root:has([data-theme-auto])": darkSet },
         '[data-ground="night"]': night,
-        // The buyer app's own dark theme (`appDark`, v4's colours), when the reader picked Dark in Settings: on the
-        // root, so a dialog or menu portalled out of the frame turns dark with it.
-        ':root:has([data-shell][data-theme="dark"])': { ...colorVars(appDark), ...paneMaterial.dark, "color-scheme": "dark" },
+        // The buyer app in the dark set, when the reader picked Dark in Settings: on the root, so a dialog or menu
+        // portalled out of the frame turns dark with it.
+        ':root:has([data-shell][data-theme="dark"])': darkSet,
         // A marketing section in the dark tone (components/site/motion.tsx, `PageMain`): the night set, its ground and
         // its ink, fixed, so nothing crossfades between paper and dark as the page scrolls (founder's video, 22 Oct 2026).
         '[data-tone="dark"]': { ...night, "background-color": "rgb(var(--mk-ground-night))", color: "rgb(var(--ds-ink))" },
