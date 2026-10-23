@@ -2,12 +2,12 @@
 // caps and joins, in the ink, each with one detail in the brand green (the receipt's seal). 24 px inline, 40 px over
 // a feature heading. Decoration only: the words beside an icon carry its meaning, so every one is `aria-hidden`.
 // The ink follows `currentColor`, so a dark section sets the text colour and the icon follows; the green detail
-// is the brand token, never a hex.
+// is `brand-ink`, as the wordmark's: the brand green on paper, a lighter one in the dark set on a night ground.
 
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
-const G = "text-brand";
+const G = "text-brand-ink";
 
 /** Each icon: its ink strokes, then the one green detail. */
 export const ICONS = {
@@ -51,8 +51,8 @@ export function HomeIcon({ name, size = 24, className }: { name: IconName; size?
       strokeWidth={1.5}
       strokeLinecap="round"
       strokeLinejoin="round"
-      // The green parts take `text-brand` and draw in currentColor too, so the stroke follows the class.
-      className={cn("shrink-0 [&_.text-brand]:stroke-current", className)}
+      // The green parts take `text-brand-ink` and draw in currentColor too, so the stroke follows the class.
+      className={cn("shrink-0 [&_.text-brand-ink]:stroke-current", className)}
     >
       {ICONS[name]}
     </svg>
