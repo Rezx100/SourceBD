@@ -103,7 +103,7 @@ function Sidebar({ badges }: { badges: PortalBadges }) {
           SourceBD
         </Link>
       </div>
-      <nav aria-label={`${PORTAL_NAME[role]} menu`} className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-3 py-2">
+      <nav aria-label={`${PORTAL_NAME[role]} menu`} className="relative flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-3 py-2">
         {PORTAL_NAV[role].map((g) => (
           <div key={g.label} className="flex flex-col gap-0.5">
             <p className="hidden px-3 pb-1 font-mono text-xs text-ink-3 2xl:block">{g.label}</p>
@@ -226,7 +226,7 @@ export function PortalFrame({ account: read, badges = {}, children }: { account:
       <div className="flex min-h-0 min-w-0 flex-1 flex-col">
         <Topbar account={account} />
         <PhoneBar account={account} badges={badges} />
-        <main id={MAIN_ID} tabIndex={-1} className="isolate flex min-h-0 flex-1 flex-col px-4 py-6 outline-none max-md:overflow-x-clip md:overflow-y-auto md:px-8 md:py-8">
+        <main id={MAIN_ID} tabIndex={-1} className="isolate flex min-h-0 flex-1 flex-col px-4 py-6 outline-none max-md:overflow-x-clip md:relative md:overflow-y-auto md:px-8 md:py-8">
           {children}
         </main>
         <MenuDismiss />

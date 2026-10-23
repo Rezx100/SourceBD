@@ -277,14 +277,16 @@ function mix(a: string, b: string, share: number): string {
  * v4 colours only. The ground is v4's `ink`; the neutrals are the v4 scale turned over (the light inks become the
  * dark inks, the dark greys the hairlines), with the two raised grounds a step of white over `ink`. Each signal is
  * its v4 colour lifted toward its own tint, on a ground of that colour over `ink`. The brand green stays v4's green.
+ * The two hairlines are their v4 greys sunk toward the ground until they stand off it as the light ones stand off
+ * white (1.3:1 and 3.4:1): at full strength, 1.7:1 and 5.3:1, they glared (founder, 24 Oct 2026).
  */
 const DARK_GROUND = v4Colors.ink;
 export const darkColors: Record<keyof typeof v4Colors | keyof typeof filmColors, string> = {
   surface: DARK_GROUND,
   subtle: mix(DARK_GROUND, v4Colors.surface, 0.04),
   sunken: mix(DARK_GROUND, v4Colors.surface, 0.08),
-  line: v4Colors["ink-2"],
-  "line-strong": v4Colors["line-strong"],
+  line: mix(DARK_GROUND, v4Colors["ink-2"], 0.6),
+  "line-strong": mix(DARK_GROUND, v4Colors["line-strong"], 0.73),
   disabled: v4Colors["ink-3"],
   "ink-3": v4Colors.disabled,
   "ink-2": v4Colors.line,

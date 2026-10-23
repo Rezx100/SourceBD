@@ -192,7 +192,7 @@ export function SheetPanel({
           </div>
         </>
       )}
-      {children ? <div className={flush ? "flex min-h-0 flex-1 flex-col" : "flex min-h-0 flex-col overflow-y-auto overflow-x-hidden overscroll-contain px-4"}>{children}</div> : null}
+      {children ? <div className={flush ? "flex min-h-0 flex-1 flex-col" : "relative flex min-h-0 flex-col overflow-y-auto overflow-x-hidden overscroll-contain px-4"}>{children}</div> : null}
       {flush && !footer ? null : footer ? (
         <div className={cn("flex gap-2 px-4 pb-[max(1rem,env(safe-area-inset-bottom))]", confirm ? "flex-col pt-4" : "border-t border-line pt-3")}>{footer}</div>
       ) : (
@@ -310,7 +310,7 @@ export function Drawer({
           {/* A column, like the docked pane, so a body that fills it (the filter form) keeps its footer at the foot.
               It scrolls up and down only: one too-wide line let a phone pan the whole record sideways, its
               sticky tabs and action bar with it (founder, 11 Oct 2026). */}
-          <div data-drawer-body="" className="flex min-h-0 flex-1 flex-col overflow-y-auto overflow-x-hidden overscroll-contain">{children}</div>
+          <div data-drawer-body="" className="relative flex min-h-0 flex-1 flex-col overflow-y-auto overflow-x-hidden overscroll-contain">{children}</div>
         </D.Content>
       </D.Portal>
     </D.Root>

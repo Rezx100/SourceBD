@@ -60,7 +60,7 @@ export default async function OrdersPage({ searchParams }: { searchParams: Promi
         <>
           <div className="flex min-h-0 flex-1 flex-col max-md:hidden">
             <OrdersPaneHead title={listLabel} count={items.length} />
-            <div className="min-h-0 flex-1 overflow-y-auto">{items.length === 0 ? <TabEmpty tab={emptyTab} /> : <OrderPaneRows items={items} tab={tab} currentId={openId === "invalid" ? null : openId} />}</div>
+            <div className="relative min-h-0 flex-1 overflow-y-auto">{items.length === 0 ? <TabEmpty tab={emptyTab} /> : <OrderPaneRows items={items} tab={tab} currentId={openId === "invalid" ? null : openId} />}</div>
           </div>
           <div className="md:hidden">
             <OrderPhoneRows items={items} />

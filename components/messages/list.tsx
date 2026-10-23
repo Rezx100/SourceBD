@@ -156,7 +156,7 @@ export function InboxColumn({ head, children, className }: { head?: React.ReactN
   return (
     <section aria-label="Conversations" className={cn("flex min-h-0 shrink-0 flex-col border-r border-line bg-surface max-md:border-r-0", LIST_W, className)}>
       {head}
-      <div className="min-h-0 flex-1 overflow-y-auto">{children}</div>
+      <div className="relative min-h-0 flex-1 overflow-y-auto">{children}</div>
     </section>
   );
 }

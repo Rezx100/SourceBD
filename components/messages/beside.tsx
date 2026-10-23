@@ -41,14 +41,14 @@ export function BesideRecord({ title, closeHref, children }: { title: string; cl
       if (e.key === "Escape" && !e.defaultPrevented && !t.closest("input, textarea, select, [contenteditable=true]")) close();
     };
     return (
-      <aside aria-label={title} onKeyDown={onKeyDown} className="hidden min-h-0 w-details shrink-0 flex-col overflow-y-auto border-l border-line bg-surface xl:flex">
+      <aside aria-label={title} onKeyDown={onKeyDown} className="relative hidden min-h-0 w-details shrink-0 flex-col overflow-y-auto border-l border-line bg-surface xl:flex">
         {children}
       </aside>
     );
   }
   return tier === "phone" ? (
     <Sheet open onOpenChange={(next) => (next ? null : close())} title={title} flush>
-      <div className="min-h-0 flex-1 overflow-y-auto">{children}</div>
+      <div className="relative min-h-0 flex-1 overflow-y-auto">{children}</div>
     </Sheet>
   ) : (
     <Drawer open onOpenChange={(next) => (next ? null : close())} title={title}>

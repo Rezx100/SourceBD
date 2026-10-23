@@ -65,7 +65,7 @@ export default async function RfqsPage({ searchParams }: { searchParams: Promise
         <>
           <div className="flex min-h-0 flex-1 flex-col max-md:hidden">
             <PaneListHead title={listLabel} count={shown.length} />
-            <div className="min-h-0 flex-1 overflow-y-auto">
+            <div className="relative min-h-0 flex-1 overflow-y-auto">
               {shown.length === 0 ? <TabEmpty tab={tab === "all" ? "waiting" : tab} /> : <RfqPaneRows items={shown} tab={tab} sort={sort} currentId={openId === "invalid" ? null : openId} />}
             </div>
           </div>

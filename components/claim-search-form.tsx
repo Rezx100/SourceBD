@@ -172,7 +172,7 @@ export function ClaimSearchForm({ prebound }: ClaimSearchFormProps) {
             <p role="status" className="text-sm text-ink-3">Searching…</p>
           ) : null}
           {results.length > 0 ? (
-            <ul className="max-h-64 divide-y divide-line overflow-auto rounded-md border border-line">
+            <ul className="relative max-h-64 divide-y divide-line overflow-auto rounded-md border border-line">
               {results.map((r) => (
                 <li key={r.id}>
                   <button

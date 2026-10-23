@@ -190,7 +190,7 @@ function NeedsYou({ needs, onOpen }: { needs: Need[]; onOpen: (code: string) => 
       <h2 className="flex items-center gap-2 border-b border-line bg-danger-tint px-4 py-2 text-base font-semibold text-ink">
         Needs you <span className="font-normal text-ink-3">· {needs.length}</span>
       </h2>
-      <ul className="sm:max-h-72 sm:overflow-auto">
+      <ul className="relative sm:max-h-72 sm:overflow-auto">
         {needs.map((need, i) => (
           <li
             key={`${need.kind}-${need.code}-${i}`}

@@ -170,7 +170,7 @@ export function SaveSearchPanel({
     );
     return (
       <Sheet open onOpenChange={(next) => (next ? null : close())} title="Save this search" flush>
-        <div className="flex min-h-0 flex-col overflow-y-auto">
+        <div className="relative flex min-h-0 flex-col overflow-y-auto">
           {count === null ? null : (
             <p className="border-b border-line px-5 pb-3.5 text-sm text-ink-3">
               {new Intl.NumberFormat("en-GB").format(count)} {count === 1 ? "supplier matches" : "suppliers match"} it today
