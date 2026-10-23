@@ -200,13 +200,15 @@ const config: Config = {
             const set = groundVars(tone, tone === "night" ? night : { ...colorVars(light), ...paneMaterial.light, "color-scheme": "light" });
             return [
               [`[data-mk-tone="${tone}"]:not([data-mk-page] *)`, { ...set, "background-color": "rgb(var(--mk-ground))", color: "rgb(var(--ds-ink))" }],
-              [`[data-mk-page="${tone}"]`, set],
+              // On the root without `color-scheme`, so the window's scrollbar does not flip as the page changes tone.
+              [`[data-mk-page="${tone}"]`, Object.fromEntries(Object.entries(set).filter(([name]) => name !== "color-scheme"))],
             ];
           }),
         ),
         "[data-mk-page] body": { "background-color": "rgb(var(--mk-ground))", transition: `background-color ${motion.toneMs}ms ${transitionTimingFunction.out}` },
-        // Zero specificity: an element with a transition of its own keeps it.
-        ":where([data-mk-page] body *)": { transition: `color ${motion.toneMs}ms, background-color ${motion.toneMs}ms, border-color ${motion.toneMs}ms, fill ${motion.toneMs}ms` },
+        // Zero specificity: an element with a transition of its own keeps it. Only where the tone shows: the page's
+        // frame, the bar and the main (the footer and the cookie banner keep their own sets).
+        ":where([data-mk-page] body > div, [data-mk-page] header *, [data-mk-page] main *)": { transition: `color ${motion.toneMs}ms, background-color ${motion.toneMs}ms, border-color ${motion.toneMs}ms, fill ${motion.toneMs}ms` },
       });
     }),
   ],

@@ -69,8 +69,6 @@ export function SiteNav({ over = false }: { /** The home page: the bar floats cl
   // What is under the bar: the page's top (the bar is glass over the studio), a dark section (the night set), paper,
   // or the page's own ground where the whole page takes one at a time (`page`).
   const [under, setUnder] = useState<"top" | "night" | "paper" | "page">(over ? "top" : "paper");
-  // Whether the page has taken one ground at a time (`HomeMain`): a menu opened over the studio then draws the bar in it.
-  const [toned, setToned] = useState(false);
   const path = usePathname();
   const head = useRef<HTMLElement>(null);
   const bar = useRef<HTMLElement>(null);
@@ -90,9 +88,9 @@ export function SiteNav({ over = false }: { /** The home page: the bar floats cl
     let raf = 0;
     const read = () => {
       raf = 0;
-      let next: "top" | "night" | "paper" | "page" = scrollY < 16 && wide.matches ? "top" : "paper";
+      // At the top a phone keeps a light bar over the hero's paper (it has no studio to float over); see `clear`.
       const tone = !!document.documentElement.dataset.mkPage;
-      setToned(tone);
+      let next: "top" | "night" | "paper" | "page" = scrollY < 16 && (wide.matches || tone) ? "top" : "paper";
       if (next === "paper" && tone) next = "page";
       else if (next === "paper" && wide.matches) {
         const edge = head.current?.offsetHeight ?? 0;
@@ -113,11 +111,15 @@ export function SiteNav({ over = false }: { /** The home page: the bar floats cl
     addEventListener("scroll", onScroll, { passive: true });
     addEventListener("resize", onScroll);
     wide.addEventListener("change", onScroll);
+    // The page sets its ground after this first read (the main mounts after the bar), so read again when it does.
+    const tones = new MutationObserver(onScroll);
+    tones.observe(document.documentElement, { attributes: true, attributeFilter: ["data-mk-page"] });
     return () => {
       cancelAnimationFrame(raf);
       removeEventListener("scroll", onScroll);
       removeEventListener("resize", onScroll);
       wide.removeEventListener("change", onScroll);
+      tones.disconnect();
     };
   }, [over]);
 
@@ -144,7 +146,8 @@ export function SiteNav({ over = false }: { /** The home page: the bar floats cl
     };
   }, [open]);
 
-  const page = under === "page" || (toned && !!open);
+  // A menu opened over the studio draws the bar in the page's ground where the page has one (read when it opens: a menu is only ever open in the browser).
+  const page = under === "page" || (!!open && !!document.documentElement.dataset.mkPage);
 
   return (
     <header
@@ -153,7 +156,7 @@ export function SiteNav({ over = false }: { /** The home page: the bar floats cl
       data-ground={night ? "night" : clear ? "day" : undefined}
       className={cn(
         "sticky top-0 z-raised border-b font-sans transition-[background-color,border-color,color] duration-slow motion-reduce:transition-none [&_a]:transition-colors [&_button]:transition-colors",
-        clear ? "border-transparent bg-transparent" : page ? "border-transparent bg-canvas" : "border-line bg-surface/90 backdrop-blur-md supports-[backdrop-filter]:bg-surface/80",
+        clear ? "border-transparent bg-canvas lg:bg-transparent" : page ? "border-transparent bg-canvas" : "border-line bg-surface/90 backdrop-blur-md supports-[backdrop-filter]:bg-surface/80",
       )}
     >
       <nav ref={bar} aria-label="Main" className="relative" onMouseLeave={() => setOpen(null)}>

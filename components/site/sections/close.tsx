@@ -78,9 +78,9 @@ export function Stats({ facts }: { facts: SiteFacts }) {
         <h2 id="home-figures" className="max-w-[672px] text-center font-display text-site-headline-sm text-ink [text-wrap:balance] md:text-site-headline">
           You’re building supply chains to last. So are we.
         </h2>
-        <ul ref={row} className="mt-12 grid w-full grid-cols-2 gap-y-10 md:mt-16 md:grid-cols-4">
+        <ul ref={row} className="mt-12 grid w-full grid-cols-2 gap-y-10 md:mt-16 md:flex md:justify-center">
           {cells.map(([n, what]) => (
-            <li key={what} className="flex flex-col items-center gap-2 px-4 text-center md:border-l md:border-line md:first:border-l-0">
+            <li key={what} className="flex flex-col items-center gap-2 px-4 text-center md:w-1/4 md:border-l md:border-line md:first:border-l-0">
               <span className="font-display tabular-nums text-site-stat-sm text-ink md:text-site-stat">{counted(n, t)}</span>
               <span className="max-w-[190px] font-display text-site-card text-ink-2">{what}</span>
             </li>

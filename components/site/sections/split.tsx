@@ -5,12 +5,15 @@
 // a tall picture beside them that changes with the open item (496 × 620 with the text first, 480 × 600 with the
 // picture first). The list is the tour's (`TourList`'s look): hairlines, the open item with a dot, its rule filling,
 // its line and its link. It never holds the scroll: an item opens when it is clicked, or after `motion.featureMs`
-// while the section is in view. The pictures are drawn, not the product (`visuals.tsx`), as mercury.com's are.
+// while the section is in view. The pictures are drawn, not the product (`visuals.tsx`), as mercury.com's are, and
+// move only while their item is open and on screen. A click on the picture, or its pause button (drawn when the
+// keyboard reaches it, as everywhere on the site), stops both the list and the picture (WCAG 2.2.2).
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { stillPreferred, useInView } from "@/components/site/motion";
 import { motion, type HomeGround } from "@/lib/design/tokens";
 import { cn } from "@/lib/utils";
+import { PauseButton, pauseOnClick } from "./browser";
 import { Disclosure } from "./tour";
 import { TextLink, column, ring } from "./ui";
 import { Visual, type VisualName } from "./visuals";
@@ -21,10 +24,13 @@ export function Split({ id, tone, heading, items, flip = false }: { id: string; 
   const box = useRef<HTMLElement>(null);
   const bar = useRef<HTMLSpanElement>(null);
   const [on, setOn] = useState(0);
+  const [paused, setPaused] = useState(false);
+  const toggle = () => setPaused((v) => !v);
   const seen = useInView(box, 0.4);
-  // The open item's rule fills over its time; then the next opens.
+  // The open item's rule fills over its time; then the next opens. Paused, the rule stays where it stood.
   useEffect(() => {
     const b = bar.current;
+    if (paused) return;
     if (!seen || stillPreferred()) {
       if (b) b.style.transform = "scaleX(1)";
       return;
@@ -39,7 +45,7 @@ export function Split({ id, tone, heading, items, flip = false }: { id: string; 
     };
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
-  }, [seen, on, items.length]);
+  }, [seen, on, paused, items.length]);
 
   return (
     <section ref={box} data-mk-tone={tone} aria-labelledby={id} className="pb-16 pt-14 md:pb-0 md:pt-28">
@@ -77,10 +83,11 @@ export function Split({ id, tone, heading, items, flip = false }: { id: string; 
             })}
           </ol>
         </div>
-        <div className={cn("relative aspect-[496/620] overflow-hidden rounded-frame bg-sunken", flip && "md:order-1 md:aspect-[480/600]")}>
+        <div className={cn("relative aspect-[496/620] overflow-hidden rounded-frame bg-sunken", flip && "md:order-1 md:aspect-[480/600]")} onClick={pauseOnClick(toggle)}>
           {items.map((t, i) => (
-            <Visual key={t.title} name={t.visual} active={i === on} />
+            <Visual key={t.title} name={t.visual} active={i === on} playing={i === on && seen && !paused} />
           ))}
+          <PauseButton paused={paused} onToggle={toggle} label="Pause animation" />
         </div>
       </div>
     </section>

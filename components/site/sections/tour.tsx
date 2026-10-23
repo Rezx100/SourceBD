@@ -48,9 +48,10 @@ export function Disclosure({ id, open, className, children }: { id: string; open
 /**
  * The heading and the items, mercury.com's since the founder's walkthrough of 23 Oct 2026: a two-line headline, then
  * the items under hairlines, the open one with a dot, its rule drawn in the ink and its line under its name; one link
- * under the list (`more`). The rule over the open item fills as its recording plays (`bar`).
+ * under the list (`more`), or, where a page asks (`links`, the solutions pages), each item's own way to its product
+ * page. The rule over the open item fills as its recording plays (`bar`).
  */
-export function TourList({ id, heading, items, active, onPick, bar, more }: { id?: string; heading: ReactNode; items: readonly TourItem[]; active: number; onPick: (i: number) => void; bar?: RefObject<HTMLSpanElement | null>; more?: readonly [string, string] }) {
+export function TourList({ id, heading, items, active, onPick, bar, more, links = false }: { id?: string; heading: ReactNode; items: readonly TourItem[]; active: number; onPick: (i: number) => void; bar?: RefObject<HTMLSpanElement | null>; more?: readonly [string, string]; links?: boolean }) {
   return (
     <div className="flex flex-col">
       <h2 id={id} className="max-w-[440px] font-display text-xl text-ink md:text-site-lead">
@@ -72,8 +73,13 @@ export function TourList({ id, heading, items, active, onPick, bar, more }: { id
                 {on ? <span aria-hidden className="absolute -left-3.5 top-1/2 size-1 -translate-y-1/2 rounded-full bg-ink" /> : null}
                 {t.title}
               </button>
-              <Disclosure id={`tour-${t.key}`} open={on} className="pb-4">
+              <Disclosure id={`tour-${t.key}`} open={on} className="flex flex-col items-start gap-2 pb-4">
                 <p className="max-w-[432px] text-site-item text-ink-2">{t.body}</p>
+                {links ? (
+                  <TextLink href={t.href} className="min-h-8 font-normal text-site-item text-ink">
+                    See how
+                  </TextLink>
+                ) : null}
               </Disclosure>
             </li>
           );
@@ -130,7 +136,7 @@ export function Tour({ id, heading, items = TOUR }: { id: string; heading: React
     <section ref={box} data-tone="dark" aria-labelledby={id} className="py-16 md:py-section">
       <div className={cn(measure, "grid items-center gap-10 lg:grid-cols-12 lg:gap-12 xl:gap-16")}>
         <div className="min-w-0 lg:col-span-4">
-          <TourList id={id} heading={heading} items={items} active={active} onPick={setActive} bar={bar} />
+          <TourList id={id} heading={heading} items={items} active={active} onPick={setActive} bar={bar} links />
         </div>
         <div className="min-w-0 lg:col-span-8">
           <TourWindow items={items} active={active} playing onEnded={next} bar={bar} />

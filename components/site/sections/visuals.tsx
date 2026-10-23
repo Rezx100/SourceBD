@@ -4,9 +4,10 @@
 // where Mercury shows soft rendered shapes beside "Get started fast" and "Stop losing money to fees" (a beam of light, a
 // glowing search field, a wireframe globe), these are the same kind of picture, drawn in SVG and moved with SVG's own
 // animation, in the ground's inks: they are decoration, never the product, so they show no figure and no name. Each
-// fills its panel and crossfades with the open item. Reduced motion and Save-Data draw them still.
+// fills its panel and crossfades with the open item, and moves only while it is `playing` (its item open, on screen,
+// not paused). The server, reduced motion and Save-Data draw them still.
 
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { stillPreferred } from "@/components/site/motion";
 import { cn } from "@/lib/utils";
 
@@ -265,13 +266,21 @@ function Stack({ still }: { still: boolean }) {
 
 const ART: Record<VisualName, (p: { still: boolean }) => ReactNode> = { beam: Beam, search: Search, fan: Fan, globe: Globe, seal: Seal, stack: Stack };
 
-/** One picture, filling its panel; `active` shows it, the others fade out under it. */
-export function Visual({ name, active }: { name: VisualName; active: boolean }) {
-  const [still, setStill] = useState(false);
+/** One picture, filling its panel; `active` shows it, the others fade out under it; it moves only while `playing`. */
+export function Visual({ name, active, playing }: { name: VisualName; active: boolean; playing: boolean }) {
+  const box = useRef<HTMLDivElement>(null);
+  const [still, setStill] = useState(true);
   useEffect(() => setStill(stillPreferred()), []);
+  // SVG's own clock: held while the picture is hidden, off screen or paused, so nothing unseen repaints.
+  useEffect(() => {
+    for (const svg of box.current?.querySelectorAll("svg") ?? []) {
+      if (playing) svg.unpauseAnimations();
+      else svg.pauseAnimations();
+    }
+  }, [playing, still]);
   const Art = ART[name];
   return (
-    <div aria-hidden className={cn("absolute inset-0 transition-opacity duration-reveal ease-out motion-reduce:transition-none", active ? "opacity-100" : "opacity-0")}>
+    <div ref={box} aria-hidden className={cn("absolute inset-0 transition-opacity duration-reveal ease-out motion-reduce:transition-none", active ? "opacity-100" : "opacity-0")}>
       <Art still={still} />
     </div>
   );

@@ -359,5 +359,43 @@ describe("the live sections", () => {
     assert.doesNotMatch(out, /data-reveal=/, "only the browser holds a section back, and only one below the fold");
     assert.ok(text(out).includes("10,278 Garment suppliers published"));
     for (const v of out.match(/<video [^>]*>/g) ?? []) assert.match(v, /poster="\/site\/home\/(?:app|clip)-[a-z-]+\.webp"/, v);
+    // The drawn pictures are still on the server: no SVG animation in the first paint (reduced motion is read in the browser).
+    assert.doesNotMatch(out, /<animate/);
+  });
+});
+
+describe("what the home's rebuild shares with the rest of the site", () => {
+  it("the hero's email field shows keyboard focus on its glass pill", () => {
+    const form = /<form [^>]*action="\/signup"[^>]*>/.exec(page())![0];
+    assert.match(form, /focus-within:border-accent/);
+    assert.match(form, /focus-within:ring-1/);
+  });
+
+  it("the split sections can be stopped: a click on the picture or its pause button, drawn when the keyboard reaches it (WCAG 2.2.2)", () => {
+    const out = page();
+    for (const id of ["home-start", "home-promises"]) {
+      const sec = new RegExp(`<section [^>]*aria-labelledby="${id}"[\\s\\S]*?</section>`).exec(out)![0];
+      const b = /<button type="button" aria-label="Pause animation"[^>]*>/.exec(sec);
+      assert.ok(b, id);
+      assert.match(b[0], /\bopacity-0\b[^"]*\bfocus-visible:opacity-100\b/, id);
+    }
+  });
+
+  it("the solutions pages' tours keep their short names and each item's way to its product page", () => {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports -- loaded after the test build exists.
+    const { SourcingTour, ComplianceTour } = require("@/components/site/product/solutions-tours") as typeof import("@/components/site/product/solutions-tours");
+    const sourcing = draw(createElement(SourcingTour));
+    for (const w of ["Find", "Check", "Ask"]) assert.match(sourcing, new RegExp(`aria-controls="tour-[a-z]+"[^>]*>(?:<[^>]+>)*${w}<`), w);
+    assert.doesNotMatch(text(sourcing), /Supplier search|Records you can check/);
+    assert.match(sourcing, /href="\/product\/search"[^>]*>See how</);
+    assert.match(text(draw(createElement(ComplianceTour))), /Check .*Watch .*Screen/);
+  });
+
+  it("the footer lines up with its page: the home's column on the home, the site's measure everywhere else", () => {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports -- loaded after the test build exists.
+    const { Footer } = require("@/components/site/sections/footer") as typeof import("@/components/site/sections/footer");
+    const inner = (narrow: boolean) => /<footer [^>]*><div class="([^"]*)"/.exec(draw(createElement(Footer, { facts: LIVE, year: 2026, narrow })))![1]!;
+    assert.match(inner(true), /\bmax-w-column\b/);
+    assert.match(inner(false), /\bmax-w-site\b/);
   });
 });

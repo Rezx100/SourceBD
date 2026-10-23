@@ -38,7 +38,7 @@ export function HeroCopy({ suppliers }: { suppliers: number | null }) {
       </h1>
       <p className="mt-4 max-w-[340px] text-md text-ink-2 md:max-w-[600px] md:text-site-card">{heroLede(suppliers)}</p>
       <div className="mt-8 flex w-full max-w-[350px] flex-col items-stretch gap-2 md:w-auto md:max-w-none md:flex-row md:items-center">
-        <HeroEmailForm className={cn("flex h-12 items-center gap-2 rounded-full py-1 pl-5 pr-1", glass)}>
+        <HeroEmailForm className={cn("flex h-12 items-center gap-2 rounded-full py-1 pl-5 pr-1 focus-within:border-accent focus-within:ring-1 focus-within:ring-accent", glass)}>
           <label htmlFor="home-email" className="sr-only">
             Work email
           </label>
