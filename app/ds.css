@@ -102,6 +102,16 @@
     color: rgb(var(--ds-accent-on));
   }
 
+  /* From 768 the app frame is the window and scrolls inside itself, so the
+     page under it never moves, whatever a pane holds (founder's video, 23 Oct
+     2026: a wheel at the end of the record lifted the whole app off white).
+     Under 768 the page scrolls as one, as the phone frame is drawn. */
+  @media (min-width: 768px) {
+    html:has([data-shell]) {
+      overflow: hidden;
+    }
+  }
+
   /* A number is typed, never stepped: the spinners go (critique of 7 Oct 2026, item 3). */
   input[type="number"] {
     -moz-appearance: textfield;

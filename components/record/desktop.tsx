@@ -4,12 +4,14 @@
 // by the width of the column it is in (the `@container` variants: the tables gain their columns from
 // 760px), so a pane dragged wide and a page in a narrow window are both right.
 //
-// One rule for shapes (founder, 12 Oct 2026): a pill only ever means "this needs a look"; a state that
-// is fine is plain text; a document is an underlined link with a small glyph; a register's number is a
-// grey stamp. Nothing is cut off with an ellipsis and nothing is scored. Server-safe; the map, Copy and
-// the paid reveal are the only script.
+// One rule for shapes (founder, 12 Oct 2026): a pill means "this needs a look"; a state that is fine is
+// plain text; a document is an underlined link with a small glyph; a register's number is a grey stamp.
+// Two exceptions from his video of 23 Oct 2026: a certificate's last check is a pill of its own (green
+// while its issuer lists it) that opens the listing, and an RSC report is a quiet file chip. Nothing is
+// cut off with an ellipsis and nothing is scored. Server-safe; the map, Copy and the paid reveal are the
+// only script.
 
-import { ArrowRight, ArrowUpRight, Buildings, CaretDown, CaretRight, Check, Clock, Envelope, Factory, FileText, Gauge, Globe, HardHat, Hourglass, ListChecks, Lock, MapPin, Needle, Package, Phone, ShieldCheck, Storefront, Tag, UsersThree, WarningOctagon } from "@phosphor-icons/react/dist/ssr";
+import { ArrowRight, ArrowUpRight, Buildings, CaretDown, CaretRight, Check, CheckCircle, Clock, Envelope, Factory, FileText, Gauge, Globe, HardHat, Hourglass, ListChecks, Lock, MapPin, Needle, Package, Phone, ShieldCheck, Storefront, Tag, UsersThree, WarningCircle, WarningOctagon } from "@phosphor-icons/react/dist/ssr";
 import type { Icon } from "@phosphor-icons/react";
 import Link from "next/link";
 import { Fragment, type ReactNode } from "react";
@@ -31,6 +33,7 @@ import {
   exportsLead,
   factCells,
   filedWith,
+  issuedBy,
   memberTiles,
   safetyLead,
   safetyLines,
@@ -53,6 +56,8 @@ const NUM = "[font-variant-numeric:tabular-nums]";
 const TILE = "rounded-[10px] border border-line";
 /** A link to a document or a register's page: underlined, never a pill. */
 const DOC = cn("flex shrink-0 items-center gap-1 rounded-sm text-sm font-medium text-ink underline decoration-1 underline-offset-[3px] hover:decoration-2", ring);
+/** A file a link opens, an RSC report: a quiet chip with its glyph (founder's video, 23 Oct 2026: the underlines read "raw and outdated"). */
+const FILE = cn("flex h-7 shrink-0 items-center gap-1.5 rounded-md border border-line bg-surface pl-2 pr-2.5 text-xs font-medium text-ink-2 transition-colors duration-fast hover:border-line-strong hover:bg-subtle hover:text-ink", ring);
 /** A row or a tile that is one link: the link's target covers it. */
 const COVER = "outline-none after:absolute after:inset-0 after:rounded-[inherit] focus-visible:after:outline focus-visible:after:outline-2 focus-visible:after:outline-offset-[-2px] focus-visible:after:outline-focus";
 
@@ -119,7 +124,7 @@ function Stamp({ children }: { children: string }) {
   return <span className="flex h-6 items-center rounded-md bg-subtle px-2 font-mono text-xs text-ink [overflow-wrap:anywhere]">{children}</span>;
 }
 
-/** The only pill on the record: a state that needs a look. */
+/** The pill for a state that needs a look. (The other pill on the record is a certificate's last check.) */
 function Look({ icon: G, children }: { icon: Icon; children: string }) {
   return (
     <span className="flex h-6 w-fit items-center gap-[5px] whitespace-nowrap rounded-full bg-caution-tint pl-2 pr-2.5 text-xs font-medium text-caution">
@@ -544,59 +549,78 @@ export function ProductsSection({ model, today, level, fold }: SectionProps & { 
 
 /* ------------------------------------------------------------ certificates */
 
+// Three columns at every width (founder's video, 23 Oct 2026): the certificate with its number and issuer on
+// one line under the name, the state with its end date, and the last check. The two pills are 133 and 112 at
+// their widest ("Exp 29 Sep 2026", "118 days ago"); from 560px of column the name keeps 244px or more.
 const CERT_COLS =
-  "grid grid-cols-[minmax(0,1fr)_132px_92px_64px] items-center gap-x-3 [@container_(min-width:560px)]:grid-cols-[minmax(0,1fr)_158px_104px_88px] [@container_(min-width:560px)]:gap-x-4 [@container_(min-width:900px)]:grid-cols-[minmax(0,1fr)_150px_104px_164px_92px_92px] [@container_(min-width:900px)]:gap-x-3";
-// The fixed columns and their gaps take 686px, so the six start at 900px of column, where the name keeps
-// 214px or more (at 760 it had none: a letter a line). Under that the table keeps four columns and says the
-// issuer under the name.
-const CERT_WIDE_CELL = "hidden [@container_(min-width:900px)]:block";
+  "grid grid-cols-[minmax(0,1fr)_136px_116px] items-center gap-x-3 [@container_(min-width:560px)]:grid-cols-[minmax(0,1fr)_140px_120px] [@container_(min-width:560px)]:gap-x-4";
 export const CERT_MARK: Record<string, string> = { "OEKO-TEX": "OEKO-TEX", GOTS: "GOTS", WRAP: "WRAP" };
 
-/**
- * One certificate: a row of the table, then its numbers on a second line. One grid for both, so the
- * document link is drawn once: in the last column where the table is wide, beside the numbers where it is not.
- */
+/** One certificate, one row: its name over its number and issuer, its state with its end date, its last check. */
 function CertRow({ c }: { c: CertLine }) {
   const scheme = c.scheme.split(" ")[0]!;
   const ended = /^Ended/.test(c.state);
+  const by = issuedBy(c);
   return (
-    <div role="row" id={c.anchor ?? undefined} className={cn(CERT_COLS, "min-h-20 scroll-mt-[calc(var(--record-offset,0px)+12px)] content-center gap-y-2 border-b border-line px-3 py-2.5 last:border-b-0 target:bg-brand-tint hover:bg-subtle [@container_(min-width:900px)]:min-h-[84px]")}>
+    <div role="row" id={c.anchor ?? undefined} className={cn(CERT_COLS, "min-h-16 scroll-mt-[calc(var(--record-offset,0px)+12px)] border-b border-line px-3 py-2.5 last:border-b-0 target:bg-brand-tint hover:bg-subtle")}>
       <span role="cell" className="flex min-w-0 items-center gap-3">
         {CERT_MARK[scheme] ? <Mark source={CERT_MARK[scheme]} /> : <Letters size="sm">{initials(c.scheme)}</Letters>}
-        <span className="flex min-w-0 flex-col gap-px">
+        <span className="flex min-w-0 flex-col gap-1">
           <span className="text-base font-medium text-ink [@container_(min-width:900px)]:text-[15px]/[22px]">{c.scheme}</span>
-          {c.issuer ? <span className="text-xs text-ink-3 [@container_(min-width:900px)]:hidden">Issued by {c.issuer}</span> : null}
+          {c.numbers.length > 0 || by ? (
+            <span className="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-xs text-ink-3">
+              {c.numbers.length > 0 ? <span>{c.numberLabel}</span> : null}
+              {c.numbers.map((x) => (
+                <Stamp key={x}>{x}</Stamp>
+              ))}
+              {/* After a number the issuer alone, so "Licence GOTS-23068 · Control Union Certifications B.V." stays one line. */}
+              {by ? <span>{c.numbers.length > 0 ? `· ${by}` : `Issued by ${by}`}</span> : null}
+            </span>
+          ) : null}
         </span>
       </span>
-      <span role="cell">{c.look ? <Look icon={Hourglass}>{c.state}</Look> : <span className={cn("text-base", ended ? "text-ink-3" : "text-ink")}>{c.state}</span>}</span>
-      <span role="cell" className={c.until ? cn("whitespace-nowrap text-base", c.look ? "font-medium text-caution" : ended ? "text-ink-3" : "text-ink") : "text-xs text-ink-3"}>{c.until ?? "No end date published"}</span>
-      <span role="cell" className={cn("text-base text-ink [overflow-wrap:anywhere]", CERT_WIDE_CELL)}>
-        {c.issuer ?? ""}
-      </span>
-      <span role="cell" className="flex flex-col">
-        <span className="text-sm text-ink-2">{c.checked ?? ""}</span>
-        {c.checkedNote ? <span className={cn("text-xs", c.look ? "font-medium text-caution" : "text-ink-3")}>{c.checkedNote}</span> : null}
-      </span>
-      <span role="cell" className="col-start-4 row-start-2 flex justify-end [@container_(min-width:900px)]:col-start-6 [@container_(min-width:900px)]:row-start-1">
-        {c.doc ? <DocLink c={c} /> : null}
-      </span>
-      <span role="cell" className="col-span-3 col-start-1 row-start-2 flex flex-wrap items-center gap-1.5 pl-10 [@container_(min-width:900px)]:col-span-5 [@container_(min-width:900px)]:pl-11">
-        {c.numbers.length > 0 ? <span className="shrink-0 text-xs text-ink-3">{c.numberLabel}</span> : null}
-        {c.numbers.map((x) => (
-          <Stamp key={x}>{x}</Stamp>
-        ))}
+      <span role="cell">{c.look ? <Look icon={Hourglass}>{c.expiry}</Look> : <span className={cn("whitespace-nowrap text-base", ended ? "text-ink-3" : "text-ink")}>{c.expiry}</span>}</span>
+      <span role="cell">
+        <LastCheck c={c} />
       </span>
     </div>
   );
 }
 
-function DocLink({ c }: { c: CertLine }) {
-  const G = c.doc!.label === "Certificate" ? FileText : ArrowUpRight;
+// A last check is green while its issuer lists it, amber once it does not, grey on a certificate that has ended.
+const CHECK_PILL = "flex h-6 w-fit items-center gap-[5px] whitespace-nowrap rounded-full pl-2 pr-2.5 text-xs font-medium";
+const CHECK_TONE = { listed: "bg-positive-tint text-positive-ink", dropped: "bg-caution-tint text-caution", ended: "bg-subtle text-ink-2" } as const;
+const CHECK_GLYPH = { listed: "text-positive", dropped: "text-caution-icon", ended: "text-ink-3" } as const;
+
+/**
+ * When the issuer last showed the certificate, as one pill: "12 days ago", the day in its title. It is also the
+ * link to the issuer's listing or the certificate, so there is no second link beside it. A certificate with a page
+ * but no check keeps a grey pill that opens it.
+ */
+function LastCheck({ c }: { c: CertLine }) {
+  const a = c.ago;
+  if (!a && !c.doc) return null;
+  const tone = a?.tone ?? "ended";
+  const G = !a ? (c.doc!.label === "Certificate" ? FileText : ArrowUpRight) : a.tone === "dropped" ? WarningCircle : CheckCircle;
+  const what = c.doc ? (c.doc.label === "Certificate" ? "the certificate" : "the listing") : null;
+  const words = a ? a.words : c.doc!.label;
+  const said = a ? `Checked ${a.day}` : null;
+  const body = (
+    <>
+      <G size={14} weight="thin" className={cn("shrink-0", CHECK_GLYPH[tone])} aria-hidden />
+      {words}
+    </>
+  );
+  if (!c.doc) {
+    return (
+      <span title={said ?? undefined} className={cn(CHECK_PILL, CHECK_TONE[tone])}>
+        {body}
+      </span>
+    );
+  }
   return (
-    <a href={c.doc!.href} className={DOC}>
-      <G size={14} weight="thin" className="shrink-0 text-ink-3" aria-hidden />
-      {c.doc!.label}
-      <span className="sr-only">, {c.scheme}</span>
+    <a href={c.doc.href} title={[said, `opens ${what}`].filter(Boolean).join(" · ")} aria-label={`${c.scheme}: ${a ? `checked ${a.words.toLowerCase()}, ${a.day}. ` : ""}Open ${what}`} className={cn(CHECK_PILL, CHECK_TONE[tone], "decoration-1 underline-offset-2 hover:underline", ring)}>
+      {body}
     </a>
   );
 }
@@ -607,12 +631,7 @@ function CertHead() {
       <div role="row" className={cn(CERT_COLS, "h-8 border-b border-line px-3 text-xs font-medium text-ink-3")}>
         <span role="columnheader">Certificate</span>
         <span role="columnheader">State</span>
-        <span role="columnheader">Valid until</span>
-        <span role="columnheader" className={CERT_WIDE_CELL}>Issued by</span>
         <span role="columnheader">Last checked</span>
-        <span role="columnheader" className={CERT_WIDE_CELL}>
-          <span className="sr-only">Document</span>
-        </span>
       </div>
     </div>
   );
@@ -809,19 +828,18 @@ function SafetyRow({ b }: { b: SafetyLine }) {
         {b.read ?? ""}
       </span>
       {b.reports.length > 0 || b.missing ? (
-        <span role="cell" className="col-span-full row-start-3 flex flex-wrap items-center gap-x-4 gap-y-1.5 [@container_(min-width:760px)]:row-start-2">
-          {b.reports.length > 0 ? <span className="shrink-0 text-xs text-ink-3">Inspection reports</span> : null}
+        <span role="cell" className="col-span-full row-start-3 flex flex-wrap items-center gap-1.5 [@container_(min-width:760px)]:row-start-2">
+          {b.reports.length > 0 ? <span className="mr-1.5 shrink-0 text-xs text-ink-3">Inspection reports</span> : null}
           {b.reports.map((r) => {
             const G = r.plan ? ListChecks : FileText;
             return (
-              <a key={r.label} href={r.href} className={DOC}>
+              <a key={r.label} href={r.href} aria-label={`${r.label}${r.plan ? "" : " report"}, ${b.name}`} className={FILE}>
                 <G size={14} weight="thin" className="shrink-0 text-ink-3" aria-hidden />
                 {r.label}
-                <span className="sr-only">, {b.name}</span>
               </a>
             );
           })}
-          {b.missing ? <span className="text-xs text-ink-3">{b.missing}</span> : null}
+          {b.missing ? <span className="ml-1.5 text-xs text-ink-3">{b.missing}</span> : null}
         </span>
       ) : null}
     </div>

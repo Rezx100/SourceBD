@@ -244,7 +244,20 @@ export type CertLine = {
   doc: { href: string; label: "Certificate" | "Listing" } | null;
   numberLabel: string;
   numbers: string[];
+  /**
+   * The desktop's State column, the state and its end date said once (founder's video, 23 Oct 2026): "Exp 20 Jan
+   * 2027", "Listed", "No longer listed", "Ended 4 Apr 2026". The phone keeps `state` and `until`.
+   */
+  expiry: string;
+  /**
+   * The desktop's Last checked pill: how long ago the issuer last showed it, the day for its title, and its tone:
+   * listed when checked, no longer listed, or a certificate that has ended. Null when it was never checked.
+   */
+  ago: { words: string; day: string; tone: "listed" | "dropped" | "ended" } | null;
 };
+
+/** "WRAP" issued by WRAP says nothing: the issuer is named only when it is someone other than the scheme. */
+export const issuedBy = (c: Pick<CertLine, "issuer" | "scheme">) => (c.issuer && c.issuer.split(/\s+/)[0]!.toLowerCase() !== c.scheme.split(/\s+/)[0]!.toLowerCase() ? c.issuer : null);
 
 function certLine(g: CertGroup, model: SupplierSheetModel, today: Date, ended: boolean): CertLine {
   const c = g.rows[0]!;
@@ -255,13 +268,18 @@ function certLine(g: CertGroup, model: SupplierSheetModel, today: Date, ended: b
   const numbers = g.rows.flatMap((r) => (r.number ? [r.number] : []));
   const gots = /^gots/i.test(g.scheme);
   const word = g.listed ? "Listing" : gots ? "Licence" : "Certificate";
+  const state = ended ? `Ended ${formatDay(c.expiresOn) ?? ""}`.trim() : g.listed ? (g.rows.length > 1 ? `${g.rows.length} listings` : "Listed") : certShort(c.expiresOn, today, c.delistedOn);
+  const until = formatDay(c.expiresOn);
+  const ago = at ? Math.max(0, Math.floor((today.getTime() - Date.parse(at)) / 86_400_000)) : null;
   return {
     key: `${g.scheme}-${c.number ?? ""}-${c.expiresOn ?? ""}`,
     anchor: c.anchor ?? null,
     scheme: g.scheme,
-    state: ended ? `Ended ${formatDay(c.expiresOn) ?? ""}`.trim() : g.listed ? (g.rows.length > 1 ? `${g.rows.length} listings` : "Listed") : certShort(c.expiresOn, today, c.delistedOn),
+    state,
+    expiry: ended || g.listed || c.delistedOn || !until ? state : daysUntil(c.expiresOn, today) === 0 ? "Expires today" : `Exp ${until}`,
+    ago: at && ago !== null ? { words: ago === 0 ? "Today" : `${ago} ${ago === 1 ? "day" : "days"} ago`, day: formatDay(at) ?? "", tone: ended ? "ended" : c.delistedOn ? "dropped" : "listed" } : null,
     look: !ended && g.state !== "valid",
-    until: formatDay(c.expiresOn),
+    until,
     issuer: c.issuer,
     checked: shortDay(at, today),
     checkedNote: ended && at && c.expiresOn && at.slice(0, 10) < c.expiresOn.slice(0, 10) ? "before it ended" : late !== null && late > 0 ? `${late} ${late === 1 ? "day" : "days"} ago` : null,

@@ -815,7 +815,8 @@ describe("the view's rules", () => {
     const out = view(m, { mode: "page" });
     const certs = /<section id="record-certificates"[\s\S]*?<\/section>/.exec(out)?.[0] ?? "";
     assert.match(text(certs), new RegExp(`^ ?Certificates ${t.count} `));
-    assert.match(text(certs), /No longer current · not counted above GOTS Issued by GSCS International Ltd. Ended 4 Apr 2026 4 Apr 2026/);
+    assert.match(text(certs), /No longer current · not counted above GOTS Licence GOTS-27605 · GSCS International Ltd\. Ended 4 Apr 2026 /);
+    assert.doesNotMatch(text(certs), /4 Apr 2026 4 Apr 2026/, "the end date is said twice");
     assert.doesNotMatch(certs.slice(certs.indexOf("No longer current")), /bg-caution-tint|text-caution/, "an ended certificate is drawn as a warning");
     assert.ok(checkRows(m, TODAY).rows.every((r) => !/expired|GOTS/i.test(`${r.tag} ${r.title}`)), "an ended certificate is in Checks");
     assert.ok(headStatuses(m, TODAY).every((x) => !/expired/i.test(`${x.short} ${x.value}`)), "an ended certificate is in the head");
@@ -1096,14 +1097,15 @@ describe("a certificate links only to a page that opens (6 Oct 2026)", () => {
     const at = new Date(TODAY.getTime() - hoursAgo * 3_600_000).toISOString();
     return { ...m, certChecks: { reads: { gots: at }, certs: [{ kind: live.kind, certificate_no: "GOTS-31587", listing_status, checked_at: at, delisted_at: listing_status === "listed" ? null : at }] } };
   };
-  // A document is an underlined link with a small glyph, never a pill (Paper page 37); its scheme is said to a screen reader.
-  const GOTS_LINK = /<a\b[^>]*href="https:\/\/global-standards\.org\/suppliers\/certified-suppliers\/details\?gtbid=SCO039488"[^>]*>(?:<svg[\s\S]*?<\/svg>)?Certificate<span class="sr-only">, GOTS<\/span><\/a>/;
+  // The page opens from the certificate's last-check pill (founder's video, 23 Oct 2026: no "Listing" link beside
+  // it); the pill says its scheme and what it opens to a screen reader.
+  const GOTS_LINK = /<a href="https:\/\/global-standards\.org\/suppliers\/certified-suppliers\/details\?gtbid=SCO039488"[^>]*aria-label="GOTS: checked today, [^"]+\. Open the certificate"[^>]*>(?:<svg[\s\S]*?<\/svg>)?Today<\/a>/;
 
   it("a GOTS certificate opens the directory's public page while our check of GOTS is in date", () => {
     for (const mode of ["pane", "page"] as const) {
       const certs = plain(view(checked(1), { mode, tab: "certificates" }));
       assert.match(certs, GOTS_LINK, mode);
-      assert.equal((certs.match(/Certificate<span class="sr-only">, GOTS/g) ?? []).length, 1, `${mode}: the ended GOTS-27605 has no page left and no link`);
+      assert.equal((certs.match(/aria-label="GOTS: [^"]*Open the certificate"/g) ?? []).length, 1, `${mode}: the ended GOTS-27605 has no page left and no link`);
       assert.ok(!certs.includes("global-trace-base.org"), `${mode} still links to the login-walled document`);
     }
   });
@@ -1128,8 +1130,43 @@ describe("a certificate links only to a page that opens (6 Oct 2026)", () => {
 
   it("the table keeps its columns whether or not a certificate has a page to open, and draws no link without one", () => {
     const head = (m: SupplierSheetModel) => text(/<div role="table" aria-label="Certificates"[\s\S]*?<\/div><\/div>/.exec(view(m, { mode: "page", tab: "certificates" }))?.[0] ?? "");
-    for (const m of [checked(1), model()]) assert.match(head(m), /^ ?Certificate State Valid until Issued by Last checked Document ?$/);
+    for (const m of [checked(1), model()]) assert.match(head(m), /^ ?Certificate State Last checked ?$/);
     assert.doesNotMatch(/<section id="record-certificates"[\s\S]*?<\/section>/.exec(view(model(), { mode: "page" }))?.[0] ?? "<a ", /<a /);
+  });
+
+  it("a certificate is one row of three cells: number and issuer under the name, the state with its end date, the last check as one pill (founder's video, 23 Oct 2026)", () => {
+    // "This listing text looks raw and bad": the day, the days since and a separate "Listing" link were three lines.
+    for (const mode of ["pane", "page"] as const) {
+      const certs = plain(/<section id="record-certificates"[\s\S]*?<\/section>/.exec(view(checked(1), { mode, tab: "certificates" }))?.[0] ?? "");
+      assert.match(text(certs), /GOTS Licence GOTS-31587 · TÜV Rheinland \(China\) Ltd\. Exp 12 May 2027 Today /, mode);
+      assert.doesNotMatch(text(certs), /Valid until|Valid to|No end date published|Issued by (WRAP|OEKO-TEX)/, mode);
+      assert.doesNotMatch(certs, />(Listing|Certificate)<\/a>/, `${mode}: a document link beside the pill`);
+      const links = certs.match(/<a\b[^>]*>/g) ?? [];
+      assert.equal(links.length, 1, `${mode}: the checked GOTS licence's pill is the table's one link`);
+      const cls = /class="([^"]*)"/.exec(links[0]!)?.[1]?.split(" ") ?? [];
+      for (const c of ["rounded-full", "bg-positive-tint", "text-positive-ink"]) assert.ok(cls.includes(c), `${mode}: the pill lacks ${c}`);
+      assert.match(links[0]!, /title="Checked \d{1,2} \w{3} \d{4} · opens the certificate"/, `${mode}: the day is in the pill's title`);
+    }
+    const line = (m: SupplierSheetModel) => certTable(m, TODAY).held.find((c) => c.numbers.includes("GOTS-31587"))!;
+    assert.deepEqual([line(checked(1)).expiry, line(checked(1)).ago?.words, line(checked(1)).ago?.tone], ["Exp 12 May 2027", "Today", "listed"]);
+    // Twelve days on it is said in days, and once its issuer stops listing it the pill turns amber.
+    assert.deepEqual([line(checked(24 * 12)).ago?.words, line(checked(24 * 12)).ago?.tone], ["12 days ago", "listed"]);
+    const dropped = line(checked(24 * 12, "no_longer_listed"));
+    assert.deepEqual([dropped.expiry, dropped.ago?.words, dropped.ago?.tone], ["No longer listed", "12 days ago", "dropped"]);
+    assert.equal(line(model()).ago, null, "a certificate never checked has no pill");
+  });
+
+  it("an RSC report is a quiet file chip that names its building, never an underline (founder's video, 23 Oct 2026)", () => {
+    for (const mode of ["pane", "page"] as const) {
+      const safety = /<section id="record-safety"[\s\S]*?<\/section>/.exec(view(model(), { mode, tab: "safety" }))?.[0] ?? "";
+      const reports = safety.match(/<a\b[^>]*>/g) ?? [];
+      assert.ok(reports.length > 1, `${mode}: guard: Aboni's buildings have reports`);
+      for (const a of reports) {
+        const cls = /class="([^"]*)"/.exec(a)?.[1]?.split(" ") ?? [];
+        assert.ok(cls.includes("rounded-md") && cls.includes("border-line") && !cls.some((c) => /underline/.test(c)), `${mode}: ${a}`);
+        assert.match(a, /aria-label="[^"]+, [^"]+"/, `${mode}: a report does not say its building to a screen reader`);
+      }
+    }
   });
 });
 
@@ -1227,9 +1264,10 @@ describe("the record's minors, round 3 (critique of 8 Oct 2026, round 3, item 7)
       return at - taken - 24 - fixed - gap * (cols.split("_").length - 1);
     };
     const desktop = readFileSync(path.join(dir, "desktop.tsx"), "utf8");
-    const cert = /\[@container_\(min-width:(\d+)px\)\]:grid-cols-\[(minmax\(0,1fr\)(?:_\d+px){5})\] \[@container_\(min-width:\1px\)\]:gap-x-3/.exec(desktop);
-    assert.ok(cert, "the certificates' six columns");
-    assert.ok(room(cert[2]!.replace("minmax(0,1fr)", ""), Number(cert[1]), 12) >= 200, "a certificate's name keeps 200px in the six-column table");
+    // Three columns since the founder's video of 23 Oct 2026; from its wide rule the name keeps 200px.
+    const cert = /\[@container_\(min-width:(\d+)px\)\]:grid-cols-\[(minmax\(0,1fr\)(?:_\d+px){2})\] \[@container_\(min-width:\1px\)\]:gap-x-4/.exec(desktop);
+    assert.ok(cert, "the certificates' three columns");
+    assert.ok(room(cert[2]!.replace("minmax(0,1fr)", ""), Number(cert[1]), 16) >= 200, "a certificate's name keeps 200px in the table");
     assert.doesNotMatch(desktop.slice(desktop.indexOf("const CERT_COLS ="), desktop.indexOf("export function CertificatesSection")), /min-width:760px/, "one rule of the certificates' table still switches at 760");
     const sites = readFileSync(path.join(dir, "desktop-sites.tsx"), "utf8");
     const cols = /const COLS = "grid grid-cols-\[([^\]]+)\] items-center gap-x-3";/.exec(sites);

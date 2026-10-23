@@ -5,6 +5,12 @@
 // themselves. Below 768 the document scrolls as one, under a sticky 56 top bar,
 // above the fixed tab bar.
 //
+// From 768 the page itself never scrolls (founder's video, 23 Oct 2026: a wheel at
+// the end of the record moved the whole app up and left white under it). A hidden
+// screen-reader line far down a scrolled pane had the window as its containing block,
+// so it stretched the page; the root, `<main>` and every pane are positioned now, so
+// what they hold stays inside them, and `app/ds.css` stops the page scrolling anyway.
+//
 // `data-shell` on the root (the Spent Green Rule, DESIGN.md; critique of 7 Oct 2026, item 2):
 // inside it `app/ds.css` remaps the brand tints, the link ink, the hover wash and the focus
 // ring to the hueless `accent` role, so green is spent on the primary button and the wordmark
@@ -29,7 +35,7 @@ const UNREAD: FrameAccount = { initial: null, name: null, email: null };
 export function AppFrame({ account: read, badges, sidebarExtra, children }: { account: FrameAccount | null; badges?: BadgesInput; sidebarExtra?: ReactNode; children: ReactNode }) {
   const account = read ?? UNREAD;
   return (
-    <div data-shell="" className="group/shell flex min-h-dvh flex-col bg-surface font-sans text-ink antialiased md:h-dvh md:flex-row md:overflow-clip">
+    <div data-shell="" className="group/shell flex min-h-dvh flex-col bg-surface font-sans text-ink antialiased md:relative md:h-dvh md:flex-row md:overflow-clip">
       <a
         href={`#${MAIN_ID}`}
         className={cn("sr-only focus:not-sr-only focus:absolute focus:left-3 focus:top-3 focus:z-toast focus:rounded-sm focus:bg-surface focus:px-3 focus:py-2 focus:text-base focus:font-medium focus:text-ink", ring)}
@@ -43,7 +49,7 @@ export function AppFrame({ account: read, badges, sidebarExtra, children }: { ac
         <main
           id={MAIN_ID}
           tabIndex={-1}
-          className="isolate flex min-h-0 flex-1 flex-col outline-none max-md:overflow-x-clip max-md:pb-[calc(theme(spacing.tabbar)_+_env(safe-area-inset-bottom))] md:overflow-y-auto max-md:group-has-[[data-detail]]/shell:pb-0"
+          className="isolate flex min-h-0 flex-1 flex-col outline-none max-md:overflow-x-clip max-md:pb-[calc(theme(spacing.tabbar)_+_env(safe-area-inset-bottom))] md:relative md:overflow-y-auto md:overscroll-y-contain max-md:group-has-[[data-detail]]/shell:pb-0"
         >
           {children}
         </main>
