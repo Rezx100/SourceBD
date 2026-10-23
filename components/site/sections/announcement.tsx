@@ -18,10 +18,10 @@ export function Announcement() {
     setOpen(false);
   };
   return (
-    <div role="region" aria-label="Announcement" className="relative border-b border-line-subtle bg-subtle">
-      <div className="mx-auto flex min-h-9 max-w-site flex-wrap items-center justify-center gap-x-2.5 gap-y-1 px-12 py-2 text-center text-base text-ink-strong">
+    <div role="region" aria-label="Announcement" data-ground="day" className="relative bg-surface">
+      <div className="mx-auto flex min-h-12 max-w-site flex-wrap items-center justify-center gap-x-1.5 gap-y-1 px-12 py-2 text-center text-site-item text-ink-strong">
         <span className="max-md:sr-only">UFLPA and sanctions checks now run on every saved supplier</span>
-        <Link href="/compliance" prefetch={false} className={`inline-flex items-center gap-1 font-medium underline decoration-1 underline-offset-4 ${ring}`}>
+        <Link href="/compliance" prefetch={false} className={`inline-flex items-center gap-1 underline-offset-4 hover:underline ${ring}`}>
           See the Compliance hub
           <svg aria-hidden width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
             <path d="M5 12h14M13 6l6 6-6 6" />

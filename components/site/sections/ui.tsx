@@ -14,6 +14,15 @@ import { cn } from "@/lib/utils";
 /** 1280 wide at 1440 (80 px a side), 20 px a side on a phone. */
 export const measure = "mx-auto w-full max-w-site px-5 md:px-10 xl:px-20";
 
+/** The home page's column since the founder's walkthrough of 23 Oct 2026: mercury.com's 1024 at 1440, 20 px a side on a phone, 40 on a tablet. */
+export const column = "mx-auto w-[calc(100%-40px)] max-w-column md:w-[calc(100%-80px)]";
+
+/** The tour's wider column (mercury.com's): 1136 at 1440, the list at 152 from the left. */
+export const tourMeasure = "mx-auto w-[calc(100%-40px)] max-w-column-wide md:w-[calc(100%-80px)]";
+
+/** The rule over a home section's headline (mercury.com's): a hairline in the ground's rule colour. */
+export const rule = "border-t border-[rgb(var(--mk-rule))]";
+
 /** The one focus ring on the site: near-black, offset, never green. */
 export const ring = "outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent";
 

@@ -10,6 +10,7 @@ import {
   fontFamily,
   fontSize,
   fontWeight,
+  homeGrounds,
   letterSpacing,
   light,
   maxWidth,
@@ -25,6 +26,7 @@ import {
   v4Alpha,
   zIndex,
   type ColorSet,
+  type HomeGround,
 } from "./lib/design/tokens";
 
 // Design-system rebuild (spec `ds-rebuild-must-stay.md`). This file holds no
@@ -59,6 +61,31 @@ function alphaClasses() {
   );
 }
 
+/**
+ * A home ground's colour set (`homeGrounds`) over `base`: the ground under everything and the panel raised on it, the
+ * three inks and the hairline, each under the names the page's classes read (`text-ink`, `text-ink-2`, `bg-sunken`, …).
+ */
+function groundVars(tone: HomeGround, base: Record<string, string>): Record<string, string> {
+  const g = homeGrounds[tone];
+  return {
+    ...base,
+    "--mk-ground": toChannels(g.ground),
+    "--mk-rule": toChannels(g.rule),
+    "--ds-canvas": toChannels(g.ground),
+    "--ds-surface": toChannels(g.ground),
+    "--ds-sunken": toChannels(g.raised),
+    "--ds-surface-sunken": toChannels(g.raised),
+    "--ds-ink": toChannels(g.ink),
+    "--ds-ink-strong": toChannels(g.ink),
+    "--ds-ink-2": toChannels(g["ink-2"]),
+    "--ds-ink-muted": toChannels(g["ink-2"]),
+    "--ds-ink-3": toChannels(g["ink-3"]),
+    "--ds-ink-subtle": toChannels(g["ink-3"]),
+    "--ds-line": toChannels(g.line),
+    "--ds-line-subtle": toChannels(g.line),
+  };
+}
+
 /** Each token colour becomes a CSS variable holding its three channels, e.g. `--ds-ink-muted`. */
 function colorVars(set: ColorSet): Record<string, string> {
   return Object.fromEntries(
@@ -77,6 +104,8 @@ const config: Config = {
     "./components/**/*.{ts,tsx}",
     "./lib/**/*.{ts,tsx}",
   ],
+  // A regex in lib/ledger/tsa.ts reads as an arbitrary property and became `-: T`, which Turbopack's CSS parser refuses.
+  blocklist: ["[-:T]"],
   theme: {
     colors: {
       transparent: "transparent",
@@ -152,9 +181,9 @@ const config: Config = {
       const darkSet = { ...colorVars(dark), ...paneMaterial.dark, "color-scheme": "dark" };
       const night = Object.fromEntries(Object.entries(darkSet).filter(([name]) => !NIGHT_INHERITS.includes(name)));
       addBase({
-        // `--mk-ground-*`: the two grounds a marketing page fades between (ToneShift), fixed in either scene, so the
-        // fade starts the moment the tone changes while the night set comes in only half way through.
-        ":root": { ...colorVars(light), ...paneMaterial.light, "--mk-ground-paper": toChannels(resolve(light, "canvas")), "--mk-ground-night": toChannels(resolve(dark, "canvas")) },
+        // `--mk-ground-*`: the marketing site's two grounds, fixed in either scene; the night is mercury.com's since the
+        // founder's walkthrough of 23 Oct 2026 (`homeGrounds.night`).
+        ":root": { ...colorVars(light), ...paneMaterial.light, "--mk-ground-paper": toChannels(resolve(light, "canvas")), "--mk-ground-night": toChannels(homeGrounds.night.ground) },
         "@media (prefers-color-scheme: dark)": { ":root:has([data-theme-auto])": darkSet },
         '[data-ground="night"]': night,
         // A marketing section in the dark tone (components/site/motion.tsx, `PageMain`): the night set, its ground and
@@ -163,6 +192,21 @@ const config: Config = {
         // The product's own pieces, staged in the film on a night ground: the app has no dark theme, so a window
         // of it is light in either theme and inside any night scene.
         '[data-ground="day"]': { ...colorVars(light), ...paneMaterial.light, "color-scheme": "light" },
+        // The home page's three grounds (mercury.com's, `homeGrounds`). With no script each section stands on its own
+        // (`data-mk-tone`); once `HomeMain` runs, the page takes the tone of the section at the window's middle
+        // (`data-mk-page` on the root), the sections let it show through, and every colour fades to the next tone.
+        ...Object.fromEntries(
+          (Object.keys(homeGrounds) as HomeGround[]).flatMap((tone) => {
+            const set = groundVars(tone, tone === "night" ? night : { ...colorVars(light), ...paneMaterial.light, "color-scheme": "light" });
+            return [
+              [`[data-mk-tone="${tone}"]:not([data-mk-page] *)`, { ...set, "background-color": "rgb(var(--mk-ground))", color: "rgb(var(--ds-ink))" }],
+              [`[data-mk-page="${tone}"]`, set],
+            ];
+          }),
+        ),
+        "[data-mk-page] body": { "background-color": "rgb(var(--mk-ground))", transition: `background-color ${motion.toneMs}ms ${transitionTimingFunction.out}` },
+        // Zero specificity: an element with a transition of its own keeps it.
+        ":where([data-mk-page] body *)": { transition: `color ${motion.toneMs}ms, background-color ${motion.toneMs}ms, border-color ${motion.toneMs}ms, fill ${motion.toneMs}ms` },
       });
     }),
   ],

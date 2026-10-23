@@ -13,7 +13,7 @@ const twMerge = extendTailwindMerge({
     // A named padding or margin gives way to a caller's: `md:pb-section` then `md:pb-16` is `md:pb-16` (critique 22 Oct review: the pricing hero kept its 120 px).
     theme: { spacing: SPACING },
     classGroups: {
-      "font-size": [{ text: ["display-1", "display-2", "display-3", "site-hero", "site-hero-sm", "site-h1", "site-h1-sm", "site-h2", "site-h2-sm", "site-h3", "site-figure", "site-figure-sm", "site-title", "site-lede", "site-body", "site-wordmark", "eyebrow", "title", "page-title", "nav-label"] }],
+      "font-size": [{ text: ["display-1", "display-2", "display-3", "site-hero", "site-hero-sm", "site-h1", "site-h1-sm", "site-h2", "site-h2-sm", "site-h3", "site-figure", "site-figure-sm", "site-title", "site-lede", "site-body", "site-wordmark", "site-display", "site-display-sm", "site-headline", "site-headline-sm", "site-section", "site-section-sm", "site-lead", "site-stat", "site-stat-sm", "site-card", "site-item", "eyebrow", "title", "page-title", "nav-label"] }],
       rounded: [{ rounded: ["pane", "pane-phone", "frame", "card", "stage"] }],
       // The named heights (`spacing` in the token file): a kit button's `h-control-lg` gives way to a caller's `h-12`.
       h: [{ h: SPACING }],
