@@ -51,7 +51,7 @@ export function ShortScroll({ className, children }: { className?: string; child
 
   return (
     <div className={cn("group/scroll relative min-h-0", className)}>
-      <div ref={box} className="h-full overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      <div ref={box} className="relative h-full overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         <div>{children}</div>
       </div>
       {top !== null ? (

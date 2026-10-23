@@ -235,7 +235,7 @@ export function ReviewBody({
           </Button>
         ) : null}
       </div>
-      <ul className="-mb-2 max-h-80 overflow-y-auto border-t border-line">
+      <ul className="relative -mb-2 max-h-80 overflow-y-auto border-t border-line">
         {shown.map((t) => (
           <li key={t.slug} className="flex items-center gap-3 border-b border-line py-2">
             <span className="flex min-w-0 flex-1 flex-col">
@@ -551,7 +551,7 @@ export function RfqComposer({
         />
       ) : null}
 
-      <div ref={page ? side.rowRef : undefined} className={cn("flex min-h-0 flex-1 flex-col overflow-y-auto", page && "xl:flex-row xl:overflow-visible")}>
+      <div ref={page ? side.rowRef : undefined} className={cn("relative flex min-h-0 flex-1 flex-col overflow-y-auto", page && "xl:flex-row xl:overflow-visible")}>
         <form
           id={`${id}-form`}
           ref={formRef}
@@ -561,7 +561,7 @@ export function RfqComposer({
             e.preventDefault();
             void send();
           }}
-          className={cn("flex min-w-0 flex-col gap-6 px-5 py-5 max-sm:pt-4 sm:px-6", page ? "xl:flex-1 xl:overflow-y-auto" : "")}
+          className={cn("relative flex min-w-0 flex-col gap-6 px-5 py-5 max-sm:pt-4 sm:px-6", page ? "xl:flex-1 xl:overflow-y-auto" : "")}
         >
           <div className="flex w-full max-w-pane flex-col gap-6">
             <Targets targets={targets} onRemove={remove} onAdd={() => setPicking(true)} onReview={() => setReviewing("review")} note={pickNote ?? note("a supplier", "Add at least one supplier.")} />
@@ -693,7 +693,7 @@ export function RfqComposer({
           id={`${id}-preview`}
           aria-label="Preview"
           style={page ? ({ "--pane-w": `${side.width}px` } as CSSProperties) : undefined}
-          className={cn("flex flex-col gap-3 border-t border-line bg-subtle px-4 py-5 sm:px-6", part !== "message" && "max-sm:hidden", page ? "xl:w-[var(--pane-w)] xl:min-w-[320px] xl:max-w-[calc(100%-480px)] xl:shrink-0 xl:overflow-y-auto xl:border-t-0" : "")}
+          className={cn("relative flex flex-col gap-3 border-t border-line bg-subtle px-4 py-5 sm:px-6", part !== "message" && "max-sm:hidden", page ? "xl:w-[var(--pane-w)] xl:min-w-[320px] xl:max-w-[calc(100%-480px)] xl:shrink-0 xl:overflow-y-auto xl:border-t-0" : "")}
         >
           <h2 className="text-md font-semibold text-ink">{single ? `What ${single} gets` : "What each supplier gets"}</h2>
           <div className="flex flex-col gap-3 rounded-lg bg-surface p-4">

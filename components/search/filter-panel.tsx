@@ -155,7 +155,7 @@ export function FilterPanel({
         </div>
       ) : null}
 
-      <div className="flex min-h-0 flex-1 flex-col overflow-y-auto px-5 md:px-0">
+      <div className="relative flex min-h-0 flex-1 flex-col overflow-y-auto px-5 md:px-0">
         {desktop ? (
           <>
             <Group id="cert" title="Certificates" summary={summaries.cert} open={isOpen("cert")} onToggle={() => toggle("cert")}>

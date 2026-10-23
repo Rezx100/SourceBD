@@ -174,7 +174,7 @@ export function SupplierPartnerRequestForm({
               placeholder="Company name or slug…"
             />
             {!picked && hits.length > 0 ? (
-              <ul className="m-0 flex max-h-56 list-none flex-col overflow-y-auto rounded-lg border border-line bg-surface p-1 shadow-menu">
+              <ul className="relative m-0 flex max-h-56 list-none flex-col overflow-y-auto rounded-lg border border-line bg-surface p-1 shadow-menu">
                 {hits.map((h) => (
                   <li key={h.id}>
                     <button

@@ -202,7 +202,7 @@ function EditForm({ orderId, initial, open, onOpenChange }: { orderId: string; i
         </>
       }
     >
-      <div className="flex max-h-[60vh] flex-col gap-3 overflow-y-auto text-ink">
+      <div className="relative flex max-h-[60vh] flex-col gap-3 overflow-y-auto text-ink">
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <Field label="Status">{(a) => <Select {...a} value={f.status} onValueChange={set("status")} options={STATUS_OPTIONS} size={size} />}</Field>
           <Field label="Incoterm">{(a) => <Select {...a} value={f.incoterm || "none"} onValueChange={(v) => set("incoterm")(v === "none" ? "" : v)} options={[{ value: "none", label: "Not set" }, ...INCOTERMS.map((v) => ({ value: v, label: v }))]} size={size} />}</Field>

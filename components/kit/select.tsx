@@ -64,7 +64,7 @@ export function Select({
         <S.Content
           position="popper"
           sideOffset={4}
-          className="z-toast max-h-72 min-w-[var(--radix-select-trigger-width)] overflow-auto rounded-lg border border-line bg-surface p-1 shadow-menu"
+          className="relative z-toast max-h-72 min-w-[var(--radix-select-trigger-width)] overflow-auto rounded-lg border border-line bg-surface p-1 shadow-menu"
         >
           <S.Viewport>
             {options.map((o) => (

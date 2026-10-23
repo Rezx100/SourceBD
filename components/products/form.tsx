@@ -288,7 +288,7 @@ export function ProductForm({ initial, updatedAt = null }: { initial: ProductVal
             {matrix.total > 0 ? (
               <div className="flex flex-col gap-2">
                 <TableFrame>
-                  <div className="max-h-80 overflow-auto">
+                  <div className="relative max-h-80 overflow-auto">
                     <Table aria-label="Every combination">
                       <thead>
                         <tr>

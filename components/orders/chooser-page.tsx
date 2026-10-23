@@ -17,8 +17,8 @@ export function ChooserPage({ fromRfqs, hint, total }: { fromRfqs: ChooserRow[];
         </Link>
         <h1 className="text-xl font-semibold tracking-tight text-ink">New order</h1>
       </header>
-      <div className="flex min-h-0 flex-1 flex-col overflow-y-auto xl:flex-row xl:overflow-visible">
-        <div className="min-w-0 px-4 py-5 sm:px-6 xl:flex-1 xl:overflow-y-auto">
+      <div className="relative flex min-h-0 flex-1 flex-col overflow-y-auto xl:flex-row xl:overflow-visible">
+        <div className="relative min-w-0 px-4 py-5 sm:px-6 xl:flex-1 xl:overflow-y-auto">
           <p className="pb-3 text-md text-ink-2 sm:hidden">Who is the order with?</p>
           <SupplierChooser fromRfqs={fromRfqs} total={total} />
         </div>

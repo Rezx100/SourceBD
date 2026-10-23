@@ -246,7 +246,7 @@ export function DiscoverSearchBox({ basePath, profileBase, q, sort }: Props) {
                 No matches. Press Enter to search &ldquo;{value.trim()}&rdquo; anyway.
               </p>
             ) : (
-              <ul id={listId} role="listbox" aria-label="Search suggestions" className="max-h-[min(28rem,60dvh)] overflow-y-auto">
+              <ul id={listId} role="listbox" aria-label="Search suggestions" className="relative max-h-[min(28rem,60dvh)] overflow-y-auto">
                 {suggestions.map((s, i) => {
                   const Icon = TYPE_ICON[s.type];
                   const hint = TYPE_HINT[s.type];

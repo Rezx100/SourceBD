@@ -334,6 +334,27 @@ describe("the list and the pane", () => {
     assert.match(css, /@media \(min-width: 768px\) \{\s*html:has\(\[data-shell\]\) \{\s*overflow: hidden;/);
   });
 
+  it("every box in the app that scrolls up and down is positioned (the RFQ page, 24 Oct 2026)", () => {
+    // The New RFQ page lifted under the frame the same way a day later: its form and preview scroll but were not
+    // positioned, so the hidden select inside the form was placed by `<main>` and made it scroll. Any class list
+    // that turns on a vertical scroll names a position on the same line.
+    const SCROLLS = /(?:^|[\s"'`:])overflow(?:-y)?-(?:auto|scroll)\b/;
+    const PLACED = /(?:^|[\s"'`:])(?:relative|absolute|fixed|sticky)\b/;
+    const bad: string[] = [];
+    const walk = (dir: string) => {
+      for (const e of readdirSync(dir, { withFileTypes: true })) {
+        const p = path.join(dir, e.name);
+        if (e.isDirectory()) walk(p);
+        else if (/\.tsx$/.test(e.name) && !/\.test\./.test(e.name))
+          readFileSync(p, "utf8").split(/\r?\n/).forEach((line, i) => {
+            if (SCROLLS.test(line) && !PLACED.test(line)) bad.push(`${path.relative(process.cwd(), p)}:${i + 1}`);
+          });
+      }
+    };
+    for (const dir of ["components", "app"]) walk(path.join(process.cwd(), dir));
+    assert.deepEqual(bad, [], `these scroll but are not positioned:\n${bad.join("\n")}`);
+  });
+
   it("there is one divider: the list's pane and the New RFQ page draw the shared one", () => {
     // Founder, 6 Oct 2026: "Reuse the same for the divider." What each draws is tested where it
     // is drawn (above, and in `components/rfqs/composer.test.ts`); this keeps a second one out.

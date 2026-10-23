@@ -298,7 +298,7 @@ function RfqListPane({
       <p className="border-b border-line px-3 py-2 text-xs font-medium text-ink-3">
         RFQs received
       </p>
-      <ul className="m-0 flex max-h-[70vh] list-none flex-col overflow-y-auto p-0">
+      <ul className="relative m-0 flex max-h-[70vh] list-none flex-col overflow-y-auto p-0">
         {items.map((r) => (
           <li key={r.id} className="border-b border-line last:border-b-0">
             <Link
