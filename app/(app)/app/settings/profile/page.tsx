@@ -9,7 +9,10 @@ import Link from "next/link";
 import { loadSettings } from "@/components/settings/load";
 import { EmailForm, NameForm, PasswordForm } from "@/components/settings/profile-forms";
 import { Section, SettingsShell } from "@/components/settings/shell";
+import { ThemeForm } from "@/components/settings/theme-form";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { THEME_COOKIE, readTheme } from "@/lib/theme";
+import { cookies } from "next/headers";
 
 export const dynamic = "force-dynamic";
 
@@ -17,6 +20,7 @@ export const metadata = { title: "Profile · SourceBD" };
 
 export default async function SettingsProfilePage() {
   const doc = await loadSettings(await createSupabaseServerClient());
+  const theme = readTheme((await cookies()).get(THEME_COOKIE)?.value);
   return (
     <SettingsShell current="profile" doc={doc} title="Profile">
       <Section title="Your name" caption="Suppliers see it in messages and orders." phoneHead={false}>
@@ -53,6 +57,9 @@ export default async function SettingsProfilePage() {
       </Section>
       <Section title="Password" caption="At least 8 characters. Pick one you do not use elsewhere.">
         <PasswordForm />
+      </Section>
+      <Section title="Appearance" caption="Light or dark, on this device.">
+        <ThemeForm initial={theme} />
       </Section>
       <Section title="Sign out" caption="Sign out of this device" phoneHead={false}>
         <form action="/auth/sign-out" method="post">
