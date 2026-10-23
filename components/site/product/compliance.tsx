@@ -8,7 +8,7 @@
 
 import { DemoCompliance, DemoStatement, VignetteExpiry } from "@/components/site/demos";
 import { TIERS } from "@/components/site/sources";
-import { ToneShift } from "@/components/site/motion";
+import { PageMain } from "@/components/site/motion";
 import { PAGES } from "@/components/site/pages";
 import { Closing } from "@/components/site/sections/closing";
 import { CrossSell } from "@/components/site/sections/cross-sell";
@@ -79,13 +79,13 @@ function ListsTable({ facts, now }: { facts: SiteFacts; now: number }) {
 export function CompliancePage({ facts, now = Date.now() }: { facts: SiteFacts; now?: number }) {
   const [attention, uflpa, lists, statement] = [row("01"), row("02"), row(""), row("03")];
   return (
-    <ToneShift id={null} initial="paper" className="font-sans text-ink-strong antialiased">
+    <PageMain id={null} className="font-sans text-ink-strong antialiased">
       <div data-tone="paper">
         <HeroCentered
           label={`${P.group} · ${P.name}`}
           title={P.h1}
           lede={P.lede}
-          stage={<DemoCompliance stage="hero-cotton" eager />}
+          stage={<DemoCompliance stage="swatches" eager />}
         >
           <HeroActions center />
         </HeroCentered>
@@ -97,19 +97,19 @@ export function CompliancePage({ facts, now = Date.now() }: { facts: SiteFacts; 
           headline={attention.headline}
           lede={attention.lede}
           tone="subtle"
-          media={<VignetteExpiry stage="weave" />}
+          media={<VignetteExpiry stage="rail" />}
         />
-        <FeatureRow label={uflpa.label} headline={uflpa.headline} lede={uflpa.lede} flip media={<DemoCompliance view="uflpa" stage="weave" />} />
+        <FeatureRow label={uflpa.label} headline={uflpa.headline} lede={uflpa.lede} flip media={<DemoCompliance view="uflpa" stage="rail" />} />
         <Section label={lists.label} headline={lists.headline} lede={listsRead(facts) ? lists.lede : "The lists we screen against, and who keeps them. The product shows the day each list was last read."} tone="subtle">
           <ListsTable facts={facts} now={now} />
         </Section>
-        <FeatureRow label={statement.label} headline={statement.headline} lede={statement.lede} media={<DemoStatement stage="weave" />} />
+        <FeatureRow label={statement.label} headline={statement.headline} lede={statement.lede} media={<DemoStatement stage="rail" />} />
       </div>
 
       <div data-tone="dark">
         <CrossSell current={`/${COMPLIANCE_KEY}`} />
         <Closing headline={P.close} lede="Free during beta. No card needed." />
       </div>
-    </ToneShift>
+    </PageMain>
   );
 }

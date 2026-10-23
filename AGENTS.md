@@ -90,6 +90,11 @@ You are a senior engineer working on **SourceBD**, a B2B intelligence SaaS for t
     A merge is never permission for `--apply` (rule 15), and a subtask landing
     never closes the parent epic: that needs the buyer-visible symptom verified
     gone in production. (Replaced the six-auditor loop on 27 Sep 2026.)
+17. **Volza data comes only through Tradeline's per-supplier fetch.** Never
+    call, script or propose Volza's bulk export (`/api/v1/bulk-export/...`),
+    not even to go faster. It charges for every shipment record: about
+    $85,000 for 2,000 suppliers, against about $1,240 for the same suppliers
+    with `ops/tradeline.py` at up to 150 a day. (Founder, 22 Oct 2026.)
 
 ## How to reply
 

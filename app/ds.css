@@ -262,82 +262,17 @@
   }
 }
 
-/* The home hero's scroll scrub (M3, handoff-mercury-motion-sitewide.md §4.1): from 768 up, where the browser has
-   scroll-driven animations and the visitor has not asked for reduced motion. The section is 220vh with a 100vh pinned
-   box; the copy fades over the first 30% of the scroll and the stage rises from under it to the content width, its
-   cloth zooming and dimming towards the night tone, so the tour's dark first frame follows. Everywhere else the hero
-   is a plain page: the copy, then the stage. Transforms and opacity only, no script. */
-@supports (animation-timeline: view()) {
-  @media (min-width: 768px) and (prefers-reduced-motion: no-preference) {
-    .mk-hero {
-      min-height: 220vh;
-      view-timeline-name: --mk-hero;
-    }
-    .mk-hero-pin {
-      position: sticky;
-      top: 0;
-      display: grid;
-      height: 100vh;
-      place-items: center;
-      overflow: hidden;
-    }
-    .mk-hero-copy {
-      position: absolute;
-      inset-inline: 0;
-      top: 0;
-      animation: mk-hero-copy linear both;
-      animation-timeline: --mk-hero;
-      animation-range: contain 0% contain 30%;
-    }
-    .mk-hero-stage-wrap {
-      padding-bottom: 0;
-    }
-    .mk-hero-stage,
-    .mk-hero-cloth,
-    .mk-hero-dim {
-      animation-timing-function: linear;
-      animation-fill-mode: both;
-      animation-timeline: --mk-hero;
-      animation-range: contain;
-    }
-    .mk-hero-stage {
-      animation-name: mk-hero-stage;
-    }
-    .mk-hero-cloth {
-      animation-name: mk-hero-cloth;
-    }
-    .mk-hero-dim {
-      animation-name: mk-hero-dim;
-    }
-  }
-}
-@keyframes mk-hero-copy {
-  to {
-    opacity: 0;
-    transform: translateY(-24px);
-    visibility: hidden;
-  }
-}
-@keyframes mk-hero-stage {
-  /* Starts under the copy whatever the window's height: at least 560px down (the copy's own height from 768 up). */
-  from {
-    transform: translateY(max(50vh, 560px)) scale(0.78);
-    border-radius: 24px;
-  }
-  to {
-    transform: none;
-    border-radius: 12px;
-  }
-}
-@keyframes mk-hero-cloth {
-  to {
-    transform: scale(1.15);
-  }
-}
-@keyframes mk-hero-dim {
-  to {
-    opacity: 0.55;
-  }
+/* The marketing site's product panel (the founder's videos, 22 Oct 2026, after mercury.com's): a tinted ground with a
+   faint 48 px grid and one soft light from the upper right, on which a part of the app stands as a card. One material
+   for every feature on every page; on the night ground the same tokens make it dark. */
+.mk-panel {
+  background-color: rgb(var(--ds-surface-sunken));
+  background-image:
+    radial-gradient(90% 80% at 78% 8%, rgb(var(--ds-surface) / 0.92), transparent 68%),
+    linear-gradient(rgb(var(--ds-ink) / 0.045) 1px, transparent 1px),
+    linear-gradient(90deg, rgb(var(--ds-ink) / 0.045) 1px, transparent 1px);
+  background-size: 100% 100%, 48px 48px, 48px 48px;
+  background-position: 0 0, -1px -1px, -1px -1px;
 }
 
 /* Spec §2: works without animation when the device asks for that. */

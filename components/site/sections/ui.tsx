@@ -20,10 +20,10 @@ export const ring = "outline-none focus-visible:outline focus-visible:outline-2 
 /** A link in running text: ink, underlined. */
 export const inkLink = cn("font-medium text-ink-strong underline decoration-1 underline-offset-4 hover:decoration-2", ring);
 
-/** The wordmark: the one green word on the site besides the main button. */
+/** The wordmark: the one green word on the site besides the main button; on the night ground (the footer, the bar over a dark section) its green is the night set's, so it still reads. */
 export function Wordmark({ className }: { className?: string }) {
   return (
-    <Link href="/" className={cn("w-fit text-xl font-semibold tracking-tight text-brand", ring, className)}>
+    <Link href="/" className={cn("w-fit text-xl font-semibold tracking-tight text-brand-ink", ring, className)}>
       SourceBD
     </Link>
   );
@@ -155,14 +155,19 @@ export function FeatureRow({ label, headline, lede, children, media, flip = fals
 }
 
 /**
- * The site's cloths (critique 22 Oct, S3): cotton under a hero, weave under every feature row. The third material,
- * night, is no photograph: `NightStage` and the closing band draw it.
+ * The site's photographs (the founder's videos, 22 Oct 2026): one world, the buyer's own. The sourcing studio with the
+ * laptop the home page zooms into (`hero`), its swatches and its sample rail behind the product's windows, a northern
+ * European port at night, the studio at dusk for the close, and the factory floor for the suppliers' section.
  */
-export type StillName = "hero-cotton" | "weave";
+export type StillName = "hero" | "laptop" | "swatches" | "rail" | "port" | "dusk" | "mill";
 
-const set = (name: StillName, ext: "avif" | "webp") => `/site/home/${name}-1600.${ext} 1600w, /site/home/${name}-2560.${ext} 2560w`;
+/** The widths each photograph ships at, and its height at the first of them. `laptop` is the hero's laptop, upscaled, for its zoom. */
+const WIDTHS: Record<StillName, number[]> = { hero: [1600, 2560, 3840], laptop: [2560, 4096], swatches: [1600, 2560], rail: [1600, 2560], port: [1600, 2560], dusk: [1600, 2560], mill: [1600, 2560] };
+const HEIGHT: Partial<Record<StillName, number>> = { laptop: 1440, dusk: 687 };
 
-/** A backdrop: AVIF then WebP, 1600 and 2560 wide, filling its (positioned) parent. Decoration, so no alt. */
+const set = (name: StillName, ext: "avif" | "webp") => WIDTHS[name].map((w) => `/site/home/${name}-${w}.${ext} ${w}w`).join(", ");
+
+/** A photograph: AVIF then WebP at each width it ships at, filling its (positioned) parent. Decoration, so no alt. */
 export function Still({ name, className, eager = false, sizes = "(min-width: 1440px) 1280px, 100vw" }: { name: StillName; className?: string; eager?: boolean; sizes?: string }) {
   return (
     <picture>
@@ -170,10 +175,10 @@ export function Still({ name, className, eager = false, sizes = "(min-width: 144
       <source type="image/webp" srcSet={set(name, "webp")} sizes={sizes} />
       {/* eslint-disable-next-line @next/next/no-img-element -- pre-sized in public/site/home (PROVENANCE.md), no optimizer pass */}
       <img
-        src={`/site/home/${name}-1600.webp`}
+        src={`/site/home/${name}-${WIDTHS[name][0]}.webp`}
         alt=""
-        width={1600}
-        height={1063}
+        width={WIDTHS[name][0]}
+        height={HEIGHT[name] ?? 900}
         loading={eager ? "eager" : "lazy"}
         fetchPriority={eager ? "high" : undefined}
         decoding="async"
@@ -183,8 +188,8 @@ export function Still({ name, className, eager = false, sizes = "(min-width: 144
   );
 }
 
-/** The product on a cloth stage, the home page's way of showing it (the textile still behind it). */
-export function Stage({ still = "weave", children, className, eager = false }: { still?: StillName; children: ReactNode; className?: string; eager?: boolean }) {
+/** The product's window on a photograph from the buyer's studio. */
+export function Stage({ still = "rail", children, className, eager = false }: { still?: StillName; children: ReactNode; className?: string; eager?: boolean }) {
   return (
     <div className={cn("relative isolate flex items-center justify-center overflow-hidden rounded-card px-4 py-6 md:rounded-stage md:px-16 md:py-16", className)}>
       <Still name={still} eager={eager} />
@@ -193,22 +198,6 @@ export function Stage({ still = "weave", children, className, eager = false }: {
   );
 }
 
-/** The night material's one soft glow: light from above (`top`) or a horizon rising from below (`bottom`). */
-const GLOW = { top: "bg-[radial-gradient(120%_70%_at_50%_0%,rgb(var(--ds-ink)/0.12),transparent_65%)]", bottom: "bg-[radial-gradient(90%_60%_at_50%_100%,rgb(var(--ds-ink)/0.14),transparent_70%)]" };
-
-/**
- * The night material (critique 22 Oct, S3, S4): the night ground, a hairline and one soft glow, never a photograph. A
- * demo on the tour or in the cross-sell stands on it under a light from above, so a light window is never a bare
- * rectangle on black; the closing band stands on it over a horizon. Night in either page tone.
- */
-export function NightStage({ children, className, glow = "top" }: { children: ReactNode; className?: string; glow?: keyof typeof GLOW }) {
-  return (
-    <div data-ground="night" className={cn("relative isolate overflow-hidden rounded-card border border-ink/10 bg-surface p-3 md:rounded-stage md:p-6", className)}>
-      <div aria-hidden className={cn("pointer-events-none absolute inset-0 -z-10", GLOW[glow])} />
-      {children}
-    </div>
-  );
-}
 
 /** A framed source mark at 24 (the default) or 32 px (the strip: a 22 px mark). */
 export function Mark({ code, large = false, lazy = true }: { code: string; large?: boolean; lazy?: boolean }) {

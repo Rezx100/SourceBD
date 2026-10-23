@@ -5,6 +5,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "ops"))
 
+import volza_launch  # noqa: E402
 import volza_live_sample  # noqa: E402
 from volza_load_sample import one_country_markets, record_sort, shown_class  # noqa: E402
 
@@ -34,6 +35,33 @@ def test_one_country_supplier_gets_its_markets_free():
     assert m["EU"]["shipments"] == 277 and m["United States"]["shipments"] == 0
     assert one_country_markets({**r, "top": {"destination_country": "Japan"}})["EU"]["shipments"] == 0
     assert one_country_markets({**r, "summary": {"count_of_unique_destination_countries": 2}}) is None
+
+
+def test_plan_skips_suppliers_already_in_production(monkeypatch, tmp_path):
+    # 22 Oct 2026: the raw files went missing; the plan must not pay again for what production holds
+    cands = tmp_path / "candidates.json"
+    cands.write_text('[{"id": "a", "slug": "a", "company_name": "Alpha Knit", "epb_6162": true},'
+                     ' {"id": "b", "slug": "b", "company_name": "Beta Wear", "epb_6162": true}]')
+    monkeypatch.setattr(volza_launch, "RAW", tmp_path)
+    monkeypatch.setattr(volza_launch, "CANDIDATES", cands)
+    monkeypatch.setattr(volza_launch, "decisions", dict)
+    monkeypatch.setattr(volza_launch, "newest", dict)
+    monkeypatch.setattr(volza_launch, "checked_in_production", lambda: {"a"})
+    assert [r["id"] for r in volza_launch.plan()] == ["b"]
+
+
+def test_saved_rows_keep_each_paid_supplier_once_and_drop_expired(tmp_path):
+    # 22 Oct 2026: what was paid for goes to the server (0156); a resumed run's partial line never does
+    import tradeline
+
+    f = tmp_path / "launch_2026-10-22.jsonl"
+    f.write_text('{"id": "a", "partial": true, "fetched_at": "2026-10-22T07:44:16+00:00"}\n'
+                 '{"id": "a", "shipments": 3, "fetched_at": "2026-10-22T07:45:00+00:00"}\n'
+                 '{"id": "b", "partial": true, "fetched_at": "2026-10-22T07:46:00+00:00"}\n'
+                 '{"id": "c", "shipments": 0, "fetched_at": "2024-01-01T00:00:00+00:00"}\n')
+    rows = tradeline.kept_rows(f)
+    assert [(r["supplier_id"], r["record"]["shipments"]) for r in rows] == [("a", 3)]
+    assert rows[0]["results_file"] == f.name and rows[0]["expires_at"].startswith("2027-10-22")
 
 
 def test_run_stops_before_using_the_buyers_daily_share():

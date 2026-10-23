@@ -46,8 +46,10 @@ from typing import Any
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from volza_company_list import load  # noqa: E402
+import httpx  # noqa: E402
 from volza_export_dryrun import (  # noqa: E402
-    CANDIDATES, RAW, classify, normalize_company_name, shipments, summary_suppliers, variants,
+    CANDIDATES, RAW, _rest_all, classify, cmd_candidates, normalize_company_name, shipments, summary_suppliers,
+    variants,
 )
 from volza_filter_test import EU  # noqa: E402
 from volza_live_sample import DAILY_RESERVE, Live, Stop, account_used  # noqa: E402
@@ -80,6 +82,33 @@ def legal_forms(base: str, seen: str | None) -> list[str]:
     return forms
 
 
+def checked_in_production() -> set[str]:
+    """Every supplier with a row in volza_export_checks (the "not on Volza" ones too) or volza_raw_results.
+
+    22 Oct 2026: the raw folder went missing with the old worktree, and a plan built from files
+    alone would have paid again for 457 suppliers. The table is what was loaded, so it is the floor.
+    """
+    http = rest()
+    done = {r["supplier_id"] for r in _rest_all(http, "/volza_export_checks?select=supplier_id&order=supplier_id")}
+    # 0156: everything we paid for, loaded or not; until 0156 is applied the table is not there (404)
+    if http.get("/volza_raw_results", params={"select": "supplier_id", "limit": 0}).status_code != 404:
+        done |= {r["supplier_id"] for r in _rest_all(
+            http, "/volza_raw_results?select=supplier_id,results_file&order=results_file,supplier_id")}
+    return done
+
+
+def rest() -> httpx.Client:
+    """Production's REST API with the service key, from .env in the current folder."""
+    from etl.core.config import settings
+
+    if not settings.supabase_url:
+        raise SystemExit("no Supabase address: run this from E:\\SourceBD so .env loads. "
+                         "Without it every checked supplier would be paid for again.")
+    key = settings.supabase_service_role_key
+    return httpx.Client(base_url=f"{settings.supabase_url}/rest/v1", timeout=60,
+                        headers={"apikey": key, "Authorization": f"Bearer {key}"})
+
+
 def plan() -> list[dict[str, Any]]:
     """The founder's yeses first, then held suppliers (markets, narrowing), then unchecked EPB suppliers
     in a fixed order. A supplier the founder said no to is never searched again."""
@@ -88,9 +117,11 @@ def plan() -> list[dict[str, Any]]:
             for r in newest().values() if said.get(r["id"]) in ("all", "exact") and not r.get("review")]
     held = {r["id"]: r for f in ("live_sample.jsonl", "batch_1.jsonl", "refetch_1.jsonl") for r in load(RAW / f)}
     done = {r["id"] for f in sorted(RAW.glob("launch_*.jsonl")) for r in load(f) if not r.get("partial")}
-    done |= set(said)
+    done |= set(said) | checked_in_production()
     rows += [{"id": r["id"], "slug": r["slug"], "name": r["name"], "held": r} for r in held.values()
              if r["class"] in ("exact", "ambiguous") and r["id"] not in done]
+    if not CANDIDATES.exists():  # the list is rebuilt from production, never from Volza
+        cmd_candidates(None)
     # names rebuilt with today's cleaner: candidates.json (10 Oct) cut "Nipun (Pte) Ltd." to "Nipun (Pte"
     cands = [{**c, "variants": variants(c)} for c in json.loads(CANDIDATES.read_text(encoding="utf-8")) if c["epb_6162"]]
     cands = [c for c in cands if c["variants"]]

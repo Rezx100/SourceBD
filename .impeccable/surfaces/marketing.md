@@ -1,37 +1,43 @@
 ---
-version: 1
+version: 2
 slug: "marketing"
 primary_target: "components/site"
 related_targets: ["app/(home)", "app/(marketing)", "app/(public)"]
 ---
 
-# Marketing site — one design, 14 Oct 2026
+# Marketing site — one design (14 Oct 2026; rebuilt from the founder's videos of 22 Oct 2026)
 
-The bar (founder, 14 Oct): mercury.com, for structure, pacing and motion, never for its copy, images, purple or
-font. Every marketing page is one design in the home page's direction: light display type, warm paper, ink links,
-green only on the main button and the wordmark (and the icons' one detail), real records with dated receipts.
-Plan and recordings: `.impeccable/handoff-mercury-motion-sitewide.md`, `.impeccable/reference/mercury-14oct/`.
+The bar: mercury.com for structure, pacing and motion, never its copy, purple or font. The visitor is a UK, US, EU or
+Canadian buyer: every picture comes from their world, and every picture of the product is the real app.
+
+## Direction contract
+
+THESIS: the buyer watches the real app do their vetting; refuse drawn mock-ups, captions under the product and cloth
+backdrops.
+OWN-WORLD: warm paper and the night ground as fixed section grounds; a London sourcing studio, its swatches, a port at
+night, the studio at dusk; the real app in one browser window (16:10, SVG bar); app fragments as cards on the grid
+panel; Geist light display; green only on the main button.
+STORY: the buyer sees their own desk, zooms into the app, follows Find, Check, Ask, Watch, sees who the factories
+already make for, then checks it themselves.
+FIRST VIEWPORT: studio photograph full-bleed, one-line headline and lede centred in the window light, email and
+Start free under it, the laptop below showing the app.
+FORM: Mercury opening (zoom into the laptop, the window settles into the tour); tours and feature lists click or
+advance, never hold the scroll; seed key: brief-pinned (founder's videos), no roll.
+FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, DESIGN.md, and every shipping raster carrying its provenance
 
 ## The library (`components/site/sections`)
 
-- `ui.tsx`: `measure` (1280 of content at 1440, `max-w-site`), `ring` (the one focus ring, near-black), `inkLink`,
-  `Wordmark`, `H2`, `Lede`, `Label`, `Display`, `TextLink`, `HeroActions`, `HeroCentered` (every page but home),
-  `Section` (`tone` paper, subtle, dark), `FeatureRow` (text beside the product, `flip` alternates), `Still`,
-  `Screen`, `Stage` (a screen on a textile still), `Mark`.
-- `faq.tsx` (the one FAQ), `closing.tsx` (the one closing band; home passes its two cards), `footer.tsx` (the one
-  footer, drawn by `components/site/chrome.tsx` only, content from `map.ts`).
-- The home page's own sections sit beside them; `components/site/home.tsx` composes them.
-- Motion: `components/site/motion.tsx` (`useScene`, `DemoStage` with its pause button, `ToneShift`).
+- `ui.tsx`: `measure`, `ring`, `H2`, `Lede`, `TextLink`, `HeroCentered`, `Section`, `FeatureRow`, `Still` (the
+  photographs), `Stage` (a window on a photograph).
+- `browser.tsx`: `BrowserFrame`, `AppVideo`, `Screen` (a recording in its window), `Cut` / `LiveCut` (a part of the
+  app), `PauseButton`, `FitPage` (a coded demo at app scale).
+- `tour.tsx` (`TourList`, `TourWindow`, `Tour`), `features.tsx` (`FeatureTour`, `FeatureGrid` on `.mk-panel`).
+- `opening.tsx` (the home's zoom), `brands.tsx` (names in our type, never logos: context/logos.lock.md).
+- Motion: `components/site/motion.tsx` (`useScene`, `DemoStage`, `PageMain`: grounds are fixed, nothing crossfades).
 
-## Rules the tests hold (`components/site/site.test.ts`, `lib/design/tokens.test.ts`)
+## Rules the tests hold (`components/site/*.test.ts`, `lib/design/tokens.test.ts`)
 
-- No size, line height or radius by hand under `components/site`: the `site-*` type scale, `rounded-frame` (12),
-  `rounded-card` (16), `rounded-stage` (24), `py-section` (120) instead.
-- One `<footer>`, one `<details>` FAQ, one footer importer, no green focus ring.
-- Green classes only on the wordmark; links are ink.
-- No hand-typed colour, no old palette class, no arbitrary radius anywhere under `components/site`.
-
-## Not yet (M2 onwards)
-
-The product pictures are still stills; M2 turns them into coded demos in `DemoStage`, M3 rebuilds the home page
-(hero scrub, pinned tour, tone rhythm) and stops for the founder's recording review.
+- No size, line height or radius by hand: the `site-*` type scale, `rounded-frame|card|stage`, `py-section`.
+- One `<footer>`, one `<details>` FAQ, no green link, no hand-typed colour.
+- No dated caption under any product picture; every playing picture has its pause button.
+- Every file in public/site/home is named in its PROVENANCE.md.

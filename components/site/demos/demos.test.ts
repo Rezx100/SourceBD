@@ -85,9 +85,7 @@ describe("the demos", () => {
       const out = draw(d.C);
       const t = text(out);
       assert.ok(d.names.some((n) => t.includes(n)), "a named company is drawn on the last step");
-      // The sanctioned example is captioned as an example, never as a real record (critique 22 Oct).
-      const caption = d.name === "vignette sanction" ? vignettes.SAMPLE_CAPTION : CAPTION;
-      assert.ok(t.includes(caption), `the caption "${caption}"`);
+      assert.ok(!t.includes(CAPTION), "no caption under the product (founder's video, 22 Oct 2026)");
       assert.match(out, /<button type="button" aria-label="Pause demo" aria-pressed="false"/);
       assert.match(out, /<figcaption class="sr-only">[^<]{20,}<\/figcaption>/, "one sentence for a screen reader");
       assert.match(out, /data-ground="day"/, "the product stays light on any ground");
@@ -123,9 +121,6 @@ describe("the demos", () => {
     assert.match(contact, /Contact details are locked/);
     assert.match(contact, /Send an RFQ and the supplier replies in Messages\./);
     assert.doesNotMatch(contact, /@|\+880|on file/);
-    // The caption can be left to the page (a demo on a textile stage draws it under the cloth), never dropped.
-    const bare = text(renderToStaticMarkup(createElement(AppRouterContext.Provider, { value: router as never }, createElement(record.DemoRecord, { caption: false }))));
-    assert.ok(!bare.includes(CAPTION));
   });
 
   it("the search vignette ends on the first three rows of the search; the receipts vignette on three facts, each from a register with a read day (M4)", () => {
@@ -152,11 +147,11 @@ describe("the demos", () => {
     const pane = text(draw(filters.DemoFilters));
     assert.match(pane, new RegExp(`Show ${(SNAPSHOT.search.total ?? 0).toLocaleString("en-GB")} suppliers`));
     assert.match(pane, /Certificate status Any Valid Expiring Expired/);
-    assert.ok(pane.includes(CAPTION));
+    assert.ok(!pane.includes(CAPTION));
     const draft = text(draw(statement.DemoStatement));
     assert.match(draft, /Example answers/);
     assert.match(draft, /Download statement/);
-    assert.ok(draft.includes(CAPTION));
+    assert.ok(!draft.includes(CAPTION));
     for (const C of [filters.DemoFilters, statement.DemoStatement]) assert.match(draw(C), /<button type="button" aria-label="Pause demo"/);
     // The review ends with the sanctioned example removed: the RFQ goes to the search's suppliers only.
     const review = text(draw(rfq.DemoReview));
@@ -165,10 +160,10 @@ describe("the demos", () => {
     assert.doesNotMatch(review, /RFQs cannot be sent to a sanctioned supplier/);
     // The thread's RFQ and messages are labelled; its supplier is the snapshot's.
     assert.match(text(draw(thread.DemoThread)), /Example messages/);
-    // Screening names the sanctioned example only as an example, and its caption says so.
+    // Screening names the sanctioned example only as an example, and its name says so.
     const screen = text(draw(watchAs("screen")));
     assert.match(screen, /On the UFLPA Entity List/);
-    assert.match(screen, /Example Apparel Ltd is an example company, not a real supplier/);
+    assert.match(screen, /Example Apparel Ltd/);
     for (const n of snapshotNames()) assert.ok(!new RegExp(`${n.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")} On the UFLPA`).test(screen), `${n} is never shown on the list`);
     // Safety reads the record's own RSC rows.
     const safety = text(draw(checkAt("safety")));
@@ -197,7 +192,7 @@ describe("the demos", () => {
   it("the sanctioned vignette names the placeholder only, and the last step is the refusal", () => {
     const t = text(draw(vignettes.VignetteSanction));
     assert.match(t, /Example Apparel Ltd/);
-    assert.ok(t.includes(vignettes.SAMPLE_CAPTION) && !t.includes(CAPTION), "captioned as an example, never as a real record");
+    assert.ok(!t.includes(CAPTION), "never dated as a real record");
     assert.doesNotMatch(t, /placeholder/);
     assert.match(t, /You can't send this supplier an RFQ\./);
     for (const n of snapshotNames()) assert.ok(!t.includes(n), `${n} is never shown sanctioned`);

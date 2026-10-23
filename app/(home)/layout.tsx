@@ -12,7 +12,7 @@ export const metadata = marketingMetadata;
 export default async function HomeLayout({ children }: { children: React.ReactNode }) {
   const dismissed = (await cookies()).get(ANNOUNCE_COOKIE)?.value === "1";
   return (
-    <MarketingChrome top={dismissed ? null : <Announcement />}>
+    <MarketingChrome top={dismissed ? null : <Announcement />} over>
       {children}
     </MarketingChrome>
   );

@@ -1,210 +1,134 @@
 "use client";
 
-// The pinned tour (M3, handoff-mercury-motion-sitewide.md §4.2): Find · Check · Ask · Watch, the four things a buyer does,
-// each played by its demo on real records. From 1024 up the section is four times 90vh and its inner box pins for the
-// ride: the heading and the four items on the left (the open one shows its two lines, "See how" and a 2px bar of how
-// far through it the scroll is), the open item's demo on the right. The open item follows the scroll, a click jumps
-// to it, and when the tour is pinned and the visitor stops scrolling it moves on by itself every 7 s (never under
-// reduced motion, never past the last). Below 1024 nothing pins: each item stacks with its own demo, which plays in
-// view. The server draws Find open.
+// The tour (the founder's videos of 22 Oct 2026, after mercury.com's): what a buyer does, listed on the left, the real
+// app doing it on the right (on the home page the opening's own app, without a window; on the solutions pages in its
+// browser window). It never holds the scroll. An item opens when it is clicked, or
+// when the one before it has played to its end; a coded demo (an item with no recording) holds for twice
+// `motion.featureMs`. The window keeps one shape, so nothing on the page moves when the item changes, and the
+// recordings sit stacked in it and crossfade, so it is never empty. The home page's opening draws the same list and
+// window inside its zoom (opening.tsx); the solutions pages draw `Tour`.
+//
+// Since the founder's recording of 22 Oct 13:17 ("the sections must be animated, like this one" of mercury.com) an item
+// opens with motion: its line grows from nothing to its height while its words rise in, and the one closing folds the
+// same way (`Disclosure`). A closed item's words are inert and hidden from assistive technology; the server draws the
+// first item open, so the list reads complete with no script.
 
-import { memo, useCallback, useEffect, useRef, useState, type CSSProperties, type ComponentType, type KeyboardEvent, type ReactNode } from "react";
-import { DemoCompliance, DemoRecord, DemoRfq, DemoSearch } from "@/components/site/demos";
+import { useCallback, useEffect, useRef, useState, type ComponentType, type ReactNode, type RefObject } from "react";
 import type { Frame } from "@/components/site/demos/stage";
-import { stillPreferred } from "@/components/site/motion";
+import { stillPreferred, useInView } from "@/components/site/motion";
 import { motion } from "@/lib/design/tokens";
 import { cn } from "@/lib/utils";
+import { AppVideo, BrowserFrame, PauseButton, SCREENS, pauseOnClick, type ScreenName } from "./browser";
 import { HomeIcon, type IconName } from "./icons";
-import { H2, TextLink, measure, ring } from "./ui";
+import { TextLink, measure, ring } from "./ui";
 
-export type TourItem = { key: string; icon: IconName; title: string; body: string; href: string; Demo: ComponentType<Frame> };
+export type TourItem = { key: string; icon: IconName; title: string; body: string; href: string; screen?: ScreenName; Demo?: ComponentType<Frame> };
 
 export const TOUR: readonly TourItem[] = [
-  { key: "find", icon: "search", title: "Find", body: "Search by product, district, certificate or source. Open a record beside the results and never lose your place.", href: "/product/search", Demo: DemoSearch },
-  { key: "check", icon: "receipt", title: "Check", body: "Every fact carries the register it came from and the day we read it. When two sources disagree, you see both.", href: "/product/records", Demo: DemoRecord },
-  { key: "ask", icon: "send", title: "Ask", body: "Save a shortlist and send one RFQ to up to 50 suppliers. Quotes come back side by side.", href: "/product/rfqs", Demo: DemoRfq },
-  { key: "watch", icon: "bell", title: "Watch", body: "Certificates that expire, registers that change, names that appear on the UFLPA list. We check again and tell you.", href: "/product/compliance", Demo: DemoCompliance },
+  { key: "find", icon: "search", title: "Find", body: "Search every verified garment supplier in Bangladesh by product, certificate or district.", href: "/product/search", screen: "find" },
+  { key: "check", icon: "receipt", title: "Check", body: "Open a supplier beside your results: certificates, inspections, exports and buyers, each with its source.", href: "/product/records", screen: "check" },
+  { key: "ask", icon: "send", title: "Ask", body: "Shortlist the ones you like and send one RFQ to up to 50 of them. Quotes come back side by side.", href: "/product/rfqs", screen: "ask" },
+  { key: "watch", icon: "bell", title: "Watch", body: "We keep checking certificates and forced-labour lists across your saved suppliers and tell you what changed.", href: "/product/compliance", screen: "watch" },
 ];
 
-/** The home's heading; a solutions page passes its own line. */
-const HOME_HEADING = (
-  <>
-    Everything you do to vet a factory.
-    <br className="max-md:hidden" /> In one record.
-  </>
-);
-
-function Heading({ id, children }: { id?: string; children: ReactNode }) {
-  return <H2 id={id}>{children}</H2>;
-}
-
-/** The open item's demo on the night material, swapping out then in. Memoised: the scroll re-renders the tour every frame for its bar, not the demo. */
-const TourDemo = memo(function TourDemo({ Shown, shown, leaving }: { Shown: ComponentType<Frame>; shown: number; leaving: boolean }) {
+/**
+ * An item's words under its title: a grid row that grows from 0 to its content's height (320 ms) while the words rise
+ * in, and folds back the same way. Closed, it is inert and hidden from assistive technology; reduced motion cuts.
+ */
+export function Disclosure({ id, open, className, children }: { id: string; open: boolean; className?: string; children: ReactNode }) {
   return (
-    <div key={shown} className={cn(leaving ? "animate-swap-out" : "animate-swap-in", "motion-reduce:animate-none")}>
-      <Shown stage="night" />
+    <div id={id} inert={!open} aria-hidden={!open} className={cn("grid transition-[grid-template-rows] duration-slow ease-out motion-reduce:transition-none", open ? "grid-rows-[1fr]" : "grid-rows-[0fr]")}>
+      <div className="min-h-0 overflow-hidden">
+        <div className={cn("transition-[opacity,transform] duration-slow ease-out motion-reduce:transition-none", open ? "translate-y-0 opacity-100" : "-translate-y-1.5 opacity-0", className)}>{children}</div>
+      </div>
     </div>
   );
-});
+}
+
+/** The heading and the items; the open one shows its line, its link and a 2 px line of how far it has played. */
+export function TourList({ id, heading, items, active, onPick, bar }: { id?: string; heading: ReactNode; items: readonly TourItem[]; active: number; onPick: (i: number) => void; bar: RefObject<HTMLSpanElement | null> }) {
+  return (
+    <div className="flex flex-col gap-8">
+      <h2 id={id} className="text-xl text-ink [text-wrap:balance] md:text-site-h3">
+        {heading}
+      </h2>
+      <ol className="flex flex-col border-t border-line">
+        {items.map((t, i) => {
+          const on = i === active;
+          return (
+            <li key={t.key} className="relative border-b border-line">
+              <button
+                type="button"
+                aria-expanded={on}
+                aria-controls={`tour-${t.key}`}
+                onClick={() => onPick(i)}
+                className={cn("flex min-h-14 w-full items-center gap-3 text-left text-site-title font-medium transition-colors duration-slow", ring, on ? "text-ink" : "text-ink-2 hover:text-ink")}
+              >
+                <HomeIcon name={t.icon} size={20} className={cn("transition-colors duration-slow", on ? "text-ink" : "text-ink-2")} />
+                {t.title}
+              </button>
+              <Disclosure id={`tour-${t.key}`} open={on} className="flex flex-col gap-3 pb-5 pl-8">
+                <p className="text-site-body text-ink-2">{t.body}</p>
+                <TextLink href={t.href} className="min-h-8 text-ink">
+                  See how
+                </TextLink>
+              </Disclosure>
+              {on ? <span ref={bar} aria-hidden className="absolute -bottom-px left-0 h-0.5 w-full origin-left scale-x-0 bg-ink" /> : null}
+            </li>
+          );
+        })}
+      </ol>
+    </div>
+  );
+}
 
 /**
- * `items` (the home's four by default; a solutions page passes three), `id` for the heading the section is labelled
- * by, `heading` the line above the items. The pinned run is 90vh per item (M4: `--tour-n` sets it).
+ * The open item in its window: the recordings stacked and crossfading, or the open item's coded demo. `playing` is
+ * false while the home's opening is still zooming, so nothing advances before the tour is in place.
  */
-export function PinnedTour({ items = TOUR, id = "home-tour", heading = HOME_HEADING }: { items?: readonly TourItem[]; id?: string; heading?: ReactNode }) {
-  const N = items.length;
-  const section = useRef<HTMLElement>(null);
-  const [active, setActive] = useState(0);
-  const [shown, setShown] = useState(0);
-  const [leaving, setLeaving] = useState(false);
-  const [progress, setProgress] = useState(0);
-  const activeRef = useRef(0);
-  const pinned = useRef(false);
-  const geometry = useRef({ top: 0, span: 1 });
-
-  /** Scrolls the page to where item `i` opens: the section's top plus its share of the pinned run. */
-  const go = useCallback((i: number) => {
-    const at = Math.max(0, Math.min(N - 1, i));
-    window.scrollTo({ top: geometry.current.top + (at / N) * geometry.current.span + 1, behavior: stillPreferred() ? "auto" : "smooth" });
-  }, [N]);
-
-  useEffect(() => {
-    const el = section.current;
-    if (!el) return;
-    const wide = matchMedia("(min-width: 1024px)");
-    let raf = 0;
-    let timer = 0;
-    // The section's place is read when the window or the page changes size (a late image, a wrapped line), never in
-    // the scroll handler.
-    const measure = () => {
-      geometry.current = { top: el.getBoundingClientRect().top + scrollY, span: Math.max(1, el.offsetHeight - innerHeight) };
-    };
-    const arm = () => {
-      clearTimeout(timer);
-      if (!pinned.current || !wide.matches || stillPreferred() || document.hidden) return;
-      timer = window.setTimeout(() => {
-        if (pinned.current && activeRef.current < N - 1) go(activeRef.current + 1);
-      }, motion.tourItemMs);
-    };
-    const place = () => {
-      raf = 0;
-      if (!wide.matches) return;
-      const { top, span } = geometry.current;
-      const y = scrollY - top;
-      const p = Math.min(1, Math.max(0, y / span));
-      const i = Math.min(N - 1, Math.floor(p * N));
-      pinned.current = y >= 0 && y <= span;
-      activeRef.current = i;
-      setActive(i);
-      setProgress(p * N - i);
-      arm();
-    };
-    const onScroll = () => {
-      if (!raf) raf = requestAnimationFrame(place);
-    };
-    const onResize = () => {
-      measure();
-      onScroll();
-    };
-    measure();
-    place();
-    addEventListener("scroll", onScroll, { passive: true });
-    addEventListener("resize", onResize);
-    document.addEventListener("visibilitychange", arm);
-    const grew = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(onResize);
-    grew?.observe(document.body);
-    return () => {
-      cancelAnimationFrame(raf);
-      clearTimeout(timer);
-      removeEventListener("scroll", onScroll);
-      removeEventListener("resize", onResize);
-      document.removeEventListener("visibilitychange", arm);
-      grew?.disconnect();
-    };
-  }, [go, N]);
-
-  // The demo swaps out (200 ms, blur) before the next swaps in (320 ms, rise); at once under reduced motion.
-  useEffect(() => {
-    if (active === shown) return;
-    setLeaving(true);
-    const t = window.setTimeout(
-      () => {
-        setShown(active);
-        setLeaving(false);
-      },
-      stillPreferred() ? 0 : motion.swapOutMs,
-    );
-    return () => clearTimeout(t);
-  }, [active, shown]);
-
-  const keys = (e: KeyboardEvent, i: number) => {
-    const to = e.key === "ArrowDown" ? i + 1 : e.key === "ArrowUp" ? i - 1 : e.key === "Home" ? 0 : e.key === "End" ? N - 1 : null;
-    if (to === null) return;
-    e.preventDefault();
-    go(to);
-    (e.currentTarget.parentElement?.parentElement?.querySelectorAll<HTMLButtonElement>("button")[Math.max(0, Math.min(N - 1, to))])?.focus();
-  };
-
+export function TourWindow({ items, active, playing, onEnded, bar }: { items: readonly TourItem[]; active: number; playing: boolean; onEnded: () => void; bar: RefObject<HTMLSpanElement | null> }) {
+  const [paused, setPaused] = useState(false);
+  const open = items[active]!;
+  if (!open.screen && open.Demo) return <open.Demo stage="night" />;
   return (
-    <section ref={section} data-tone="dark" aria-labelledby={id} className="relative lg:h-[calc(var(--tour-n)*90vh)]" style={{ "--tour-n": N } as CSSProperties}>
-      {/* From 1024: the pinned box. */}
-      <div className="sticky top-0 hidden h-screen lg:block">
-        <div className={cn(measure, "grid h-full grid-cols-12 items-center gap-10 xl:gap-16")}>
-          <div className="col-span-5 flex flex-col gap-8">
-            <Heading id={id}>{heading}</Heading>
-            <ol className="flex flex-col border-t border-line">
-              {items.map((t, i) => {
-                const on = i === active;
-                return (
-                  <li key={t.key} className="relative border-b border-line">
-                    <button
-                      type="button"
-                      aria-expanded={on}
-                      aria-controls={`tour-item-${t.key}`}
-                      onClick={() => go(i)}
-                      onKeyDown={(e) => keys(e, i)}
-                      className={cn("flex min-h-14 w-full items-center gap-3 py-3 text-left text-site-title font-medium", ring, on ? "text-ink-strong" : "text-ink-muted hover:text-ink-strong")}
-                    >
-                      <HomeIcon name={t.icon} size={20} className={on ? "text-ink-strong" : "text-ink-subtle"} />
-                      {t.title}
-                    </button>
-                    {/* `hidden` alone loses to a display class, so the class says it too (seen in the first recording: all four open). */}
-                    <div id={`tour-item-${t.key}`} hidden={!on} className={cn("flex-col gap-3 pb-5 pl-8", on ? "flex" : "hidden")}>
-                      <p className="max-w-[440px] text-site-body text-ink-muted">{t.body}</p>
-                      <TextLink href={t.href} className="min-h-8">
-                        See how
-                      </TextLink>
-                    </div>
-                    {/* How far through the open item the scroll is: a 2px bar, drawn by transform only. */}
-                    {on ? <span aria-hidden className="absolute bottom-0 left-0 h-0.5 w-full origin-left bg-ink-strong" style={{ transform: `scaleX(${progress})` }} /> : null}
-                  </li>
-                );
-              })}
-            </ol>
-          </div>
-          <div className="col-span-7 min-w-0">
-            <TourDemo Shown={items[shown]!.Demo} shown={shown} leaving={leaving} />
-          </div>
+    <figure className="relative" onClick={pauseOnClick(() => setPaused((v) => !v))}>
+      <figcaption className="sr-only">{open.screen ? SCREENS[open.screen].says : open.body}</figcaption>
+      <BrowserFrame url={SCREENS[open.screen ?? "find"].url}>
+        {items.map((t, i) => (t.screen ? <AppVideo key={t.key} name={t.screen} active={i === active} playing={playing && !paused} eager={i === 0} onEnded={onEnded} bar={bar} /> : null))}
+        <PauseButton paused={paused} onToggle={() => setPaused((v) => !v)} />
+      </BrowserFrame>
+    </figure>
+  );
+}
+
+/** The tour's open item and its moving on: by the recording's end, or by time for a coded demo while it is in view. */
+export function useTour(count: number, items: readonly TourItem[], box: RefObject<Element | null>) {
+  const [active, setActive] = useState(0);
+  const next = useCallback(() => setActive((a) => (a + 1) % count), [count]);
+  const seen = useInView(box, 0.4);
+  const coded = !items[active]?.screen;
+  useEffect(() => {
+    if (!coded || !seen || stillPreferred()) return;
+    const t = window.setTimeout(next, motion.featureMs * 2);
+    return () => window.clearTimeout(t);
+  }, [coded, seen, next, active]);
+  return { active, setActive, next };
+}
+
+/** A tour as its own section on the night ground (the solutions pages). */
+export function Tour({ id, heading, items = TOUR }: { id: string; heading: ReactNode; items?: readonly TourItem[] }) {
+  const box = useRef<HTMLElement>(null);
+  const bar = useRef<HTMLSpanElement>(null);
+  const { active, setActive, next } = useTour(items.length, items, box);
+  return (
+    <section ref={box} data-tone="dark" aria-labelledby={id} className="py-16 md:py-section">
+      <div className={cn(measure, "grid items-center gap-10 lg:grid-cols-12 lg:gap-12 xl:gap-16")}>
+        <div className="min-w-0 lg:col-span-4">
+          <TourList id={id} heading={heading} items={items} active={active} onPick={setActive} bar={bar} />
         </div>
-      </div>
-      {/* Below 1024: each item with its own demo, in flow. */}
-      <div className={cn(measure, "flex flex-col gap-14 py-14 lg:hidden")}>
-        <Heading>{heading}</Heading>
-        <ol className="flex flex-col gap-14">
-          {items.map((t) => (
-            <li key={t.key} className="flex flex-col gap-5">
-              <div className="flex flex-col gap-2.5">
-                <h3 className="flex items-center gap-3 text-site-title font-medium text-ink-strong">
-                  <HomeIcon name={t.icon} size={24} className="text-ink-strong" />
-                  {t.title}
-                </h3>
-                <p className="text-md text-ink-muted">{t.body}</p>
-                <TextLink href={t.href}>See how</TextLink>
-              </div>
-              <t.Demo stage="night" />
-            </li>
-          ))}
-        </ol>
+        <div className="min-w-0 lg:col-span-8">
+          <TourWindow items={items} active={active} playing onEnded={next} bar={bar} />
+        </div>
       </div>
     </section>
   );

@@ -219,7 +219,8 @@ describe("one site (M1, handoff-mercury-motion-sitewide.md §3)", () => {
     for (const { f, src } of sources) {
       if (f === "sections/icons.tsx") continue;
       const green = src.match(/\b(?:text|bg|border|decoration)-brand(?!-on\b)[\w-]*/g) ?? [];
-      assert.deepEqual(green, f === "sections/ui.tsx" ? ["text-brand"] : [], f);
+      // The wordmark's green is `brand-ink`: the night set gives it a lighter one on a dark ground (the footer, the bar over a dark section).
+      assert.deepEqual(green, f === "sections/ui.tsx" ? ["text-brand-ink"] : [], f);
     }
   });
 });

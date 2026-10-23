@@ -11,7 +11,6 @@ import { join } from "node:path";
 
 import { CAPTION, snapshotNames } from "@/lib/marketing/demo-snapshot";
 import { NO_FACTS, parseFacts } from "@/lib/site-facts";
-import { SAMPLE_CAPTION } from "@/components/site/demos/vignettes";
 import { PRODUCT, SOLUTIONS } from "@/components/site/map";
 
 const router = { push() {}, replace() {}, refresh() {}, back() {}, forward() {}, prefetch() {} };
@@ -102,7 +101,7 @@ describe("the product and solutions pages", () => {
       const out = page(key);
       // The cloth stills are decoration (alt=""); a source mark is the register's. Nothing else is a picture.
       const pictures = [...out.matchAll(/<img[^>]*src="([^"]+)"/g)].map((m) => decodeURIComponent(/url=([^&]+)/.exec(m[1]!)?.[1] ?? m[1]!));
-      assert.deepEqual(pictures.filter((f) => f.startsWith("/site/") && !/^\/site\/home\/(hero-cotton|weave)-/.test(f)), [], key);
+      assert.deepEqual(pictures.filter((f) => f.startsWith("/site/") && !/^\/site\/home\/(?:swatches|rail|hero|port|dusk|mill|loupe|lock|seal|app|crop)-/.test(f)), [], key);
       assert.ok((out.match(/aria-label="Pause demo"/g) ?? []).length >= 4, `${key}: demos, not screens`);
       assert.doesNotMatch(text(out), /Real screen ·|Sample state ·/, key);
     }
@@ -117,7 +116,7 @@ describe("the product and solutions pages", () => {
 
   it("every quote and RFQ the demos draw says it is an example", () => {
     for (const key of ["product/rfqs", "solutions/sourcing"]) assert.match(text(page(key)), /Example quotes · the suppliers are real, every figure is an example/, key);
-    assert.match(text(page("product/rfqs")), /Example RFQ .*Example Apparel Ltd is an example company, not a real supplier/);
+    assert.match(text(page("product/rfqs")), /Example RFQ/);
   });
 
   it("the statement draft ships, so no page calls it in design (audit P1, 14 Oct 2026)", () => {
@@ -190,13 +189,13 @@ describe("the records page in the home's frame (M4, handoff-mercury-m4-onward.md
     assert.match(hero, /<h1[^>]*>Every fact, with its receipt\.<\/h1>/);
     assert.match(hero, /record opened beside the search results at its Certificates section/);
     assert.doesNotMatch(hero, /\/site\/[a-z-]+\.png/);
-    assert.ok(text(hero).includes(CAPTION), "the caption under the cotton stage");
+    assert.ok(!text(hero).includes(CAPTION), "no caption under the stage (founder's video, 22 Oct 2026)");
   });
 
   it("the ground runs paper then dark: the rows, then the tabbed record, the cross-sell and the close; the home's real records are not repeated (critique 22 Oct)", () => {
     const out = page(RECORDS_KEY);
-    assert.match(out, /^(?:<link [^>]*>)*<main data-tone="paper" class="[^"]*bg-\[rgb\(var\(--mk-ground-paper\)\)\]/);
-    const tones = [...out.matchAll(/data-tone="(photo|dark|paper)"/g)].map((m) => m[1]).slice(1);
+    assert.match(out, /^(?:<link [^>]*>)*<main class="[^"]*bg-\[rgb\(var\(--mk-ground-paper\)\)\]/);
+    const tones = [...out.matchAll(/data-tone="(photo|dark|paper)"/g)].map((m) => m[1]);
     assert.deepEqual(tones, ["paper", "dark"]);
     assert.doesNotMatch(text(out), /Real records, not reviews/);
   });
@@ -206,7 +205,7 @@ describe("the records page in the home's frame (M4, handoff-mercury-m4-onward.md
     const pauses = (out.match(/aria-label="Pause demo"/g) ?? []).length;
     // The hero, the receipts, the certificate, the open tab, and the three loops of the cross-sell.
     assert.ok(pauses >= 7, `${pauses} pause buttons`);
-    assert.ok((text(out).match(new RegExp(`${CAPTION}|${SAMPLE_CAPTION}`.replace(/[.*+?^${}()[\]\\]/g, "\\$&"), "g")) ?? []).length >= pauses, "a dated caption for every demo");
+    assert.ok(!text(out).includes(CAPTION), "no dated caption under the product (founder's video, 22 Oct 2026)");
     assert.match(out, /record opened beside the search results at its Safety section: \d RSC records?/);
     assert.match(text(out), /Building · RSC Issues fixed Training/);
     assert.match(text(out), /Inspection reports on the register: Fire, Structural, Electrical, Boiler, Action plan/);
@@ -245,13 +244,14 @@ describe("the records page in the home's frame (M4, handoff-mercury-m4-onward.md
 });
 
 describe("the search page in the home's frame (M4, handoff-mercury-m4-onward.md §4.2)", () => {
-  it("opens on the Find demo, not a screenshot, with the dated caption and the live count under the stage", () => {
+  it("opens on the Find demo, not a screenshot, with the live count under the stage and no dated caption", () => {
     const out = page(SEARCH_KEY);
     const hero = out.slice(0, out.indexOf("<h2"));
     assert.match(hero, /<h1[^>]*>Search 10,268 garment suppliers\.<\/h1>/);
     assert.match(hero, /A search for knit GOTS/);
     assert.doesNotMatch(hero, /\/site\/[a-z-]+\.png/);
-    assert.match(text(hero), /Real records as read \d{1,2} [A-Z][a-z]{2} \d{4} 10,268 published suppliers · updated 2 Oct 2026/);
+    assert.match(text(hero), /10,268 published suppliers · updated 2 Oct 2026/);
+    assert.ok(!text(hero).includes(CAPTION));
   });
 
   it("names six filters, each one the page's own words already claim, in a hairline list with no icons (critique 22 Oct)", () => {
@@ -291,8 +291,8 @@ describe("the search page in the home's frame (M4, handoff-mercury-m4-onward.md 
 
   it("the ground runs paper, dark, paper, dark: the rows, the three steps and cross-sell, the FAQ, the close", () => {
     const out = page(SEARCH_KEY);
-    assert.match(out, /^(?:<link [^>]*>)*<main data-tone="paper" class="[^"]*bg-\[rgb\(var\(--mk-ground-paper\)\)\]/);
-    const tones = [...out.matchAll(/data-tone="(photo|dark|paper)"/g)].map((m) => m[1]).slice(1);
+    assert.match(out, /^(?:<link [^>]*>)*<main class="[^"]*bg-\[rgb\(var\(--mk-ground-paper\)\)\]/);
+    const tones = [...out.matchAll(/data-tone="(photo|dark|paper)"/g)].map((m) => m[1]);
     assert.deepEqual(tones, ["paper", "dark", "paper", "dark"]);
     const cross = out.slice(out.indexOf('aria-labelledby="site-cross-sell"'), out.indexOf('aria-labelledby="search-faq"'));
     for (const href of ["/product/records", "/product/rfqs", "/product/compliance"]) assert.match(cross, new RegExp(`href="${href}"`), href);
@@ -342,11 +342,11 @@ describe("the RFQs page in the home's frame (M4, handoff-mercury-m4-onward.md §
 
   it("the ground runs paper then dark, every demo has a pause button and a dated caption, and the cross-sell links to the three other products", () => {
     const out = page(RFQS_KEY);
-    const tones = [...out.matchAll(/data-tone="(photo|dark|paper)"/g)].map((m) => m[1]).slice(1);
+    const tones = [...out.matchAll(/data-tone="(photo|dark|paper)"/g)].map((m) => m[1]);
     assert.deepEqual(tones, ["paper", "dark"]);
     const pauses = (out.match(/aria-label="Pause demo"/g) ?? []).length;
     assert.equal(pauses, 7, "the hero, the quotes, the thread, the review and the cross-sell's three loops");
-    assert.ok((text(out).match(new RegExp(`${CAPTION}|${SAMPLE_CAPTION}`.replace(/[.*+?^${}()[\]\\]/g, "\\$&"), "g")) ?? []).length >= pauses);
+    assert.ok(!text(out).includes(CAPTION), "no dated caption under the product");
     const cross = out.slice(out.indexOf('aria-labelledby="site-cross-sell"'), out.indexOf('aria-labelledby="site-close"'));
     for (const href of ["/product/search", "/product/records", "/product/compliance"]) assert.match(cross, new RegExp(`href="${href}"`), href);
     assert.doesNotMatch(cross, /href="\/product\/rfqs"/);
@@ -377,11 +377,11 @@ describe("the solutions pages in the home's frame (M4, handoff-mercury-m4-onward
     assert.match(out, /<h1[^>]*>From search to RFQ in one sitting\.<\/h1>/);
     assert.match(out.slice(0, out.indexOf("<h2")), /Three suppliers ticked from the results and one example RFQ/);
     assert.doesNotMatch(out, /\/site\/[a-z-]+\.png/);
-    assert.match(out, /<section data-tone="dark" aria-labelledby="sourcing-tour" class="[^"]*lg:h-\[calc\(var\(--tour-n\)\*90vh\)\]" style="--tour-n:3"/);
+    assert.match(out, /<section data-tone="dark" aria-labelledby="sourcing-tour" class="py-16 md:py-section">/, "a section, never a pinned run (founder's video, 22 Oct 2026)");
     assert.equal((out.match(/aria-expanded="true"/g) ?? []).length, 1);
     assert.equal((out.match(/aria-expanded="false"/g) ?? []).length, 2);
-    for (const k of ["find", "check", "ask"]) assert.match(out, new RegExp(`id="tour-item-${k}"`), k);
-    assert.doesNotMatch(out, /id="tour-item-watch"/);
+    for (const k of ["find", "check", "ask"]) assert.match(out, new RegExp(`id="tour-${k}"`), k);
+    assert.doesNotMatch(out, /id="tour-watch"/);
     const t = text(out);
     assert.match(t, /Find, check, ask\. One sitting\./);
     for (const s of ["Find factories that make your product.", "Check them before you ask.", "Ask many at once.", "Build your shortlist today.", "every figure is an example"]) assert.ok(t.includes(s), s);
@@ -389,7 +389,7 @@ describe("the solutions pages in the home's frame (M4, handoff-mercury-m4-onward
     assert.match(t, /Build your shortlist today\. A shortlist your compliance team can check, source by source\. Free during beta\./);
     assert.doesNotMatch(t, /The outcome/);
     assert.doesNotMatch(t, /first certificate problem/);
-    const tones = [...out.matchAll(/data-tone="(photo|dark|paper)"/g)].map((m) => m[1]).slice(1);
+    const tones = [...out.matchAll(/data-tone="(photo|dark|paper)"/g)].map((m) => m[1]);
     assert.deepEqual(tones, ["paper", "dark", "paper", "dark"]);
     const cross = out.slice(out.indexOf('aria-labelledby="site-cross-sell"'), out.indexOf('aria-labelledby="site-close"'));
     for (const href of ["/product/search", "/product/records", "/product/rfqs"]) assert.match(cross, new RegExp(`href="${href}"`), href);
@@ -402,12 +402,10 @@ describe("the solutions pages in the home's frame (M4, handoff-mercury-m4-onward
     assert.match(out, /<h1[^>]*>Show where every fact came from\.<\/h1>/);
     assert.match(out.slice(0, out.indexOf("<h2")), /saved suppliers checked against the UFLPA Entity List/);
     assert.doesNotMatch(out, /\/site\/[a-z-]+\.png/);
-    assert.match(text(out), /Example Apparel Ltd is an example company, not a real supplier/);
-    assert.match(out, /aria-labelledby="compliance-tour"[^>]*style="--tour-n:3"/);
-    for (const k of ["check", "watch", "screen"]) assert.match(out, new RegExp(`id="tour-item-${k}"`), k);
+    assert.match(out, /<section data-tone="dark" aria-labelledby="compliance-tour" class="py-16 md:py-section">/);
+    for (const k of ["check", "watch", "screen"]) assert.match(out, new RegExp(`id="tour-${k}"`), k);
     const t = text(out);
     assert.match(t, /Check, watch, screen\. Every fact dated\./);
-    assert.match(t, /Example Apparel Ltd/);
     for (const s of ["Check certificates and their dates.", "Screen against the UFLPA Entity List.", "Watch for expiry.", "Draft the modern slavery statement.", "Evidence you can show an auditor: the source, the number, the date.", "Check your suppliers today."]) assert.ok(t.includes(s), s);
     assert.match(t, /No link found. is not a clearance\./);
     const cross = out.slice(out.indexOf('aria-labelledby="site-cross-sell"'), out.indexOf('aria-labelledby="site-close"'));
@@ -415,13 +413,14 @@ describe("the solutions pages in the home's frame (M4, handoff-mercury-m4-onward
     assert.doesNotMatch(t, /undefined|NaN|\[object/);
   });
 
-  it("every tour demo has its pause button; the phone's stacked list names the same three", () => {
+  it("the tour shows its open item in one window with its pause button, never a second stacked copy", () => {
     for (const key of [SOURCING_KEY, COMPLIANCE_TEAMS_KEY]) {
       const out = page(key);
-      // The hero, the pinned box's demo and the stacked list's three, a demo per row, and the cross-sell's three loops.
+      // The hero, a demo per row and the cross-sell's three loops; the tour's window plays the recordings.
       const rows = key === SOURCING_KEY ? 3 : 4;
-      assert.equal((out.match(/aria-label="Pause demo"/g) ?? []).length, 8 + rows, key);
-      assert.equal((out.match(/<h3 class="flex items-center gap-3/g) ?? []).length, 3, key);
+      assert.equal((out.match(/aria-label="Pause demo"/g) ?? []).length, 4 + rows, key);
+      assert.equal((out.match(/aria-label="Pause video"/g) ?? []).length, 1, key);
+      assert.doesNotMatch(out, /<h3 class="flex items-center gap-3/, key);
     }
   });
 });
@@ -450,11 +449,11 @@ describe("the compliance page in the home's frame (M4, handoff-mercury-m4-onward
 
   it("the ground runs paper then dark; nine demos, each with a pause button and a dated caption; the cross-sell links to the three other products", () => {
     const out = page(COMPLIANCE_KEY);
-    const tones = [...out.matchAll(/data-tone="(photo|dark|paper)"/g)].map((m) => m[1]).slice(1);
+    const tones = [...out.matchAll(/data-tone="(photo|dark|paper)"/g)].map((m) => m[1]);
     assert.deepEqual(tones, ["paper", "dark"]);
-    const pauses = (out.match(/aria-label="Pause demo"/g) ?? []).length;
-    assert.equal(pauses, 11, "the hero, the four moments, the expiry vignette, the UFLPA checks, the statement and the cross-sell's three loops");
-    assert.ok((text(out).match(new RegExp(`${CAPTION}|${SAMPLE_CAPTION}`.replace(/[.*+?^${}()[\]\\]/g, "\\$&"), "g")) ?? []).length >= pauses);
+    const pauses = (out.match(/aria-label="Pause (?:demo|video)"/g) ?? []).length;
+    assert.equal(pauses, 11, "the hero, the four moments' four clips, the expiry vignette, the UFLPA checks, the statement and the cross-sell's three loops");
+    assert.ok(!text(out).includes(CAPTION), "no dated caption under the product");
     const cross = out.slice(out.indexOf('aria-labelledby="site-cross-sell"'), out.indexOf('aria-labelledby="site-close"'));
     for (const href of ["/product/search", "/product/records", "/product/rfqs"]) assert.match(cross, new RegExp(`href="${href}"`), href);
     assert.doesNotMatch(cross, /href="\/product\/compliance"/);
