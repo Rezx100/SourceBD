@@ -56,8 +56,11 @@ const NUM = "[font-variant-numeric:tabular-nums]";
 const TILE = "rounded-[10px] border border-line";
 /** A link to a document or a register's page: underlined, never a pill. */
 const DOC = cn("flex shrink-0 items-center gap-1 rounded-sm text-sm font-medium text-ink underline decoration-1 underline-offset-[3px] hover:decoration-2", ring);
-/** A file a link opens, an RSC report: a quiet chip with its glyph (founder's video, 23 Oct 2026: the underlines read "raw and outdated"). */
-const FILE = cn("flex h-7 shrink-0 items-center gap-1.5 rounded-md border border-line bg-surface pl-2 pr-2.5 text-xs font-medium text-ink-2 transition-colors duration-fast hover:border-line-strong hover:bg-subtle hover:text-ink", ring);
+/**
+ * A file a link opens, an RSC report: a quiet chip with its glyph (founder's video, 23 Oct 2026: the underlines read
+ * "raw and outdated"). Tone, not an outline (DESIGN.md's Tone First Rule), and a step darker than a row's hover.
+ */
+const FILE = cn("flex h-7 shrink-0 items-center gap-1.5 rounded-md bg-sunken pl-2 pr-2.5 text-xs font-medium text-ink-2 transition-colors duration-fast hover:bg-line hover:text-ink", ring);
 /** A row or a tile that is one link: the link's target covers it. */
 const COVER = "outline-none after:absolute after:inset-0 after:rounded-[inherit] focus-visible:after:outline focus-visible:after:outline-2 focus-visible:after:outline-offset-[-2px] focus-visible:after:outline-focus";
 
@@ -587,10 +590,11 @@ function CertRow({ c }: { c: CertLine }) {
   );
 }
 
-// A last check is green while its issuer lists it, amber once it does not, grey on a certificate that has ended.
+// A last check is green while its issuer lists it, amber once it does not, grey on a certificate that has ended;
+// a page with no check is grey too.
 const CHECK_PILL = "flex h-6 w-fit items-center gap-[5px] whitespace-nowrap rounded-full pl-2 pr-2.5 text-xs font-medium";
-const CHECK_TONE = { listed: "bg-positive-tint text-positive-ink", dropped: "bg-caution-tint text-caution", ended: "bg-subtle text-ink-2" } as const;
-const CHECK_GLYPH = { listed: "text-positive", dropped: "text-caution-icon", ended: "text-ink-3" } as const;
+const CHECK_TONE = { listed: "bg-positive-tint text-positive-ink", dropped: "bg-caution-tint text-caution", ended: "bg-sunken text-ink-2", unchecked: "bg-sunken text-ink-2" } as const;
+const CHECK_GLYPH = { listed: "text-positive", dropped: "text-caution-icon", ended: "text-ink-3", unchecked: "text-ink-3" } as const;
 
 /**
  * When the issuer last showed the certificate, as one pill: "12 days ago", the day in its title. It is also the
@@ -600,11 +604,12 @@ const CHECK_GLYPH = { listed: "text-positive", dropped: "text-caution-icon", end
 function LastCheck({ c }: { c: CertLine }) {
   const a = c.ago;
   if (!a && !c.doc) return null;
-  const tone = a?.tone ?? "ended";
+  const tone = a?.tone ?? "unchecked";
   const G = !a ? (c.doc!.label === "Certificate" ? FileText : ArrowUpRight) : a.tone === "dropped" ? WarningCircle : CheckCircle;
   const what = c.doc ? (c.doc.label === "Certificate" ? "the certificate" : "the listing") : null;
   const words = a ? a.words : c.doc!.label;
-  const said = a ? `Checked ${a.day}` : null;
+  // An ended certificate's last read may predate its end: said, as the old row's note did.
+  const said = a ? `Checked ${a.day}${a.tone === "ended" && c.checkedNote === "before it ended" ? ", before it ended" : ""}` : null;
   const body = (
     <>
       <G size={14} weight="thin" className={cn("shrink-0", CHECK_GLYPH[tone])} aria-hidden />
@@ -615,11 +620,12 @@ function LastCheck({ c }: { c: CertLine }) {
     return (
       <span title={said ?? undefined} className={cn(CHECK_PILL, CHECK_TONE[tone])}>
         {body}
+        {said ? <span className="sr-only">, {said.charAt(0).toLowerCase()}{said.slice(1)}</span> : null}
       </span>
     );
   }
   return (
-    <a href={c.doc.href} title={[said, `opens ${what}`].filter(Boolean).join(" · ")} aria-label={`${c.scheme}: ${a ? `checked ${a.words.toLowerCase()}, ${a.day}. ` : ""}Open ${what}`} className={cn(CHECK_PILL, CHECK_TONE[tone], "decoration-1 underline-offset-2 hover:underline", ring)}>
+    <a href={c.doc.href} title={[said, `opens ${what}`].filter(Boolean).join(" · ")} aria-label={`${c.scheme}: ${a && said ? `checked ${a.words.toLowerCase()}, ${said.slice("Checked ".length)}. ` : ""}Open ${what}`} className={cn(CHECK_PILL, CHECK_TONE[tone], "decoration-1 underline-offset-2 hover:underline", ring)}>
       {body}
     </a>
   );

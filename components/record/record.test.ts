@@ -1154,6 +1154,11 @@ describe("a certificate links only to a page that opens (6 Oct 2026)", () => {
     const dropped = line(checked(24 * 12, "no_longer_listed"));
     assert.deepEqual([dropped.expiry, dropped.ago?.words, dropped.ago?.tone], ["No longer listed", "12 days ago", "dropped"]);
     assert.equal(line(model()).ago, null, "a certificate never checked has no pill");
+    // Days are calendar days, as the pill's title counts them: 23:00 yesterday is not "Today".
+    assert.equal(line(checked(11)).ago?.words, "1 day ago");
+    const unreadable = checked(1);
+    const bad = { ...unreadable, certChecks: { ...unreadable.certChecks!, certs: unreadable.certChecks!.certs.map((k) => ({ ...k, checked_at: "not a date" })) } };
+    assert.equal(line(bad).ago, null, "an unreadable check day says nothing, not \"NaN days ago\"");
   });
 
   it("an RSC report is a quiet file chip that names its building, never an underline (founder's video, 23 Oct 2026)", () => {
@@ -1163,7 +1168,8 @@ describe("a certificate links only to a page that opens (6 Oct 2026)", () => {
       assert.ok(reports.length > 1, `${mode}: guard: Aboni's buildings have reports`);
       for (const a of reports) {
         const cls = /class="([^"]*)"/.exec(a)?.[1]?.split(" ") ?? [];
-        assert.ok(cls.includes("rounded-md") && cls.includes("border-line") && !cls.some((c) => /underline/.test(c)), `${mode}: ${a}`);
+        // Tone, not an outline (DESIGN.md's Tone First Rule), and no underline.
+        assert.ok(cls.includes("rounded-md") && cls.includes("bg-sunken") && !cls.some((c) => /underline|^border/.test(c)), `${mode}: ${a}`);
         assert.match(a, /aria-label="[^"]+, [^"]+"/, `${mode}: a report does not say its building to a screen reader`);
       }
     }

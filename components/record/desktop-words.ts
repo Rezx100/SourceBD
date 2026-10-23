@@ -270,14 +270,16 @@ function certLine(g: CertGroup, model: SupplierSheetModel, today: Date, ended: b
   const word = g.listed ? "Listing" : gots ? "Licence" : "Certificate";
   const state = ended ? `Ended ${formatDay(c.expiresOn) ?? ""}`.trim() : g.listed ? (g.rows.length > 1 ? `${g.rows.length} listings` : "Listed") : certShort(c.expiresOn, today, c.delistedOn);
   const until = formatDay(c.expiresOn);
-  const ago = at ? Math.max(0, Math.floor((today.getTime() - Date.parse(at)) / 86_400_000)) : null;
+  // Calendar days, as the day in the pill's title and every other date on the record count them; null when unreadable.
+  const since = daysUntil(at, today);
+  const ago = since === null ? null : Math.max(0, -since);
   return {
     key: `${g.scheme}-${c.number ?? ""}-${c.expiresOn ?? ""}`,
     anchor: c.anchor ?? null,
     scheme: g.scheme,
     state,
     expiry: ended || g.listed || c.delistedOn || !until ? state : daysUntil(c.expiresOn, today) === 0 ? "Expires today" : `Exp ${until}`,
-    ago: at && ago !== null ? { words: ago === 0 ? "Today" : `${ago} ${ago === 1 ? "day" : "days"} ago`, day: formatDay(at) ?? "", tone: ended ? "ended" : c.delistedOn ? "dropped" : "listed" } : null,
+    ago: ago !== null ? { words: ago === 0 ? "Today" : `${ago} ${ago === 1 ? "day" : "days"} ago`, day: formatDay(at) ?? "", tone: ended ? "ended" : c.delistedOn ? "dropped" : "listed" } : null,
     look: !ended && g.state !== "valid",
     until,
     issuer: c.issuer,
