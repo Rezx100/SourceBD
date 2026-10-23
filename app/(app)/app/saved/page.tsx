@@ -66,7 +66,7 @@ export default async function SavedPage({ searchParams }: { searchParams: Promis
           <div className="max-md:hidden [&>*:not(.sr-only)]:mx-3 [&>*:not(.sr-only)]:mt-3">
             <SavedBar items={items} />
           </div>
-          <div className="min-h-0 flex-1 overflow-y-auto max-md:hidden">
+          <div className="relative min-h-0 flex-1 overflow-y-auto max-md:hidden">
             <SavedPaneRows items={items} currentSlug={openSlug} />
           </div>
           <div className="md:hidden">

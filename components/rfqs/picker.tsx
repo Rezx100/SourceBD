@@ -199,14 +199,14 @@ export function SupplierPicker({ open, onOpenChange, selected, max, onConfirm }:
             </Tab>
           ))}
         </TabsList>
-        <TabsContent value="saved" className="max-h-80 overflow-y-auto outline-none">
+        <TabsContent value="saved" className="relative max-h-80 overflow-y-auto outline-none">
           <Rows load={saved} picked={picked} onToggle={toggle} failed="Your saved suppliers could not be read just now. Try again in a moment, or search instead." empty="No saved suppliers yet. Save one from the search and it appears here." />
         </TabsContent>
-        <TabsContent value="search" className="flex max-h-80 flex-col gap-3 overflow-y-auto outline-none">
+        <TabsContent value="search" className="relative flex max-h-80 flex-col gap-3 overflow-y-auto outline-none">
           <Input type="search" aria-label="Search suppliers" placeholder="Company name, city or product" value={q} onChange={(e) => setQ(e.target.value)} autoFocus />
           {found === null ? <p className="text-base text-ink-3">Type a company name to find a supplier.</p> : <Rows load={found} picked={picked} onToggle={toggle} failed="The search could not run just now. Try again in a moment." empty="No supplier by that name." />}
         </TabsContent>
-        <TabsContent value="recent" className="max-h-80 overflow-y-auto outline-none">
+        <TabsContent value="recent" className="relative max-h-80 overflow-y-auto outline-none">
           <Rows load={recent ?? { status: "loading" }} picked={picked} onToggle={toggle} failed="Your recent RFQs could not be read just now. Try again in a moment." empty="No RFQs sent yet. The suppliers of your next RFQs appear here." />
         </TabsContent>
       </Tabs>

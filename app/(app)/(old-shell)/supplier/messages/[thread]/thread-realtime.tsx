@@ -127,7 +127,7 @@ export function ThreadRealtime({
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <div className="min-h-[322px] flex-1 overflow-y-auto bg-subtle">
+      <div className="relative min-h-[322px] flex-1 overflow-y-auto bg-subtle">
         <div className="flex min-h-full flex-col gap-3 p-5 max-md:p-4">
           {messages.length === 0 ? (
             <p className="m-0 py-6 text-center text-base text-ink-3">

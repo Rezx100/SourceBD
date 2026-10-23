@@ -209,7 +209,7 @@ export function SearchCombobox({
           shown ? "flex" : "hidden",
         )}
       >
-        <div id={listId} role="listbox" aria-label="Suggestions" className="flex max-h-[min(28rem,60dvh)] flex-col overflow-y-auto">
+        <div id={listId} role="listbox" aria-label="Suggestions" className="relative flex max-h-[min(28rem,60dvh)] flex-col overflow-y-auto">
           {rows.map((s, i) => {
             const words = rowWords(s);
             const on = i === active;

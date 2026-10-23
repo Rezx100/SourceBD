@@ -145,7 +145,7 @@ function SidebarBody({ badges, extra, account }: { badges: FrameBadges; extra?: 
             SourceBD
           </Link>
         </div>
-        <nav aria-label="Main menu" className="flex min-h-0 flex-col gap-0.5 overflow-y-auto px-3 py-2">
+        <nav aria-label="Main menu" className="relative flex min-h-0 flex-col gap-0.5 overflow-y-auto px-3 py-2">
           {FRAME_NAV.map((item) => (
             <Row key={item.key} item={item} current={current(item.key)} badge={badges[item.key]} />
           ))}

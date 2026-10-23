@@ -20,7 +20,7 @@ export function TableFrame({ className, ...rest }: ComponentProps<"div">) {
 
 /** Scrolls the body while the head sticks. Give it a height (`max-h-…`). */
 export function TableScroll({ className, ...rest }: ComponentProps<"div">) {
-  return <div className={cn("overflow-auto", className)} {...rest} />;
+  return <div className={cn("relative overflow-auto", className)} {...rest} />;
 }
 
 export function Table({ className, ...rest }: ComponentProps<"table">) {

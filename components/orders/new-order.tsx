@@ -247,14 +247,14 @@ export function OrderForm({ seed, prefill, cancelHref, backLabel, changeHref }: 
           <p className="text-sm text-ink-3 sm:hidden">{"quoteId" in seed.how ? "From the quote you accepted" : "An order placed outside SourceBD"}</p>
         </div>
       </header>
-      <div className="flex min-h-0 flex-1 flex-col overflow-y-auto xl:flex-row xl:overflow-visible">
+      <div className="relative flex min-h-0 flex-1 flex-col overflow-y-auto xl:flex-row xl:overflow-visible">
         <form
           id={`${id}-form`}
           onSubmit={(e) => {
             e.preventDefault();
             void create();
           }}
-          className="flex min-w-0 flex-col gap-6 px-5 py-5 max-sm:pt-1 sm:px-6 xl:flex-1 xl:overflow-y-auto"
+          className="relative flex min-w-0 flex-col gap-6 px-5 py-5 max-sm:pt-1 sm:px-6 xl:flex-1 xl:overflow-y-auto"
         >
           <div className="flex w-full max-w-pane flex-col gap-6">
             <section aria-label="Supplier" className="flex flex-col gap-2">

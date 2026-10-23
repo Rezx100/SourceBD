@@ -118,6 +118,18 @@ describe("what the composer says", () => {
 });
 
 describe("what the composer draws", () => {
+  it("the page holds still: the form and the preview scroll inside themselves, never the app around them (founder, 24 Oct 2026)", () => {
+    // The hidden select behind Ship to is absolute. In a form that scrolled but was not positioned it was placed by
+    // `<main>`, below the window, so a wheel lifted the title and the To card off the top with the panes.
+    const out = draw([target(1)]);
+    const cls = (re: RegExp) => re.exec(out)?.[1]?.split(" ") ?? [];
+    const boxes = { row: cls(/<div class="([^"]*xl:flex-row[^"]*)"/), form: cls(/<form [^>]*class="([^"]*)"/), preview: cls(/<aside [^>]*aria-label="Preview"[^>]*class="([^"]*)"/) };
+    for (const [name, c] of Object.entries(boxes)) {
+      assert.ok(c.some((x) => /overflow-y-auto$/.test(x)), `the ${name} does not scroll`);
+      assert.ok(c.includes("relative"), `the ${name} scrolls but is not positioned`);
+    }
+  });
+
   it("one supplier: listed by name with a way to add more, the facts in the fields, what the supplier gets, Send waiting for a quantity", () => {
     const out = draw([target(1)], { prefill: { title: "Men's heavyweight French terry hoodies, 420gsm", shipBy: "2026-10-15", shipTo: "United Kingdom", targetPrice: "8.9" } });
     assert.match(out, /^<section aria-label="New RFQ"/);

@@ -370,7 +370,13 @@ test("one dark set, the design system's, for the app and the home page, meeting 
   // The founder's ground (23 Oct 2026): v4's ink, not pure black; its inks and hairlines are v4 colours turned over.
   assert.equal(resolve(dark, "surface"), v4Colors.ink);
   const v4 = new Set<string>(Object.values(v4Colors));
-  for (const name of ["ink", "ink-2", "ink-3", "line", "line-strong", "disabled", "brand"] as const) assert.ok(v4.has(darkColors[name]), `dark ${name} is not a v4 colour`);
+  for (const name of ["ink", "ink-2", "ink-3", "disabled", "brand"] as const) assert.ok(v4.has(darkColors[name]), `dark ${name} is not a v4 colour`);
+  // The hairlines glared at their v4 greys (founder, 24 Oct 2026): each stands off the dark ground as its light one
+  // stands off white, within a tenth, and the input outline never drops under 3:1.
+  for (const name of ["line", "line.strong"]) {
+    const [d, l] = [contrastRatio(resolve(dark, name), resolve(dark, "surface")), contrastRatio(resolve(light, name), resolve(light, "surface"))];
+    assert.ok(Math.abs(d - l) <= 0.1, `dark ${name} is ${d.toFixed(2)}:1 on its ground, light is ${l.toFixed(2)}:1`);
+  }
   // The home page's night is that set, not a ground of its own (it was mercury.com's sampled night until then).
   const n = homeGrounds.night;
   assert.deepEqual([n.ground, n.raised, n.ink, n["ink-2"], n["ink-3"], n.line, n.rule], [darkColors.surface, darkColors.subtle, darkColors.ink, darkColors["ink-2"], darkColors["ink-3"], darkColors.line, darkColors["line-strong"]]);

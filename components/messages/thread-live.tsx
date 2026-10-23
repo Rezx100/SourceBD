@@ -310,7 +310,7 @@ export function ThreadLive({
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <div className="min-h-0 flex-1 overflow-y-auto bg-subtle max-md:min-h-[240px] max-md:overflow-visible">
+      <div className="relative min-h-0 flex-1 overflow-y-auto bg-subtle max-md:min-h-[240px] max-md:overflow-visible">
         <div className="flex min-h-full flex-col gap-3 p-5 max-md:justify-end max-md:gap-3.5 max-md:p-4">
           {phoneCard ? (
             phoneHref ? (
@@ -373,7 +373,7 @@ export function ThreadLive({
             aria-invalid={error ? true : undefined}
             aria-describedby={error ? `${composerId}-error` : undefined}
             className={cn(
-              "max-h-[9.5rem] min-h-8 flex-1 resize-none overflow-y-auto rounded-sm border border-line-strong bg-surface px-2.5 py-1.5 text-base text-ink outline-none placeholder:text-ink-3 hover:border-ink-3 disabled:bg-sunken",
+              "relative max-h-[9.5rem] min-h-8 flex-1 resize-none overflow-y-auto rounded-sm border border-line-strong bg-surface px-2.5 py-1.5 text-base text-ink outline-none placeholder:text-ink-3 hover:border-ink-3 disabled:bg-sunken",
               "focus:border-brand-ink focus:[box-shadow:inset_0_0_0_1px_theme(colors.brand-ink)] aria-[invalid=true]:border-danger",
               "max-md:min-h-10 max-md:border-0 max-md:px-1 max-md:py-2 max-md:text-md max-md:focus:[box-shadow:none] max-md:disabled:bg-transparent",
             )}
