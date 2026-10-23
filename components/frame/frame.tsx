@@ -15,7 +15,7 @@
 // inside it `app/ds.css` remaps the brand tints, the link ink, the hover wash and the focus
 // ring to the hueless `accent` role, so green is spent on the primary button and the wordmark
 // only. `data-theme="dark"` (the reader's choice in Settings · Profile) turns the whole app to its dark set,
-// `appDark` in lib/design/tokens.ts. `group/shell` stays for the old pages until B4–B7 rebuild them: their `data-detail`
+// `dark` in lib/design/tokens.ts. `group/shell` stays for the old pages until B4–B7 rebuild them: their `data-detail`
 // bars hide the phone bars through it.
 
 import type { ReactNode } from "react";
