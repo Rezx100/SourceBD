@@ -1,16 +1,14 @@
 // SourceBD home: the Mercury page (`components/site/home.tsx`, drawn from `components/site/sections`). Figures are the
 // site's live facts (`lib/site-facts.ts`, cached ten minutes). Nav, announcement, footer and cookie banner are the
 // (home) layout's. The film home page and its `?film=1` switch were retired on 14 Oct 2026 (M1). The page streams:
-// the chips' counts (up to 1.5 s) and the three records are not waited for before the first paint, which drew a white
-// page for two to three seconds in production (critique 22 Oct, S9; 22 Oct: 2.3 s to the first byte against 0.6 s
-// for /pricing). Each streams into its place; the chips paint first without their counts.
+// the three records are not waited for before the first paint, which drew a white page for two to three seconds in
+// production (critique 22 Oct, S9; 22 Oct: 2.3 s to the first byte against 0.6 s for /pricing). The common-search
+// chips and their counts left the page on the founder's recording of 22 Oct 13:17.
 
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import { HomeMercury } from "@/components/site/home";
-import { Chips, chipsOf, loadChips } from "@/components/site/sections/chips";
 import { homeDescription } from "@/components/site/sections/hero";
-import { InsideRecord } from "@/components/site/sections/inside-record";
 import { RealRecords } from "@/components/site/sections/real-records";
 import { loadHomeRecords } from "@/lib/home-records";
 import { loadSiteFacts } from "@/lib/site-facts";
@@ -37,15 +35,7 @@ const HOME_METADATA: Metadata = {
   twitter: { card: "summary_large_image", title: "SourceBD — Bangladesh sourcing, on the record", description: "Every fact on a Bangladesh garment supplier, with its source and date." },
 };
 
-async function LiveChips() {
-  return <Chips chips={await loadChips()} />;
-}
-
 type Records = ReturnType<typeof loadHomeRecords>;
-
-async function LiveInside({ records }: { records: Records }) {
-  return <InsideRecord callouts={(await records).callouts} />;
-}
 
 async function LiveRecords({ records }: { records: Records }) {
   return <RealRecords cards={(await records).cards} />;
@@ -73,16 +63,6 @@ export default async function HomePage() {
       <HomeMercury
         facts={facts}
         slots={{
-          chips: (
-            <Suspense fallback={<Chips chips={chipsOf()} pending />}>
-              <LiveChips />
-            </Suspense>
-          ),
-          inside: (
-            <Suspense fallback={<InsideRecord callouts={[]} />}>
-              <LiveInside records={records} />
-            </Suspense>
-          ),
           records: (
             <Suspense fallback={null}>
               <LiveRecords records={records} />

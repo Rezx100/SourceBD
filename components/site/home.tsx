@@ -1,73 +1,61 @@
-// The home page at `/` (Paper "32 Home · Mercury direction", approved 10 Oct 2026; the motion plan of 14 Oct, M3): one
-// tree for the 1440 board and the 390 board. The hero scrubs on scroll into the dark pinned tour, whose demos play
-// real records; the ground then crossfades section by section (`ToneShift`): paper for the proof and the features,
-// dark for Buy with confidence, paper for the ladder and the figures, the weave for suppliers, dark for the closing.
-// The announcement bar and the navigation sit above it in the (home) layout; the footer is the page's own. Figures come from the site's live facts (`lib/site-facts.ts`): a figure that was not read is left out, never
-// guessed. `slots` lets the route stream the chips' counts and the three records in after the first paint (critique
-// 22 Oct, S9); without them the page draws the data it is given.
+// The home page at `/`, rebuilt from the founder's two videos of 22 Oct 2026 after mercury.com's: the buyer's sourcing
+// studio and the zoom into its laptop, the tour on the night ground, the brands its factories make for, then the
+// record's features on the paper ground, the night again for buying with confidence, and the close. Every picture of
+// the product is the real app: the tour's recordings and, everywhere else, parts of it animated in code from real
+// captures (`sections/browser.tsx`, `Clip`), no part shown twice (founder's video 3). Each section stands on its own
+// ground, fixed (`PageMain`): nothing crossfades as the page scrolls. The announcement bar and the navigation sit above
+// it in the (home) layout; the footer is the page's own. Figures come from the site's live facts (`lib/site-facts.ts`):
+// a figure that was not read is left out, never guessed. `slots` lets the route stream the chips' counts and the three
+// records in after the first paint; without them the page draws the data it is given. The common-search chips left the
+// opening on the founder's recording of 22 Oct 13:17 ("the pills should be removed").
 
 import type { ReactNode } from "react";
-import type { HomeFact, HomeRecord } from "@/lib/home-records";
+import type { HomeRecord } from "@/lib/home-records";
 import type { SiteFacts } from "@/lib/site-facts";
-import { ToneShift } from "./motion";
-import { Chips, type Chip } from "./sections/chips";
+import { PageMain } from "./motion";
+import { BrandStrip } from "./sections/brands";
 import { Closing, HOME_CARDS } from "./sections/closing";
 import { Confidence } from "./sections/confidence";
 import { FAQ_ITEMS } from "./sections/faq-items";
 import { Faq } from "./sections/faq";
 import { Figures } from "./sections/figures";
 import { PlatformGrid } from "./sections/grid";
-import { HeroScrub } from "./sections/hero";
 import { InsideRecord } from "./sections/inside-record";
 import { Ladder } from "./sections/ladder";
-import { MarksStrip } from "./sections/marks";
 import { NeverDo } from "./sections/never";
+import { Opening } from "./sections/opening";
 import { RealRecords } from "./sections/real-records";
 import { Showcase } from "./sections/showcase";
 import { ForSuppliers } from "./sections/suppliers";
-import { PinnedTour } from "./sections/tour";
 import { VignetteGrid } from "./sections/vignettes";
 
-export function HomeMercury({ facts, chips = [], cards = [], callouts = [], slots = {} }: { facts: SiteFacts; chips?: Chip[]; cards?: HomeRecord[]; callouts?: (HomeFact | null)[]; slots?: { chips?: ReactNode; inside?: ReactNode; records?: ReactNode } }) {
+export function HomeMercury({ facts, cards = [], slots = {} }: { facts: SiteFacts; cards?: HomeRecord[]; slots?: { records?: ReactNode } }) {
   // The shell around the page carries the skip link's anchor, so the main landmark here carries none.
   return (
-    <ToneShift id={null} initial="photo" className="font-sans text-ink-strong antialiased">
-      <HeroScrub suppliers={facts.suppliers} chips={slots.chips ?? (chips.length ? <Chips chips={chips} /> : null)} />
-      <PinnedTour />
-      <div data-tone="paper">
-        <MarksStrip />
-        <Showcase />
-        {slots.inside ?? <InsideRecord callouts={callouts} />}
-        {slots.records ?? <RealRecords cards={cards} />}
-        <VignetteGrid />
-        <PlatformGrid />
-      </div>
-      <div data-tone="dark">
-        <Confidence />
-      </div>
-      <div data-tone="paper">
-        <Ladder />
-        <Figures facts={facts} />
-      </div>
-      <div data-tone="photo">
-        <ForSuppliers />
-      </div>
-      <div data-tone="paper">
-        <NeverDo />
-        <Faq id="home-faq" items={FAQ_ITEMS(facts)} />
-      </div>
-      <div data-tone="dark">
-        <Closing
-          cards={HOME_CARDS}
-          headline={
-            <>
-              Sourcing, rebuilt
-              <br />
-              from the register up.
-            </>
-          }
-        />
-      </div>
-    </ToneShift>
+    <PageMain id={null} className="font-sans text-ink-strong antialiased">
+      <Opening suppliers={facts.suppliers} />
+      <BrandStrip />
+      <Showcase />
+      <InsideRecord />
+      {slots.records ?? <RealRecords cards={cards} />}
+      <VignetteGrid />
+      <PlatformGrid />
+      <Confidence />
+      <Ladder />
+      <Figures facts={facts} />
+      <ForSuppliers />
+      <NeverDo />
+      <Faq id="home-faq" items={FAQ_ITEMS(facts)} />
+      <Closing
+        cards={HOME_CARDS}
+        headline={
+          <>
+            Sourcing, rebuilt
+            <br />
+            from the register up.
+          </>
+        }
+      />
+    </PageMain>
   );
 }

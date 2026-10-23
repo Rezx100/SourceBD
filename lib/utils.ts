@@ -6,7 +6,7 @@ import { extendTailwindMerge } from "tailwind-merge"
 // lost the ink. Every named size and radius of the token file is declared here (listed, so the token file stays out
 // of the browser's bundle); tokens.test.ts fails when one is added there and not here.
 /** The token file's named spacing (`spacing`): heights, and the marketing rhythm's paddings (`md:pb-section`). */
-const SPACING = ["control-sm", "control", "row-head", "row", "control-lg", "touch", "input-touch", "row-tall", "topbar", "tabbar", "action-bar", "section"];
+const SPACING = ["control-sm", "control", "row-head", "row", "control-lg", "touch", "input-touch", "row-tall", "topbar", "tabbar", "action-bar", "section", "nav"];
 
 const twMerge = extendTailwindMerge({
   extend: {

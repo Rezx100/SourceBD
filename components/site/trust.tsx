@@ -366,7 +366,7 @@ export function ForSuppliers({ facts }: { facts: SiteFacts }) {
         stage={
           // The claim, played on the snapshot's real record (critique 22 Oct: the 3 Oct screenshot on concrete is gone).
           <DemoClaim
-            stage="hero-cotton"
+            stage="swatches"
             eager
             after={count ? <p className="text-sm text-ink-subtle">{count} published suppliers{updated ? ` · updated ${updated}` : ""}</p> : null}
           />

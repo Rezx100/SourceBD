@@ -6,7 +6,7 @@
 // more for the product pages (M4): a search typed and its first rows arriving (the cross-sell's loop for search), and
 // three of a record's facts landing with their receipts (the records page's "sources in words"). The certificate,
 // the sources and the facts are the snapshot's; the sanctioned company is the site's example, never a real one, and
-// its caption says so in place of "Real records as read" (critique 22 Oct).
+// its name says so.
 
 import { MagnifyingGlass } from "@phosphor-icons/react";
 import type { ReactNode } from "react";
@@ -131,12 +131,10 @@ export const SANCTION_STEPS: Step<X>[] = [
   { at: 1800, state: { listed: true } },
 ];
 
-/** The sanctioned vignette's caption: its company is an example, so it is never dated as a real record. */
-export const SAMPLE_CAPTION = "Example company, not a real supplier";
 
 export function VignetteSanction(frame: Frame) {
   return (
-    <Demo {...frame} caption={frame.caption === false ? false : SAMPLE_CAPTION} steps={SANCTION_STEPS} description={`An example company, ${SANCTIONED_SAMPLE}, turning maroon as it appears on the UFLPA Entity List, with Send RFQ refused.`}>
+    <Demo {...frame} steps={SANCTION_STEPS} description={`An example company, ${SANCTIONED_SAMPLE}, turning maroon as it appears on the UFLPA Entity List, with Send RFQ refused.`}>
       {(s) => (
         <Small className={cn("transition-colors duration-slow", s.listed && "border-l-2 border-l-sanction bg-sanction-tint")}>
           <p className="text-sm font-medium text-ink">{SANCTIONED_SAMPLE}</p>

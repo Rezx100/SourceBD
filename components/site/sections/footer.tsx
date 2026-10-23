@@ -1,7 +1,8 @@
-// The site's one footer (M1, 14 Oct 2026): the home page's look on every page, with the content the old night footer
-// carried: the status line with the latest register read, every column of `map.ts` (all five compliance guides,
-// data sources and trademarks), the promise, Cookie settings, and the wordmark set large across the foot. Server
-// component: the figures are the site's facts (`lib/site-facts.ts`) and a figure that was not read is left out.
+// The site's one footer (M1, 14 Oct 2026; on the night ground since the founder's video of 22 Oct 2026, which found the
+// paper one flat): the status line with the latest register read, every column of `map.ts` (all five compliance
+// guides, data sources and trademarks), the promise, Cookie settings, and the wordmark set large and faint across the
+// foot. Server component: the figures are the site's facts (`lib/site-facts.ts`) and a figure that was not read is
+// left out.
 
 import Link from "next/link";
 import { factsLine, readDay, type SiteFacts } from "@/lib/site-facts";
@@ -18,9 +19,9 @@ export function Footer({ facts, year }: { facts: SiteFacts; year: number }) {
   const columns = FOOTER.filter((col) => col.title !== "Status");
   const status = FOOTER.find((col) => col.title === "Status");
   return (
-    <footer className="overflow-hidden bg-canvas font-sans text-ink-strong">
-      <div className={cn(measure, "flex flex-col gap-10 pb-10 md:gap-14")}>
-        <div className="grid gap-12 border-t border-line pt-14 lg:grid-cols-[minmax(240px,1.2fr)_minmax(0,3fr)]">
+    <footer data-ground="night" className="overflow-hidden bg-[rgb(var(--mk-ground-night))] font-sans text-ink-strong">
+      <div className={cn(measure, "flex flex-col gap-12 pb-10 md:gap-16")}>
+        <div className="grid gap-12 pt-16 md:pt-24 lg:grid-cols-[minmax(240px,1.2fr)_minmax(0,3fr)]">
           <div className="flex max-w-[320px] flex-col gap-5">
             <Wordmark />
             <p className="text-base text-ink-muted">{STRAPLINE}</p>

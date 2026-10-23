@@ -7,18 +7,17 @@
 
 import { DemoFilters, DemoRecord, DemoSearch } from "@/components/site/demos";
 import { SearchFirst } from "@/components/site/demos/search";
-import { ToneShift } from "@/components/site/motion";
+import { PageMain } from "@/components/site/motion";
 import { PAGES } from "@/components/site/pages";
 import { Closing } from "@/components/site/sections/closing";
 import { CrossSell } from "@/components/site/sections/cross-sell";
 import { FAQ_ITEMS } from "@/components/site/sections/faq-items";
 import { Faq } from "@/components/site/sections/faq";
 import { HairlineGrid, type GridItem } from "@/components/site/sections/hairline-grid";
-import { FeatureRow, H2, HeroActions, HeroCentered, Lede, Section, measure } from "@/components/site/sections/ui";
+import { FeatureRow, H2, HeroActions, HeroCentered, Lede, Section, Stage, measure } from "@/components/site/sections/ui";
 import { readDay, withCommas, type SiteFacts } from "@/lib/site-facts";
 import { cn } from "@/lib/utils";
 import { SearchSteps } from "./search-slides";
-import { Staged } from "./staged";
 
 export const SEARCH_KEY = "product/search";
 const P = PAGES[SEARCH_KEY]!;
@@ -40,7 +39,7 @@ export function SearchPage({ facts }: { facts: SiteFacts }) {
   const h1 = count ? P.h1.replace("{n}", count) : P.h1Plain;
   const [filters, records, results] = [row("01"), row("02"), row("03")];
   return (
-    <ToneShift id={null} initial="paper" className="font-sans text-ink-strong antialiased">
+    <PageMain id={null} className="font-sans text-ink-strong antialiased">
       <div data-tone="paper">
         <HeroCentered
           label={`${P.group} · ${P.name}`}
@@ -48,7 +47,7 @@ export function SearchPage({ facts }: { facts: SiteFacts }) {
           lede={P.lede}
           stage={
             <DemoSearch
-              stage="hero-cotton"
+              stage="swatches"
               eager
               after={
                 count ? (
@@ -64,20 +63,20 @@ export function SearchPage({ facts }: { facts: SiteFacts }) {
         </HeroCentered>
 
         <HairlineGrid id="search-filters" title="Six ways to narrow." lede="Each filter says how many suppliers you will get before you apply it." items={FILTERS} tone="subtle" />
-        <FeatureRow label={filters.label} headline={filters.headline} lede={filters.lede} media={<DemoFilters stage="weave" />} />
+        <FeatureRow label={filters.label} headline={filters.headline} lede={filters.lede} media={<DemoFilters stage="rail" />} />
         <FeatureRow
           label={records.label}
           headline={records.headline}
           lede={records.lede}
           flip
           tone="subtle"
-          media={<DemoRecord stage="weave" />}
+          media={<DemoRecord stage="rail" />}
         />
         {/* The rows at the table's own width, so every column the words name is drawn. */}
         <Section label={results.label} headline={results.headline} lede={results.lede}>
-          <Staged still="weave">
+          <Stage still="rail">
             <SearchFirst />
-          </Staged>
+          </Stage>
         </Section>
       </div>
 
@@ -100,6 +99,6 @@ export function SearchPage({ facts }: { facts: SiteFacts }) {
       <div data-tone="dark">
         <Closing headline={P.close} lede="Free during beta. No card needed." />
       </div>
-    </ToneShift>
+    </PageMain>
   );
 }

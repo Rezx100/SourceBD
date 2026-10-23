@@ -1,11 +1,16 @@
-// 14 · Figures (Paper `Z2R-0` / `1FBV-0`): counted straight from the records, through the site's live facts
-// (`lib/site-facts.ts`). A figure that was not read is left out, never guessed; "50 per RFQ" and "0 scores" are true
-// by definition and always shown. The line under the row dates the read. Each figure is final at paint: no count-up
-// runs under "Not rounded" (critique 22 Oct, S7).
+"use client";
 
-import { readDay, withCommas, type SiteFacts } from "@/lib/site-facts";
+// 14 · Figures: counted straight from the records, through the site's live facts (`lib/site-facts.ts`). A figure that
+// was not read is left out, never guessed; "50 per RFQ" and "0 scores" are true by definition and always shown. Since
+// the founder's video of 22 Oct 2026 (the row looked dead, with small print under it) the numbers count up once as
+// the row scrolls in, ending on the figure the server already drew; nothing counts with no script, under reduced
+// motion, or when the row is on screen as the page opens. The dated line under the row is gone: the footer carries it.
+
+import { useEffect, useRef, useState } from "react";
+import { stillPreferred } from "@/components/site/motion";
+import { withCommas, type SiteFacts } from "@/lib/site-facts";
 import { cn } from "@/lib/utils";
-import { measure } from "./ui";
+import { H2, measure } from "./ui";
 
 /** The figures as [number, what it counts], each only when it was read. */
 export function figureCells(f: SiteFacts): [string, string][] {
@@ -19,24 +24,54 @@ export function figureCells(f: SiteFacts): [string, string][] {
   return cells.filter((c): c is [string, string] => c !== null);
 }
 
+const COUNT_MS = 1600;
+
+/** How far through the count `t` (0 to 1) is shown: fast, then settling. */
+const ease = (t: number) => 1 - Math.pow(1 - t, 3);
+
 export function Figures({ facts }: { facts: SiteFacts }) {
   const cells = figureCells(facts);
-  const read = readDay(facts.latestRead);
+  const row = useRef<HTMLUListElement>(null);
+  const [t, setT] = useState(1);
+  useEffect(() => {
+    const el = row.current;
+    if (!el || stillPreferred() || el.getBoundingClientRect().top < innerHeight || typeof IntersectionObserver === "undefined") return;
+    setT(0);
+    let raf = 0;
+    const io = new IntersectionObserver(([e]) => {
+      if (!e?.isIntersecting) return;
+      io.disconnect();
+      const t0 = performance.now();
+      const tick = () => {
+        const k = Math.min(1, (performance.now() - t0) / COUNT_MS);
+        setT(k);
+        if (k < 1) raf = requestAnimationFrame(tick);
+      };
+      raf = requestAnimationFrame(tick);
+    }, { rootMargin: "0px 0px -15% 0px" });
+    io.observe(el);
+    return () => {
+      io.disconnect();
+      cancelAnimationFrame(raf);
+    };
+  }, []);
   return (
-    <section aria-labelledby="home-figures" className={cn(measure, "flex flex-col items-center gap-8 pb-14 md:gap-14 md:pb-section")}>
-      <h2 id="home-figures" className="text-center text-site-h3 text-ink-strong md:text-3xl">
+    <section aria-labelledby="home-figures" className={cn(measure, "flex flex-col gap-10 pb-16 md:gap-14 md:pb-section")}>
+      <H2 id="home-figures" className="max-w-[720px]">
         Counted straight from our records.
-        <br className="max-md:hidden" /> Not rounded.
-      </h2>
-      <ul className="grid w-full border-y border-line sm:grid-cols-2 lg:flex">
-        {cells.map(([n, what], i) => (
-          <li key={what} className={cn("flex flex-col gap-1.5 py-6 md:py-9 lg:flex-1", i > 0 && "max-sm:border-t max-sm:border-line-subtle lg:border-l lg:border-line-subtle lg:pl-8")}>
-            <span className="text-site-figure-sm font-light tabular-nums text-ink-strong md:text-site-figure">{n}</span>
-            <span className="text-site-body text-ink-muted">{what}</span>
-          </li>
-        ))}
+      </H2>
+      <ul ref={row} className="grid w-full gap-px overflow-hidden rounded-card bg-line-subtle ring-1 ring-line-subtle sm:grid-cols-2 lg:grid-cols-5">
+        {cells.map(([n, what]) => {
+          const target = Number(n.replace(/,/g, ""));
+          const shown = t >= 1 ? n : withCommas(Math.round(target * ease(t)));
+          return (
+            <li key={what} className="flex flex-col gap-2 bg-surface p-6 md:p-8">
+              <span className="text-site-figure-sm font-light tabular-nums text-ink-strong md:text-site-figure">{shown}</span>
+              <span className="text-site-body text-ink-muted">{what}</span>
+            </li>
+          );
+        })}
       </ul>
-      {read ? <p className="text-center text-sm text-ink-subtle">Counted from production; the latest register read was {read}.</p> : null}
     </section>
   );
 }

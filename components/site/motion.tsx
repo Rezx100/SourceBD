@@ -3,8 +3,8 @@
 // The marketing site's motion foundation (handoff-mercury-motion-sitewide.md §4, M0). Four pieces, no package:
 // `useInView` (one IntersectionObserver), `useScene` (a list of timed steps that plays while it is half in view and
 // stops off screen, in a hidden tab, or on the pause button), `DemoStage` (the frame a scripted product demo plays
-// in: a visible pause button, a drawn cursor, and a sentence for screen readers) and `ToneShift` (the page's ground
-// crossfading between paper and dark as sections reach the middle of the viewport).
+// in: a visible pause button, a drawn cursor, and a sentence for screen readers) and `PageMain` (the page's `<main>`,
+// whose dark sections stand on the night ground).
 //
 // The server renders every scene's LAST step, so the page reads complete with no script and paints fast. A demo on
 // screen when it mounts holds that step, then loops; one out of sight is set to its first step before it is seen,
@@ -144,18 +144,17 @@ import { ring } from "./sections/ui";
 /**
  * The frame a product demo plays in. `children` draws one step's state; elements the cursor visits carry
  * `data-cursor="<name>"`. The demo itself is `aria-hidden`: `description` says in one sentence what it shows, and the
- * real copy sits beside it. The window keeps the product's light ground on any page tone; `frame` sets it on a stage
- * (a cloth, the night). Under it, never over it, a row holds `foot` (the caption) and the pause button, which is
- * always there (WCAG 2.2.2), pressed while the demo is stopped (critique 22 Oct, S6). When the scene starts again,
- * its last step fades away over the first.
+ * real copy sits beside it. The window keeps the product's light ground on any page tone; `frame` puts it in its
+ * browser window and hands it the pause control, which is always there for the keyboard (WCAG 2.2.2) and pressed
+ * while the demo is stopped, though not drawn until it has focus. No caption: the founder's video of 22 Oct asked for no small text under the product. When the scene starts
+ * again, its last step fades away over the first.
  */
-export function DemoStage<S extends CursorState>({ steps, description, className, frame, windowClass, foot, children }: {
+export function DemoStage<S extends CursorState>({ steps, description, className, frame, windowClass, children }: {
   steps: readonly Step<S>[];
   description: string;
   className?: string;
-  frame?: (win: ReactNode) => ReactNode;
+  frame?: (win: ReactNode, pause: { paused: boolean; toggle: () => void }) => ReactNode;
   windowClass?: string;
-  foot?: ReactNode;
   children: (state: S) => ReactNode;
 }) {
   const stage = useRef<HTMLElement>(null);
@@ -195,64 +194,41 @@ export function DemoStage<S extends CursorState>({ steps, description, className
   );
 
   return (
-    <figure ref={stage} className={cn("flex flex-col gap-3", className)}>
+    <figure ref={stage} className={cn("relative", className)}>
       <figcaption className="sr-only">{description}</figcaption>
-      {frame ? frame(win) : win}
-      <div className="flex min-h-11 items-center justify-between gap-4">
-        <div className="min-w-0">{foot}</div>
-        <button
-          type="button"
-          aria-label="Pause demo"
-          aria-pressed={paused}
-          onClick={toggle}
-          className={cn("flex size-11 shrink-0 items-center justify-center rounded-full border border-line bg-surface text-ink hover:bg-sunken", ring)}
-        >
-          {paused ? <Play size={16} weight="fill" aria-hidden /> : <Pause size={16} weight="fill" aria-hidden />}
-        </button>
-      </div>
+      {frame ? (
+        frame(win, { paused, toggle })
+      ) : (
+        // A click on the demo pauses it; the button is drawn only when the keyboard reaches it (founder's video 3).
+        <div className="relative" onClick={(e) => !(e.target as HTMLElement).closest("a") && toggle()}>
+          {win}
+          <button
+            type="button"
+            aria-label="Pause demo"
+            aria-pressed={paused}
+            onClick={(e) => {
+              e.stopPropagation();
+              toggle();
+            }}
+            className={cn("absolute bottom-3 left-3 flex size-9 items-center justify-center rounded-full bg-ink/70 text-surface opacity-0 focus-visible:opacity-100", ring)}
+          >
+            {paused ? <Play size={14} weight="fill" aria-hidden /> : <Pause size={14} weight="fill" aria-hidden />}
+          </button>
+        </div>
+      )}
     </figure>
   );
 }
 
-export type Tone = "paper" | "dark" | "photo";
-
 /**
- * The page's `<main>`. Each section says its tone with `data-tone`; the one crossing the middle of the viewport sets
- * the ground. Only the ground fades, over `duration-tone`, evenly, so it is mid-grey half way; the ink, the lines and
- * the fills step once at that moment, when the night colour set (`data-ground="night"`, tailwind.config.ts) comes in
- * or goes, so text never passes through grey on grey (critique 22 Oct, S1). Sections under it keep a transparent
- * ground.
+ * A marketing page's `<main>`, on the paper ground. A section that says `data-tone="dark"` stands on the night ground
+ * in the night colour set (tailwind.config.ts), always: the ground no longer crossfades as the page scrolls, because
+ * the founder's video of 22 Oct 2026 caught that fade glitching between paper and dark. Where a page wants the change
+ * soft it draws a `Seam` (sections/ui.tsx) between the two.
  */
-export function ToneShift({ initial = "paper", id = "main-content", className, children }: { initial?: Tone; /** The skip link's anchor; null where the shell around the page already carries it. */ id?: string | null; className?: string; children?: ReactNode }) {
-  const main = useRef<HTMLElement>(null);
-  const [tone, setTone] = useState<Tone>(initial);
-  const [ink, setInk] = useState<Tone>(initial);
-  useEffect(() => {
-    if (ink === tone) return;
-    // Only reduced motion stills the ground's fade (app/ds.css), so only it moves the ink at once.
-    const t = window.setTimeout(() => setInk(tone), matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : motion.toneMs / 2);
-    return () => window.clearTimeout(t);
-  }, [tone, ink]);
-  useEffect(() => {
-    const el = main.current;
-    if (!el || typeof IntersectionObserver === "undefined") return;
-    const io = new IntersectionObserver(
-      (entries) => {
-        for (const e of entries) if (e.isIntersecting) setTone((e.target.getAttribute("data-tone") as Tone | null) ?? "paper");
-      },
-      { rootMargin: "-50% 0px -50% 0px" },
-    );
-    el.querySelectorAll("[data-tone]").forEach((s) => io.observe(s));
-    return () => io.disconnect();
-  }, []);
+export function PageMain({ id = "main-content", className, children }: { /** The skip link's anchor; null where the shell around the page already carries it. */ id?: string | null; className?: string; children?: ReactNode }) {
   return (
-    <main
-      ref={main}
-      id={id ?? undefined}
-      data-tone={tone}
-      data-ground={ink === "dark" ? "night" : undefined}
-      className={cn("text-ink transition-[background-color] duration-tone ease-[cubic-bezier(0.45,0,0.55,1)]", className, tone === "dark" ? "bg-[rgb(var(--mk-ground-night))]" : "bg-[rgb(var(--mk-ground-paper))]")}
-    >
+    <main id={id ?? undefined} className={cn("bg-[rgb(var(--mk-ground-paper))] text-ink", className)}>
       {children}
     </main>
   );

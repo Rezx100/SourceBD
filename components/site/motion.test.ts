@@ -55,33 +55,29 @@ describe("motion", () => {
 
   it("the marketing durations are the plan's (§4)", () => {
     assert.equal(transitionDuration.reveal, `${tokens.revealMs}ms`);
-    assert.equal(transitionDuration.tone, `${tokens.toneMs}ms`);
-    assert.deepEqual([tokens.risePx, tokens.swapOutMs, tokens.swapInMs, tokens.tourItemMs, tokens.cursorMs, tokens.typeMs, tokens.streamMs], [24, 200, 320, 7000, 600, 45, 60]);
+    assert.equal("tone" in transitionDuration, false, "no ground crossfades any more");
+    assert.deepEqual([tokens.risePx, tokens.swapOutMs, tokens.swapInMs, tokens.featureMs, tokens.marqueeMs, tokens.cursorMs, tokens.typeMs, tokens.streamMs], [24, 200, 320, 6500, 60000, 600, 45, 60]);
   });
 
-  it("the tone shift renders the page's main landmark with its first tone", () => {
-    const out = renderToStaticMarkup(createElement(M.ToneShift, { initial: "dark" }, createElement("section", { "data-tone": "dark" })));
-    assert.match(out, /^<main id="main-content" data-tone="dark" data-ground="night"/);
-    assert.match(renderToStaticMarkup(createElement(M.ToneShift, null, null)), /^<main id="main-content" data-tone="paper" class=/);
+  it("the page's main stands on the paper ground and fades nothing (founder's video, 22 Oct 2026)", () => {
+    const out = renderToStaticMarkup(createElement(M.PageMain, null, createElement("section", { "data-tone": "dark" })));
+    assert.match(out, /^<main id="main-content" class="bg-\[rgb\(var\(--mk-ground-paper\)\)\] text-ink"><section data-tone="dark"><\/section><\/main>$/);
+    assert.doesNotMatch(out, /transition/);
+    assert.match(renderToStaticMarkup(createElement(M.PageMain, { id: null }, null)), /^<main class=/);
   });
 
-  it("only the ground fades; nothing inside carries a tone transition, so text never passes through grey on grey (critique 22 Oct, S1)", () => {
-    const night = renderToStaticMarkup(createElement(M.ToneShift, { initial: "dark" }, null));
-    const paper = renderToStaticMarkup(createElement(M.ToneShift, null, null));
-    assert.match(night, /class="[^"]*transition-\[background-color\][^"]*bg-\[rgb\(var\(--mk-ground-night\)\)\]"/);
-    assert.match(paper, /class="[^"]*bg-\[rgb\(var\(--mk-ground-paper\)\)\]"/);
-    assert.doesNotMatch(night, /transition-colors/);
+  it("a dark section stands on the night ground in the night colour set, fixed, set once in the theme", () => {
     const config = readFileSync(join(process.cwd(), "tailwind.config.ts"), "utf8");
-    assert.doesNotMatch(config, /main\[data-tone\]\) \*/, "no rule fades every colour under the page");
+    assert.match(config, /'\[data-tone="dark"\]': \{ \.\.\.night, "background-color": "rgb\(var\(--mk-ground-night\)\)", color: "rgb\(var\(--ds-ink\)\)" \}/);
     assert.match(config, /"--mk-ground-paper": toChannels\(resolve\(light, "canvas"\)\), "--mk-ground-night": toChannels\(resolve\(dark, "canvas"\)\)/, "both grounds come from the tokens");
   });
 
-  it("the pause button sits under the demo's window, beside its caption, never over the product (critique 22 Oct, S6)", () => {
+  it("with no frame the pause button sits in the demo's corner, and nothing is captioned under it (founder's video, 22 Oct 2026)", () => {
     const out = stage();
     const win = out.indexOf('data-ground="day"');
     const button = out.indexOf('aria-label="Pause demo"');
     assert.ok(win >= 0 && button > win);
-    // The window closes before the row that holds the caption and the button opens.
-    assert.match(out, /<\/div><\/div><div class="flex min-h-11[^"]*"><div class="min-w-0"><\/div><button type="button" aria-label="Pause demo"/);
+    assert.match(out, /<button type="button" aria-label="Pause demo" aria-pressed="false" class="absolute bottom-3 left-3/);
+    assert.doesNotMatch(out, /min-h-11/, "no caption row");
   });
 });

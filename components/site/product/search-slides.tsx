@@ -9,7 +9,7 @@
 import type { ReactNode } from "react";
 import { ROWS, SearchStill } from "@/components/site/demos/search";
 import { formatCount } from "@/lib/dashboard/facts";
-import { CAPTION, SNAPSHOT } from "@/lib/marketing/demo-snapshot";
+import { SNAPSHOT } from "@/lib/marketing/demo-snapshot";
 
 const { chips, total } = SNAPSHOT.search;
 const PLACE = "Gazipur";
@@ -22,14 +22,7 @@ export type Slide = { key: string; title: string; body: string; Slide: () => Rea
 
 const still = (more: string[], rows: readonly Row[], right: string, note: string) =>
   function SearchSlide() {
-    return (
-      <div className="flex flex-col gap-3">
-        <SearchStill chips={[...chips, ...more]} rows={rows} right={right} description={`${note}: ${rows.length} ${rows.length === 1 ? "supplier" : "suppliers"}, with their place, workers and the certificates they hold today.`} />
-        <p className="text-sm text-ink-subtle">
-          {note} · {CAPTION}
-        </p>
-      </div>
-    );
+    return <SearchStill chips={[...chips, ...more]} rows={rows} right={right} description={`${note}: ${rows.length} ${rows.length === 1 ? "supplier" : "suppliers"}, with their place, workers and the certificates they hold today.`} />;
   };
 
 const inPlace = ROWS.filter((r) => r.place === PLACE);

@@ -1,13 +1,13 @@
 "use client";
 
-// The two solutions pages' pinned tours (M4, handoff-mercury-m4-onward.md §4.2): three of the home tour's items for
-// a sourcing team (Find, Check, Ask) and, for a compliance team, Check, Watch and Screen, where Screen plays the
-// UFLPA checks on the saved suppliers with the site's sanctioned example among them, its one row turning maroon
-// (critique 22 Oct: the small vignette floated in the column). A client file because the item lists hold components.
+// The two solutions pages' tours (M4; since the founder's videos of 22 Oct 2026 an ordinary section that never holds
+// the scroll): three of the home tour's items for a sourcing team (Find, Check, Ask) and, for a compliance team,
+// Check, Watch and Screen, where Screen plays the UFLPA checks on the saved suppliers with the site's sanctioned example
+// among them, its one row turning maroon. A client file because the item lists hold components.
 
 import { DemoCompliance } from "@/components/site/demos";
 import type { Frame } from "@/components/site/demos/stage";
-import { PinnedTour, TOUR, type TourItem } from "@/components/site/sections/tour";
+import { TOUR, Tour, type TourItem } from "@/components/site/sections/tour";
 
 function Screen(frame: Frame) {
   return <DemoCompliance view="screen" {...frame} />;
@@ -19,13 +19,13 @@ const SOURCING: readonly TourItem[] = [of("find"), of("check"), of("ask")];
 const COMPLIANCE: readonly TourItem[] = [
   of("check"),
   of("watch"),
-  { key: "screen", icon: "shield", title: "Screen", body: "Every saved supplier is checked against the UFLPA Entity List and five more lists, each with the day it was read. A listing turns the row maroon on every surface and Send RFQ is refused.", href: "/product/compliance", Demo: Screen },
+  { key: "screen", icon: "shield", title: "Screen", body: "Every saved supplier is checked against the UFLPA Entity List and five more lists. A listing turns the row maroon everywhere and Send RFQ is refused.", href: "/product/compliance", Demo: Screen },
 ];
 
 export function SourcingTour() {
-  return <PinnedTour id="sourcing-tour" items={SOURCING} heading="Find, check, ask. One sitting." />;
+  return <Tour id="sourcing-tour" items={SOURCING} heading="Find, check, ask. One sitting." />;
 }
 
 export function ComplianceTour() {
-  return <PinnedTour id="compliance-tour" items={COMPLIANCE} heading="Check, watch, screen. Every fact dated." />;
+  return <Tour id="compliance-tour" items={COMPLIANCE} heading="Check, watch, screen. Every fact dated." />;
 }
