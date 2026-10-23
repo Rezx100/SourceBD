@@ -1,7 +1,10 @@
 "use client";
 
-// The list and its pane (Paper `03 Patterns` · App shell desktop 1440: list 576 + pane 640,
-// each scrolling inside). A page says how its pane is presented:
+// The list and its pane, each scrolling inside (Paper `03 Patterns` · App shell desktop 1440 drew
+// list 576 + pane 640; since the founder's video of 23 Oct 2026 the record is the wider side at
+// every desktop width: the list 40% of the row, 400 to 520, the pane the rest). Each side is
+// positioned and contains its own overscroll, so nothing in it can scroll the page. A page says how
+// its pane is presented:
 //
 // - `docked` (records, the composer, Save): from 1280 the pane docks beside the list and never
 //   covers it; under 1280 it opens as the kit's drawer, over a scrim.
@@ -86,21 +89,22 @@ export function ListPane({
   const docked = open && tier === "wide" && !overlay;
   return (
     <div ref={size.rowRef} className={`flex min-h-0 flex-1${overlay ? " relative" : ""}`}>
-      <section aria-label={listLabel} className="flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto">
+      <section aria-label={listLabel} className="relative flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto overscroll-y-contain">
         {list}
       </section>
-      {docked ? <PaneDivider width={size.width} min={RECORD_PANE.min} max={size.max} paneId="list-pane" label="Resize the record pane" onWidth={size.set} onReset={size.reset} /> : null}
+      {docked ? <PaneDivider width={size.width} min={size.min} max={size.max} paneId="list-pane" label="Resize the record pane" onWidth={size.set} onReset={size.reset} /> : null}
       {open && tier === "wide" ? (
         <section
           aria-label={paneTitle}
           id={docked ? "list-pane" : undefined}
           onKeyDown={onKeyDown}
-          // The width is the buyer's; CSS keeps the pane at least 480 and the list 400 when the window narrows.
+          // Its own width is the row less the list's 40% (400 to 520); a dragged width is the buyer's. CSS keeps
+          // the pane at least 480 and half the row, and the list 400, when the window narrows.
           style={docked && size.stored ? { width: size.width } : undefined}
           className={
             overlay
-              ? "absolute inset-y-0 right-0 z-overlay hidden min-h-0 w-panel flex-col overflow-y-auto border-l border-line bg-surface shadow-dialog xl:flex"
-              : "hidden min-h-0 w-pane min-w-[480px] max-w-[calc(100%-400px)] shrink-0 flex-col overflow-y-auto xl:flex"
+              ? "absolute inset-y-0 right-0 z-overlay hidden min-h-0 w-panel flex-col overflow-y-auto overscroll-y-contain border-l border-line bg-surface shadow-dialog xl:flex"
+              : "relative hidden min-h-0 w-[calc(100%-clamp(400px,40%,520px))] min-w-[max(480px,50%)] max-w-[calc(100%-400px)] shrink-0 flex-col overflow-y-auto overscroll-y-contain xl:flex"
           }
         >
           {pane}

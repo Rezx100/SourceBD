@@ -14,33 +14,56 @@ import { useEffect, useRef, useState, type KeyboardEvent, type PointerEvent } fr
 export type PaneLimits = {
   /** Where this browser keeps the buyer's width. */
   key: string;
-  /** The pane's own width, and what a double-click returns it to. */
+  /** The pane's own width before the row is measured, and what a double-click returns it to. */
   initial: number;
   /** The narrowest the pane goes. */
   min: number;
   /** What the other side of the divider always keeps. */
   keep: number;
+  /** The pane's own width in a row this wide, when it grows with the window; `initial` is its width in `row`. */
+  share?: (row: number) => number;
+  /** The row assumed until the browser has measured it; without one, room for `initial` and `keep`. */
+  row?: number;
+  /** The pane is never narrower than the side beside it. */
+  wider?: boolean;
 };
 
-/** The record beside the results: 640, at least 480, the list keeping 400. */
-export const RECORD_PANE: PaneLimits = { key: "sourcebd.pane-width", initial: 640, min: 480, keep: 400 };
+/** The results list's own width in a row: 40% of it, never under 400 nor over 520. */
+export const listShare = (row: number) => Math.min(520, Math.max(400, Math.round(row * 0.4)));
+
+/**
+ * The record beside the results (founder's video, 23 Oct 2026): on any desktop the record is the wider side.
+ * The list takes 40% of the row, 400 to 520, and the record the rest: 730 beside a 486 list at a 1280 or
+ * 1440 window, 856 at 1600, 1176 at 1920. Dragged, it goes no narrower than the list, nor than 480.
+ */
+export const RECORD_PANE: PaneLimits = { key: "sourcebd.record-pane-width", initial: 730, row: 1216, min: 480, keep: 400, share: (row) => row - listShare(row), wider: true };
 
 const STEP = 16;
 
+function paneMin(row: number, lim: PaneLimits): number {
+  return lim.wider ? Math.max(lim.min, Math.ceil(row / 2)) : lim.min;
+}
+
 function paneMax(row: number, lim: PaneLimits): number {
-  return Math.max(lim.min, Math.floor(row - lim.keep));
+  return Math.max(paneMin(row, lim), Math.floor(row - lim.keep));
+}
+
+/** The pane's own width in a row `row` wide. */
+export function ownPaneWidth(row: number, lim: PaneLimits = RECORD_PANE): number {
+  return lim.share ? lim.share(row) : lim.initial;
 }
 
 /** A width the pane may take in a row `row` wide: at least its minimum, and never into what the other side keeps. */
 export function clampPaneWidth(width: number, row: number, lim: PaneLimits = RECORD_PANE): number {
-  return Math.min(paneMax(row, lim), Math.max(lim.min, Math.round(Number.isFinite(width) ? width : lim.initial)));
+  return Math.min(paneMax(row, lim), Math.max(paneMin(row, lim), Math.round(Number.isFinite(width) ? width : ownPaneWidth(row, lim))));
 }
 
 /**
  * The pane's width: its own until the buyer drags the divider, then theirs, kept in this browser.
  * `rowRef` goes on the row that holds both sides (the row, not the window: the sidebar folding
  * changes it too). `stored` is false until the browser answers, so the server and the first
- * client render agree on the default.
+ * client render agree on the default; until the buyer drags, CSS draws the pane's own width.
+ * A double-click forgets the buyer's width.
  */
 export function usePaneWidth(lim: PaneLimits) {
   const rowRef = useRef<HTMLDivElement>(null);
@@ -59,8 +82,9 @@ export function usePaneWidth(lim: PaneLimits) {
     ro.observe(el);
     return () => ro.disconnect();
   }, [lim.key]);
-  // Until the row is measured, room for the default and no more.
-  const measured = row || lim.initial + lim.keep;
+  // Until the row is measured, the row the default was set for.
+  const measured = row || lim.row || lim.initial + lim.keep;
+  const own = row ? ownPaneWidth(row, lim) : lim.initial;
   const set = (w: number, done: boolean) => {
     const next = clampPaneWidth(w, rowRef.current?.clientWidth || measured, lim);
     setWidth(next);
@@ -71,7 +95,15 @@ export function usePaneWidth(lim: PaneLimits) {
       // Not kept; this visit still has it.
     }
   };
-  return { rowRef, stored: width !== null, width: clampPaneWidth(width ?? lim.initial, measured, lim), max: paneMax(measured, lim), set, reset: () => set(lim.initial, true) };
+  const reset = () => {
+    setWidth(null);
+    try {
+      window.localStorage.removeItem(lim.key);
+    } catch {
+      // Nothing was kept.
+    }
+  };
+  return { rowRef, stored: width !== null, width: clampPaneWidth(width ?? own, measured, lim), min: paneMin(measured, lim), max: paneMax(measured, lim), set, reset };
 }
 
 const SHOWN = "group-hover:opacity-100 group-focus-visible:opacity-100 group-active:opacity-100";

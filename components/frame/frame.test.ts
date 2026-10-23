@@ -260,20 +260,21 @@ describe("the frame a buyer receives", () => {
 });
 
 describe("the list and the pane", () => {
-  it("from 1280 the pane docks beside the list, 640 wide; closed, the list fills", () => {
+  it("from 1280 the pane docks beside the list, the wider of the two; closed, the list fills", () => {
     const open = renderToStaticMarkup(createElement(ListPane, { list: "LIST", listLabel: "Results", pane: "PANE", paneTitle: "Aboni Knitwear Ltd.", closeHref: "/app/discover?q=knit" }));
-    assert.match(open, /<section aria-label="Results"[^>]*>LIST<\/section><div role="separator"[^>]*>.*?<\/div><section aria-label="Aboni Knitwear Ltd\."[^>]*class="hidden [^"]*w-pane[^"]*xl:flex">PANE<\/section>/);
+    assert.match(open, /<section aria-label="Results"[^>]*>LIST<\/section><div role="separator"[^>]*>.*?<\/div><section aria-label="Aboni Knitwear Ltd\."[^>]*class="relative hidden [^"]*w-\[calc\(100%-clamp\(400px,40%,520px\)\)\][^"]*xl:flex">PANE<\/section>/);
     const shut = renderToStaticMarkup(createElement(ListPane, { list: "LIST", listLabel: "Results", closeHref: "/app/discover" }));
-    assert.doesNotMatch(shut, /w-pane/);
+    assert.doesNotMatch(shut, /clamp\(400px/);
     assert.doesNotMatch(shut, /role="separator"/, "a divider with no pane to resize");
   });
 
   it("the edge between the list and the docked pane is a keyboard-adjustable divider", () => {
     // Founder, 6 Oct 2026: the pane must be resizable, as Paper's frame lets it be. The divider is
-    // drawn on the server at the 640 default (the buyer's own width is read after hydration).
+    // drawn on the server at the default for a 1280 or 1440 window, 730 of a 1216 row (the buyer's own width
+    // and the real row are read after hydration).
     const open = renderToStaticMarkup(createElement(ListPane, { list: "LIST", listLabel: "Results", pane: "PANE", paneTitle: "Aboni", closeHref: "/app/discover" }));
     const sep = /<div role="separator"[^>]*>/.exec(open)?.[0] ?? "";
-    for (const a of ['aria-orientation="vertical"', 'aria-controls="list-pane"', 'aria-valuenow="640"', 'aria-valuemin="480"', 'aria-label="Resize the record pane"', 'tabindex="0"', "cursor-col-resize", "xl:block"]) assert.ok(sep.includes(a), `the divider lacks ${a}: ${sep}`);
+    for (const a of ['aria-orientation="vertical"', 'aria-controls="list-pane"', 'aria-valuenow="730"', 'aria-valuemin="608"', 'aria-valuemax="816"', 'aria-label="Resize the record pane"', 'tabindex="0"', "cursor-col-resize", "xl:block"]) assert.ok(sep.includes(a), `the divider lacks ${a}: ${sep}`);
     assert.match(open, /<section aria-label="Aboni" id="list-pane"/, "the divider controls no pane");
     // Paper's divider (`02 Components` · 5 Overlays): a 1px line at rest; under the pointer, held
     // or focused, a 2px line and a 9 by 32 grip. Founder, 6 Oct 2026: "make sure the green is very
@@ -291,21 +292,46 @@ describe("the list and the pane", () => {
     assert.doesNotMatch(over, /role="separator"/);
   });
 
-  it("the pane keeps at least 480 and leaves the list at least 400 (Paper's caption)", () => {
-    const { clampPaneWidth, RECORD_PANE } = require("@/components/frame/pane-divider") as typeof import("@/components/frame/pane-divider"); // eslint-disable-line @typescript-eslint/no-require-imports
-    assert.deepEqual({ initial: RECORD_PANE.initial, min: RECORD_PANE.min, keep: RECORD_PANE.keep }, { initial: 640, min: 480, keep: 400 });
-    assert.equal(clampPaneWidth(640, 1216), 640);
-    assert.equal(clampPaneWidth(200, 1216), 480, "narrower than 480");
-    assert.equal(clampPaneWidth(420, 1216), 480, "a width kept from when the pane went down to 400");
+  it("the record is the wider side at every desktop width: the list 40% of the row, 400 to 520 (founder's video, 23 Oct 2026)", () => {
+    const { clampPaneWidth, ownPaneWidth, RECORD_PANE } = require("@/components/frame/pane-divider") as typeof import("@/components/frame/pane-divider"); // eslint-disable-line @typescript-eslint/no-require-imports
+    // The row at a 1280 and a 1440 window (a 64 rail, then the 224 sidebar), at 1536, 1600, 1920 and 2560.
+    const own = [1216, 1312, 1376, 1696, 2336].map((row) => [row, ownPaneWidth(row)]);
+    assert.deepEqual(own, [[1216, 730], [1312, 792], [1376, 856], [1696, 1176], [2336, 1816]]);
+    for (const [row, w] of own) assert.ok(w! > row! - w!, `at a ${row} row the record (${w}) is not wider than the list`);
+    assert.equal(RECORD_PANE.initial, ownPaneWidth(RECORD_PANE.row!), "the server's default is not the measured one at its own row");
+    // Dragged, it goes no narrower than the list, nor than 480, and leaves the list 400.
+    assert.equal(clampPaneWidth(200, 1216), 608, "narrower than the list");
+    assert.equal(clampPaneWidth(640, 1696), 848, "a width kept from a smaller window leaves the record narrower than the list");
     assert.equal(clampPaneWidth(1000, 1216), 816, "into the list's 400");
     assert.equal(clampPaneWidth(700, 800), 480, "a row too narrow for both still leaves the pane 480");
-    assert.equal(clampPaneWidth(Number.NaN, 1216), 640, "a stored width that is not a number");
-    assert.equal(clampPaneWidth(512.6, 1216), 513);
+    assert.equal(clampPaneWidth(Number.NaN, 1376), 856, "a stored width that is not a number is the pane's own");
+    assert.equal(clampPaneWidth(700.6, 1216), 701);
     // Another pane brings its own limits: the RFQ page's preview.
     assert.equal(clampPaneWidth(900, 1056, { key: "k", initial: 344, min: 320, keep: 480 }), 576);
-    // CSS holds the same two limits before the browser has measured the row.
+    // CSS draws the same width and the same limits before the browser has measured the row.
     const src = readFileSync(path.join(process.cwd(), "components", "frame", "list-pane.tsx"), "utf8");
-    assert.match(src, /w-pane min-w-\[480px\] max-w-\[calc\(100%-400px\)\]/);
+    assert.match(src, /w-\[calc\(100%-clamp\(400px,40%,520px\)\)\] min-w-\[max\(480px,50%\)\] max-w-\[calc\(100%-400px\)\]/);
+    // The widths the buyer dragged under the old 640 default are not carried over.
+    assert.notEqual(RECORD_PANE.key, "sourcebd.pane-width");
+  });
+
+  it("from 768 nothing in a pane can scroll the page (founder's video, 23 Oct 2026)", () => {
+    // A wheel at the end of the record lifted the whole app and showed white under it: screen-reader lines far
+    // down the scrolled pane (`sr-only` is absolute) had the window as their containing block, so they made the
+    // page taller than the window. Every box that scrolls is positioned, so what it holds stays inside it.
+    const open = renderToStaticMarkup(createElement(ListPane, { list: "LIST", listLabel: "Results", pane: "PANE", paneTitle: "Aboni", closeHref: "/app/discover" }));
+    for (const label of ["Results", "Aboni"]) {
+      const cls = new RegExp(`<section aria-label="${label}"[^>]*class="([^"]*)"`).exec(open)?.[1]?.split(" ") ?? [];
+      for (const c of ["relative", "overflow-y-auto", "overscroll-y-contain"]) assert.ok(cls.includes(c), `${label} lacks ${c}`);
+    }
+    const shell = frame("/app");
+    const root = /^<div data-shell="" class="([^"]*)"/.exec(shell)?.[1]?.split(" ") ?? [];
+    for (const c of ["md:relative", "md:h-dvh", "md:overflow-clip"]) assert.ok(root.includes(c), `the frame lacks ${c}`);
+    const main = /<main [^>]*class="([^"]*)"/.exec(shell)?.[1]?.split(" ") ?? [];
+    for (const c of ["md:relative", "md:overflow-y-auto", "md:overscroll-y-contain"]) assert.ok(main.includes(c), `main lacks ${c}`);
+    // And the page under the frame does not scroll from 768, whatever else gets taller than the window.
+    const css = readFileSync(path.join(process.cwd(), "app", "ds.css"), "utf8");
+    assert.match(css, /@media \(min-width: 768px\) \{\s*html:has\(\[data-shell\]\) \{\s*overflow: hidden;/);
   });
 
   it("there is one divider: the list's pane and the New RFQ page draw the shared one", () => {
@@ -323,7 +349,7 @@ describe("the list and the pane", () => {
     // edge and the dialog shadow, over a list that is not narrowed. No scrim, so not modal.
     const out = renderToStaticMarkup(createElement(ListPane, { list: "LIST", listLabel: "Results", pane: "PANE", paneTitle: "Filters", closeHref: "/app/discover?q=knit", presentation: "overlay" }));
     assert.match(out, /^<div class="[^"]*\brelative\b[^"]*">/, "the panel has nothing to lie over");
-    assert.match(out, /<section aria-label="Results" class="flex min-h-0 min-w-0 flex-1 [^"]*">LIST<\/section>/);
+    assert.match(out, /<section aria-label="Results" class="relative flex min-h-0 min-w-0 flex-1 [^"]*">LIST<\/section>/);
     const panel = /<section aria-label="Filters" class="([^"]*)">PANE<\/section>/.exec(out)?.[1] ?? "";
     for (const c of ["absolute", "inset-y-0", "right-0", "w-panel", "border-l", "shadow-dialog", "bg-surface", "hidden", "xl:flex"]) assert.ok(panel.split(" ").includes(c), `the panel lacks ${c}: ${panel}`);
     assert.doesNotMatch(panel, /\bw-pane\b/, "the filters are docked at 640");

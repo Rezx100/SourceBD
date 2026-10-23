@@ -19,7 +19,7 @@ import type { SupplierSheetModel } from "@/lib/dashboard/models";
 import { cn } from "@/lib/utils";
 import { ContactDetailsCard } from "./contact-card";
 import { CERT_MARK, FACT_ICON } from "./desktop";
-import { SECTIONS, certTable, checkRows, exportTiles, factCells, filedWith, headStatuses, memberTiles, sectionCount, type BarPart, type CertLine, type CheckRow, type SectionId } from "./desktop-words";
+import { SECTIONS, certTable, checkRows, exportTiles, factCells, filedWith, headStatuses, issuedBy, memberTiles, sectionCount, type BarPart, type CertLine, type CheckRow, type SectionId } from "./desktop-words";
 import { RecordRfqs, SitesPanel, productItems, sourceGroups, type Level } from "./panels";
 import { PhoneBar, PhonePanel, PhoneTabLink, PhoneTabStrip, PhoneTabs } from "./phone-tabs";
 import { NO_CUSTOMS, UFLPA_LABEL, biggestMarket, marketShares, noCustoms, recordsEnd, rscBehind, rscCards, sanctionListRows, shortDay, uflpaLine, type RscCard, type StatusRow } from "./phone-words";
@@ -535,8 +535,6 @@ function Products({ model, today, level }: PanelProps) {
 }
 
 const STAMP = "flex h-6 items-center rounded-md bg-subtle px-2 font-mono text-sm/[16px] text-ink";
-/** "WRAP" issued by WRAP says nothing: the issuer is named only when it is someone other than the scheme. */
-const issuedBy = (c: CertLine) => (c.issuer && c.issuer.split(/\s+/)[0]!.toLowerCase() !== c.scheme.split(/\s+/)[0]!.toLowerCase() ? c.issuer : null);
 
 /**
  * One certificate: its scheme's mark and name, and its state. A pill only when it needs a look; else the
