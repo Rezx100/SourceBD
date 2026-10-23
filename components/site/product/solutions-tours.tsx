@@ -13,12 +13,13 @@ function Screen(frame: Frame) {
   return <DemoCompliance view="screen" {...frame} />;
 }
 
-const of = (key: string): TourItem => TOUR.find((t) => t.key === key)!;
+/** A home tour item under the short name these pages' headings use ("Find, check, ask"); the home names them in full. */
+const of = (key: string, title: string): TourItem => ({ ...TOUR.find((t) => t.key === key)!, title });
 
-const SOURCING: readonly TourItem[] = [of("find"), of("check"), of("ask")];
+const SOURCING: readonly TourItem[] = [of("find", "Find"), of("check", "Check"), of("ask", "Ask")];
 const COMPLIANCE: readonly TourItem[] = [
-  of("check"),
-  of("watch"),
+  of("check", "Check"),
+  of("watch", "Watch"),
   { key: "screen", icon: "shield", title: "Screen", body: "Every saved supplier is checked against the UFLPA Entity List and five more lists. A listing turns the row maroon everywhere and Send RFQ is refused.", href: "/product/compliance", Demo: Screen },
 ];
 

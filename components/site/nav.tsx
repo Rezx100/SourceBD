@@ -11,7 +11,11 @@
 // line under it, and once the page scrolls it takes the ground of the section under it: the night set while a dark
 // section (the opening's scene, the brands, Buy with confidence) is under the bar, the paper's white over the rest,
 // each fading into the other in a moment. Never a white bar over the dark scene. Phones keep the solid bar; everywhere
-// else it has its ground from the first paint.
+// else it has its ground from the first paint. Where the whole page takes one ground at a time (the home page since
+// the founder's walkthrough of 23 Oct 2026, `HomeMain`), the bar is that ground, solid, with no line under it.
+//
+// Its layout is mercury.com's since that walkthrough: the full width with 32 px a side, the wordmark at the left, the
+// menus and Pricing centred, Sign in and Start free at the right, every control a 40 px pill.
 
 import { CaretDown, List } from "@phosphor-icons/react";
 import Link from "next/link";
@@ -30,6 +34,9 @@ const MENUS: { key: Menu; label: string }[] = [
   { key: "resources", label: "Resources" },
 ];
 
+
+/** A control on the bar: a 40 px pill in the ink, lit on hover (mercury.com's). */
+const pill = cn("flex h-10 items-center rounded-full px-5 text-site-item text-ink hover:bg-ink/10", ring);
 
 /** One list per menu, drawn by the desktop panel and the phone sheet alike, so the two cannot send a visitor to different places. */
 export const MENU_ITEMS: Record<Menu, readonly NavItem[]> = { product: PRODUCT, solutions: SOLUTIONS, resources: RESOURCES };
@@ -59,8 +66,9 @@ function Panel({ menu }: { menu: Menu }) {
 export function SiteNav({ over = false }: { /** The home page: the bar floats clear over the opening until the page scrolls. */ over?: boolean }) {
   const [open, setOpen] = useState<Menu | null>(null);
   const [sheet, setSheet] = useState(false);
-  // What is under the bar: the page's top (the bar is glass over the studio), a dark section (the night set) or paper.
-  const [under, setUnder] = useState<"top" | "night" | "paper">(over ? "top" : "paper");
+  // What is under the bar: the page's top (the bar is glass over the studio), a dark section (the night set), paper,
+  // or the page's own ground where the whole page takes one at a time (`page`).
+  const [under, setUnder] = useState<"top" | "night" | "paper" | "page">(over ? "top" : "paper");
   const path = usePathname();
   const head = useRef<HTMLElement>(null);
   const bar = useRef<HTMLElement>(null);
@@ -80,8 +88,11 @@ export function SiteNav({ over = false }: { /** The home page: the bar floats cl
     let raf = 0;
     const read = () => {
       raf = 0;
-      let next: "top" | "night" | "paper" = scrollY < 16 && wide.matches ? "top" : "paper";
-      if (next === "paper" && wide.matches) {
+      // At the top a phone keeps a light bar over the hero's paper (it has no studio to float over); see `clear`.
+      const tone = !!document.documentElement.dataset.mkPage;
+      let next: "top" | "night" | "paper" | "page" = scrollY < 16 && (wide.matches || tone) ? "top" : "paper";
+      if (next === "paper" && tone) next = "page";
+      else if (next === "paper" && wide.matches) {
         const edge = head.current?.offsetHeight ?? 0;
         for (const s of document.querySelectorAll('main [data-tone="dark"]')) {
           const r = s.getBoundingClientRect();
@@ -100,11 +111,15 @@ export function SiteNav({ over = false }: { /** The home page: the bar floats cl
     addEventListener("scroll", onScroll, { passive: true });
     addEventListener("resize", onScroll);
     wide.addEventListener("change", onScroll);
+    // The page sets its ground after this first read (the main mounts after the bar), so read again when it does.
+    const tones = new MutationObserver(onScroll);
+    tones.observe(document.documentElement, { attributes: true, attributeFilter: ["data-mk-page"] });
     return () => {
       cancelAnimationFrame(raf);
       removeEventListener("scroll", onScroll);
       removeEventListener("resize", onScroll);
       wide.removeEventListener("change", onScroll);
+      tones.disconnect();
     };
   }, [over]);
 
@@ -131,54 +146,53 @@ export function SiteNav({ over = false }: { /** The home page: the bar floats cl
     };
   }, [open]);
 
+  // A menu opened over the studio draws the bar in the page's ground where the page has one (read when it opens: a menu is only ever open in the browser).
+  const page = under === "page" || (!!open && !!document.documentElement.dataset.mkPage);
+
   return (
     <header
       ref={head}
-      data-ground={night ? "night" : undefined}
+      // Clear over the studio photograph the bar reads in the day set, whatever ground the page has taken.
+      data-ground={night ? "night" : clear ? "day" : undefined}
       className={cn(
-        "sticky top-0 z-raised border-b font-sans backdrop-blur-md transition-[background-color,border-color,color] duration-slow motion-reduce:transition-none [&_a]:transition-colors [&_button]:transition-colors",
-        clear ? "border-transparent bg-transparent" : "border-line bg-surface/90 supports-[backdrop-filter]:bg-surface/80",
+        "sticky top-0 z-raised border-b font-sans transition-[background-color,border-color,color] duration-slow motion-reduce:transition-none [&_a]:transition-colors [&_button]:transition-colors",
+        clear ? "border-transparent bg-canvas lg:bg-transparent" : page ? "border-transparent bg-canvas" : "border-line bg-surface/90 backdrop-blur-md supports-[backdrop-filter]:bg-surface/80",
       )}
     >
       <nav ref={bar} aria-label="Main" className="relative" onMouseLeave={() => setOpen(null)}>
-        <div className={cn(measure, "flex h-[72px] items-center justify-between")}>
-          <div className="flex items-center gap-12">
-            <Wordmark className="flex items-center max-sm:min-h-11" />
-            <ul className="flex items-center gap-1 max-lg:hidden">
-              {MENUS.map((m) => (
-                <li key={m.key}>
-                  <button
-                    type="button"
-                    ref={(el) => {
-                      triggers.current[m.key] = el;
-                    }}
-                    aria-expanded={open === m.key}
-                    aria-controls={`site-menu-${m.key}`}
-                    onClick={() => setOpen(open === m.key ? null : m.key)}
-                    // Hover opens for a mouse only: on touch the tap would open it and the same tap's click would close it.
-                    onPointerEnter={(e) => e.pointerType === "mouse" && setOpen(m.key)}
-                    className={cn("flex h-10 items-center gap-1.5 rounded-sm px-3 text-md font-medium text-ink hover:bg-sunken", ring, open === m.key && "bg-sunken")}
-                  >
-                    {m.label}
-                    <CaretDown size={16} className={cn("text-ink-3 transition-transform duration-fast motion-reduce:transition-none", open === m.key && "rotate-180")} aria-hidden />
-                  </button>
-                </li>
-              ))}
-              <li>
-                <Link href="/pricing" prefetch={false} className={cn("flex h-10 items-center rounded-sm px-3 text-md font-medium text-ink hover:bg-sunken", ring)} onPointerEnter={(e) => e.pointerType === "mouse" && setOpen(null)}>
-                  Pricing
-                </Link>
+        <div className="relative flex h-nav items-center justify-between px-5 md:px-8">
+          <Wordmark className="flex items-center max-sm:min-h-11" />
+          <ul className="absolute left-1/2 flex -translate-x-1/2 items-center gap-2 max-lg:hidden">
+            {MENUS.map((m) => (
+              <li key={m.key}>
+                <button
+                  type="button"
+                  ref={(el) => {
+                    triggers.current[m.key] = el;
+                  }}
+                  aria-expanded={open === m.key}
+                  aria-controls={`site-menu-${m.key}`}
+                  onClick={() => setOpen(open === m.key ? null : m.key)}
+                  // Hover opens for a mouse only: on touch the tap would open it and the same tap's click would close it.
+                  onPointerEnter={(e) => e.pointerType === "mouse" && setOpen(m.key)}
+                  className={cn(pill, "gap-1.5", open === m.key && "bg-ink/10")}
+                >
+                  {m.label}
+                  <CaretDown size={14} className={cn("text-ink transition-transform duration-fast motion-reduce:transition-none", open === m.key && "rotate-180")} aria-hidden />
+                </button>
               </li>
-            </ul>
-          </div>
+            ))}
+            <li>
+              <Link href="/pricing" prefetch={false} className={pill} onPointerEnter={(e) => e.pointerType === "mouse" && setOpen(null)}>
+                Pricing
+              </Link>
+            </li>
+          </ul>
           <div className="flex items-center gap-2">
-            <Link href="/login" prefetch={false} className={cn("flex h-10 items-center rounded-sm px-3 text-md font-medium text-ink hover:bg-sunken max-lg:hidden", ring)}>
+            <Link href="/login" prefetch={false} className={cn(pill, "max-lg:hidden")}>
               Sign in
             </Link>
-            <ButtonLink href="/contact" prefetch={false} kind="secondary" size="lg" className="max-lg:hidden">
-              Book a demo
-            </ButtonLink>
-            <ButtonLink href="/signup" prefetch={false} kind="primary" size="lg" className="max-sm:h-11">
+            <ButtonLink href="/signup" prefetch={false} kind="primary" size="lg" className="h-10 rounded-full px-5 text-site-item max-sm:h-11">
               Start free
             </ButtonLink>
             <Button kind="quiet" size="lg" icon={List} className="max-sm:h-11 max-sm:min-w-11 lg:hidden" aria-label="Menu" onClick={() => setSheet(true)}>

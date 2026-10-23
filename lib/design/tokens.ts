@@ -357,6 +357,21 @@ export const dark: typeof light = overlay(darkLegacy(), darkColors, "#000000");
  */
 export const NIGHT_INHERITS: readonly string[] = ["--ds-brand", "--ds-brand-hover", "--ds-brand-active", "--ds-brand-on"];
 
+/**
+ * The home page's three grounds, mercury.com's (sampled from its page at 1440, 23 Oct 2026, the founder's walkthrough):
+ * night under the opening and the close, warm under the first grid of cards, day under the middle. Each names its
+ * ground, the panel raised on it, its two inks, a third for the quiet line, its hairline and the rule over a section.
+ * The whole page takes one of them at a time and fades to the next as a section of another tone reaches the middle of
+ * the window (`HomeMain`, components/site/home-main.tsx).
+ */
+export const homeGrounds = {
+  night: { ground: "#171721", raised: "#1E1E2A", ink: "#EDEDF3", "ink-2": "#C3C3CC", "ink-3": "#9696A3", line: "#4E4F5F", rule: "#70707D" },
+  warm: { ground: "#F6F5F1", raised: "#EEEDE8", ink: "#2A2924", "ink-2": "#5A5548", "ink-3": "#6E695C", line: "#DAD8D0", rule: "#9A968B" },
+  day: { ground: "#FBFCFE", raised: "#F0F1F5", ink: "#272735", "ink-2": "#535461", "ink-3": "#71727F", line: "#DCDDE5", rule: "#9A9BA8" },
+} as const;
+
+export type HomeGround = keyof typeof homeGrounds;
+
 export type TierRank = 1 | 2 | 3 | 4 | 5;
 
 /** The five buyer-visible source tiers, in rank order (spec §2). */
@@ -430,6 +445,19 @@ export const fontSize: Record<string, FontSize> = {
   "site-lede": ["17px", { lineHeight: "27px" }],
   "site-body": ["15px", { lineHeight: "22px" }],
   "site-wordmark": ["clamp(88px, 19vw, 288px)", { lineHeight: "0.78", letterSpacing: "-0.055em" }],
+  // The home page after mercury.com's, measured at 1440 (the founder's walkthrough of 23 Oct 2026): set in weight 480
+  // (`font-display`), each with its phone step.
+  "site-display": ["49px", { lineHeight: "54px", letterSpacing: "-0.012em" }], // the hero's one line
+  "site-display-sm": ["36px", { lineHeight: "40px", letterSpacing: "-0.012em" }],
+  "site-headline": ["42px", { lineHeight: "48px", letterSpacing: "-0.01em" }], // a centred section headline
+  "site-headline-sm": ["30px", { lineHeight: "35px", letterSpacing: "-0.01em" }],
+  "site-section": ["32px", { lineHeight: "37px", letterSpacing: "-0.008em" }], // a section's headline over its cards
+  "site-section-sm": ["26px", { lineHeight: "31px", letterSpacing: "-0.008em" }],
+  "site-lead": ["24px", { lineHeight: "29px", letterSpacing: "-0.005em" }], // a list's headline (the tour, the split sections)
+  "site-stat": ["65px", { lineHeight: "72px", letterSpacing: "-0.015em" }],
+  "site-stat-sm": ["44px", { lineHeight: "50px", letterSpacing: "-0.015em" }],
+  "site-card": ["18px", { lineHeight: "24px" }], // a card's name and its line
+  "site-item": ["16px", { lineHeight: "22px" }], // a list item, the nav, a pill
   // legacy (v3)
   eyebrow: ["0.6875rem", { lineHeight: "1rem", letterSpacing: "0.08em" }],
   title: ["0.9375rem", { lineHeight: "1.375rem", letterSpacing: "-0.005em" }],
@@ -453,6 +481,8 @@ export const fontWeight = {
   light: "300", // marketing display only
   normal: "400",
   medium: "500", // labels, links, app headings and company names (Geist at 600 reads heavy)
+  display: "480", // the home page's headlines and names, mercury.com's weight
+  book: "360", // the home page's second lines under a name, mercury.com's
   semibold: "600",
   bold: "700",
 };
@@ -579,6 +609,7 @@ export const motion = {
   swapBlurPx: 4,
   featureMs: 6500, // a feature list's item before the next opens (the home's showcase)
   marqueeMs: 60000, // the brands strip, one copy of its list
+  toneMs: 500, // the home page fading from one ground to the next (mercury.com's, measured 23 Oct 2026)
   cursorMs: 600,
   clickMs: 200,
   typeMs: 45,
@@ -613,6 +644,8 @@ export const maxWidth = {
   ...containers, // Paper's `prose` (544px) replaces Tailwind's 65ch
   content: "75rem", // 1200 (v3)
   site: "1440px", // the marketing measure: 1280 of content and 80 a side at 1440
+  column: "1024px", // the home page's column, mercury.com's: 1024 of content at 1440
+  "column-wide": "1136px", // the home page's tour, mercury.com's: its list 152 from the left at 1440
 };
 
 /**

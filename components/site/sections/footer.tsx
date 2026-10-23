@@ -1,77 +1,75 @@
 // The site's one footer (M1, 14 Oct 2026; on the night ground since the founder's video of 22 Oct 2026, which found the
-// paper one flat): the status line with the latest register read, every column of `map.ts` (all five compliance
-// guides, data sources and trademarks), the promise, Cookie settings, and the wordmark set large and faint across the
-// foot. Server component: the figures are the site's facts (`lib/site-facts.ts`) and a figure that was not read is
-// left out.
+// paper one flat): every column of `map.ts` (all five compliance guides, data sources and trademarks), the status line
+// with the latest register read, the promise and Cookie settings. Since the founder's walkthrough of 23 Oct 2026 it is
+// laid out as mercury.com's: four columns to a row (in the home page's column there, `narrow`; in the site's measure on
+// every other page, so it lines up with what is above it), each a quiet heading over its links, then
+// a hairline and the notes, the wordmark and the strapline at the left and the small print at the right. Server
+// component: the figures are the site's facts (`lib/site-facts.ts`) and a figure that was not read is left out.
 
 import Link from "next/link";
 import { factsLine, readDay, type SiteFacts } from "@/lib/site-facts";
 import { cn } from "@/lib/utils";
 import { CookieSettingsButton } from "../cookie-banner";
 import { FOOTER, PROMISE, STRAPLINE } from "../map";
-import { Wordmark, measure, ring } from "./ui";
+import { Wordmark, column, measure, ring } from "./ui";
 
-const link = cn("inline-flex min-h-6 items-center text-base text-ink-muted hover:text-ink-strong max-md:min-h-11", ring);
+const link = cn("inline-flex min-h-5 items-center text-site-item text-ink hover:underline hover:underline-offset-4 max-md:min-h-11", ring);
 
-export function Footer({ facts, year }: { facts: SiteFacts; year: number }) {
+export function Footer({ facts, year, narrow = false }: { facts: SiteFacts; year: number; narrow?: boolean }) {
   const line = factsLine(facts);
   const lastRead = readDay(facts.latestRead);
   const columns = FOOTER.filter((col) => col.title !== "Status");
   const status = FOOTER.find((col) => col.title === "Status");
   return (
-    <footer data-ground="night" className="overflow-hidden bg-[rgb(var(--mk-ground-night))] font-sans text-ink-strong">
-      <div className={cn(measure, "flex flex-col gap-12 pb-10 md:gap-16")}>
-        <div className="grid gap-12 pt-16 md:pt-24 lg:grid-cols-[minmax(240px,1.2fr)_minmax(0,3fr)]">
-          <div className="flex max-w-[320px] flex-col gap-5">
-            <Wordmark />
-            <p className="text-base text-ink-muted">{STRAPLINE}</p>
-            {status ? (
-              <div className="flex flex-col gap-1.5">
-                <h2 className="text-base font-medium text-ink-strong">{status.title}</h2>
-                <p className="flex items-center gap-2 text-base text-ink-strong">
-                  <span aria-hidden className="size-2 shrink-0 rounded-full bg-signal" />
-                  {lastRead ? <span>Last register read {lastRead}</span> : <span>Every fact dated by its source</span>}
-                </p>
-                {line ? <p className="text-sm text-ink-subtle">{line}</p> : null}
-                {status.links.map((l) => (
-                  <Link key={l.href} href={l.href} prefetch={false} className={link}>
-                    {l.label}
-                  </Link>
+    <footer data-ground="night" className="bg-[rgb(var(--mk-ground-night))] pb-16 pt-12 font-sans text-ink md:pt-24">
+      <div className={cn(narrow ? column : measure, "flex flex-col gap-16 md:gap-24")}>
+        <nav aria-label="Footer" className="grid grid-cols-2 gap-x-10 gap-y-12 md:grid-cols-4 md:gap-y-20">
+          {columns.map((col) => (
+            <div key={col.title} className="flex flex-col gap-2.5">
+              <h2 className="text-site-item text-ink-2">{col.title}</h2>
+              <ul className="flex flex-col gap-2">
+                {col.links.map((l) => (
+                  <li key={`${col.title}-${l.label}`}>
+                    <Link href={l.href} prefetch={false} className={link}>
+                      {l.href === "/methodology#sources" && facts.sourcesListed !== null ? `The ${facts.sourcesListed} sources` : l.label}
+                    </Link>
+                  </li>
                 ))}
-              </div>
-            ) : null}
+              </ul>
+            </div>
+          ))}
+          {status ? (
+            <div className="flex flex-col gap-2.5">
+              <h2 className="text-site-item text-ink-2">{status.title}</h2>
+              <p className="flex items-center gap-2 text-site-item text-ink">
+                <span aria-hidden className="size-2 shrink-0 rounded-full bg-signal" />
+                {lastRead ? <span>Last register read {lastRead}</span> : <span>Every fact dated by its source</span>}
+              </p>
+              {status.links.map((l) => (
+                <Link key={l.href} href={l.href} prefetch={false} className={link}>
+                  {l.label}
+                </Link>
+              ))}
+            </div>
+          ) : null}
+        </nav>
+        <div className="grid gap-6 border-t border-line pt-8 md:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] md:gap-16">
+          <div className="flex flex-col gap-3">
+            <Wordmark />
+            <p className="max-w-[300px] text-xs text-ink-2">{STRAPLINE}</p>
           </div>
-          <nav aria-label="Footer" className="grid grid-cols-2 gap-x-8 gap-y-10 sm:grid-cols-3 lg:grid-cols-5">
-            {columns.map((col) => (
-              <div key={col.title} className="flex flex-col gap-3">
-                <h2 className="text-base font-medium text-ink-strong">{col.title}</h2>
-                <ul className="flex flex-col gap-1">
-                  {col.links.map((l) => (
-                    <li key={`${col.title}-${l.label}`}>
-                      <Link href={l.href} prefetch={false} className={link}>
-                        {l.href === "/methodology#sources" && facts.sourcesListed !== null ? `The ${facts.sourcesListed} sources` : l.label}
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ))}
-          </nav>
-        </div>
-        <div className="flex flex-col gap-3 border-t border-line-subtle pt-6 text-base text-ink-subtle md:flex-row md:items-center md:justify-between">
-          <p>
-            &copy; {year} SourceBD. {PROMISE}
-          </p>
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-            <span>UK GDPR · ICO registration pending</span>
-            <CookieSettingsButton />
+          <div className="flex flex-col gap-3 text-xs text-ink-2">
+            {line ? <p>{line}</p> : null}
+            <p>
+              &copy; {year} SourceBD. {PROMISE}
+            </p>
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+              <span>UK GDPR · ICO registration pending</span>
+              <CookieSettingsButton />
+            </div>
           </div>
         </div>
       </div>
-      {/* The wordmark set across the foot: the page's last mark. Decoration: the link above carries the name. */}
-      <p aria-hidden className={cn(measure, "pointer-events-none select-none whitespace-nowrap text-site-wordmark font-semibold text-line")}>
-        SourceBD
-      </p>
     </footer>
   );
 }
