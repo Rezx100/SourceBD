@@ -887,15 +887,15 @@ function ScaleBar({
   labelRef: React.RefObject<HTMLSpanElement | null>;
 }) {
   return (
-    <div className="pointer-events-none absolute bottom-2 left-2 flex items-center gap-1.5 rounded-md bg-white/85 px-2 py-1 backdrop-blur-sm">
+    <div className="pointer-events-none absolute bottom-2 left-2 flex items-center gap-1.5 rounded-md bg-surface/85 px-2 py-1 backdrop-blur-sm">
       <div
         ref={barRef}
-        className="h-[5px] border-x-2 border-b-2 border-neutral-600"
+        className="h-[5px] border-x-2 border-b-2 border-ink-2"
         style={{ width: `${SCALE_TARGET_PX}px` }}
       />
       <span
         ref={labelRef}
-        className="font-mono text-xs font-semibold tabular-nums text-neutral-600"
+        className="font-mono text-xs font-semibold tabular-nums text-ink-2"
       />
     </div>
   );

@@ -402,6 +402,10 @@ export const appDarkColors: Record<keyof typeof darkColors, string> = {
 export const appDark: typeof light = (() => {
   const set = overlay(darkLegacy(appDarkColors), appDarkColors, "#000000");
   set.brand.on = v4Colors.surface;
+  // The one old status group the app still draws (a listed check's pill and glyph, record/desktop.tsx), turned over
+  // as the signals are: its colour lifted toward its tint, on a ground of it over `ink`.
+  const p = legacy.positive;
+  Object.assign(set.positive, { DEFAULT: mix(p.DEFAULT, p.tint, 0.5), on: APP_GROUND, ink: mix(p.DEFAULT, p.tint, 0.6), tint: mix(APP_GROUND, p.DEFAULT, 0.3), line: mix(APP_GROUND, p.DEFAULT, 0.6) });
   return set;
 })();
 
@@ -927,6 +931,9 @@ export const appDarkPairs: ContrastPair[] = [
   { fg: "line.strong", bg: "surface", min: UI, use: "app dark: input outline" },
   { fg: "accent", bg: "surface", min: UI, use: "app dark: focus ring, the selected bar" },
   { fg: "ink.subtle", bg: "surface", min: TEXT, use: "app dark: placeholder" },
+  { fg: "positive.ink", bg: "positive.tint", min: TEXT, use: "app dark: a listed check" },
+  { fg: "positive", bg: "surface", min: UI, use: "app dark: a listed check's glyph" },
+  { fg: "positive.on", bg: "positive", min: TEXT, use: "app dark: verified, solid" },
 ];
 
 /**

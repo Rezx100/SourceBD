@@ -392,5 +392,7 @@ describe("the app's theme (founder, 23 Oct 2026)", () => {
     assert.match(read("app/(app)/app/layout.tsx"), /const theme = readTheme\(\(await cookies\(\)\)\.get\(THEME_COOKIE\)\?\.value\);[\s\S]*theme=\{theme\}/);
     const profile = read("app/(app)/app/settings/profile/page.tsx");
     assert.match(profile, /<Section title="Appearance"[^>]*>\s*<ThemeForm initial=\{theme\} \/>/);
+    // A shared computer: signing out forgets the choice, so the next buyer starts in light.
+    assert.match(read("app/auth/sign-out/route.ts"), /res\.cookies\.delete\(THEME_COOKIE\);\s*return res;/);
   });
 });
