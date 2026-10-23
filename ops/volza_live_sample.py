@@ -52,7 +52,9 @@ PER_MINUTE = 40
 WAITS_429 = (60, 120, 180, 300, 300)  # 15 minutes in all, then stop: a longer limit is in force
 # The key also has 1,000 requests a day, shared with the buyers' shipment reveal on the live site
 # (11 Oct 2026: batch 2 used the day up and every reveal failed). A run stops with this many left.
-DAILY_RESERVE = 300
+# 23 Oct 2026, founder: no 300 kept for reveals. 10 is two suppliers' worth, so a run ends between
+# suppliers instead of half way through one it has already paid for.
+DAILY_RESERVE = 10
 
 
 class Stop(Exception):
@@ -123,8 +125,7 @@ class Live:
             if self.spent + self.worst > self.cap + 1e-9:
                 raise Stop(f"cap reached: spent ${self.spent:.2f} of ${self.cap:.2f}")
             if self.daily_left is not None and self.daily_left <= DAILY_RESERVE:
-                raise Stop(f"{self.daily_left} of Volza's 1,000 requests a day left: kept for buyers' shipment "
-                           "reveals; run again tomorrow")
+                raise Stop(f"{self.daily_left} of Volza's 1,000 requests a day left: run again tomorrow")
             self._pace()
             try:
                 r = self.http.post("/bangladesh-exports", json=body)

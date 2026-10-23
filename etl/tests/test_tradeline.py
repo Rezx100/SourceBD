@@ -64,16 +64,17 @@ def test_saved_rows_keep_each_paid_supplier_once_and_drop_expired(tmp_path):
     assert rows[0]["results_file"] == f.name and rows[0]["expires_at"].startswith("2027-10-22")
 
 
-def test_run_stops_before_using_the_buyers_daily_share():
-    # 11 Oct 2026: batch 2 used Volza's 1,000 requests a day and every buyer's reveal failed
+def test_run_stops_just_before_the_daily_limit():
+    # 23 Oct 2026: the founder dropped the 300 kept for reveals; a few stay so a run ends between suppliers
+    assert 0 < volza_live_sample.DAILY_RESERVE <= 10
     v = volza_live_sample.Live(100.0, 0.0, http=object())
     v.daily_left = volza_live_sample.DAILY_RESERVE
     try:
         v.search({"supplier_name": ["X"]})
     except volza_live_sample.Stop as e:
-        assert "buyers" in str(e)
+        assert "tomorrow" in str(e)
     else:
-        raise AssertionError("searched into the reserve")
+        raise AssertionError("searched into the last requests of the day")
 
 
 def test_pace_never_sends_more_than_40_in_a_minute(monkeypatch):
