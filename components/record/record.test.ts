@@ -371,6 +371,31 @@ describe("the summary", () => {
   });
 });
 
+// Founder, 24 Oct 2026: 4A Yarn Dyeing (Team Group) read "no customs records" while its sister Mars Stitch shipped
+// 990 times. The group's records show beside the member's empty state, labelled as the group's, and never with its own.
+describe("a group member with no customs records of its own shows its group's", () => {
+  const G: NonNullable<SupplierSheetModel["groupExports"]> = {
+    group: "Team Group",
+    members: [{ name: "Mars Stitch Ltd.", slug: "mars-stitch", shipments: 990, fob_usd: 21400000, buyers: 31, window_start: "2024-09-01", window_end: "2026-08-31" }],
+  };
+
+  it("names the group, says the records are the sisters', and links each sister on desktop and phone", () => {
+    for (const html of [view(model(aboniInput(), { volza: null, groupExports: G }), { tab: "exports" }), phone(model(aboniInput(), { volza: null, groupExports: G }), { tab: "exports" })]) {
+      const t = text(html);
+      assert.match(t, /Team Group's export records/);
+      assert.match(t, /not to this one/);
+      assert.match(t, /990 shipments · US\$21\.4m · 31 buyers · Sep 2024 – Aug 2026/);
+      assert.match(html, /href="\/app\/suppliers\/mars-stitch"/);
+    }
+  });
+
+  it("is not drawn beside the supplier's own customs records, nor without a group", () => {
+    const own = { shipments: 5, fob_usd: 1000, buyers: 1, window_start: "2024-09-01", window_end: "2026-08-31", volza_name: "X", fetched_at: "2026-10-24T00:00:00Z", top_shipments: [] };
+    assert.doesNotMatch(both(model(aboniInput(), { volza: own, groupExports: G }), { tab: "exports" }), /data-group-exports/);
+    assert.doesNotMatch(both(model(aboniInput(), { volza: null, groupExports: null }), { tab: "exports" }), /data-group-exports/);
+  });
+});
+
 // Paper page 37, the export grid (founder, 12 Oct 2026: totals alone decide nothing). Customs figures reach only a
 // reader the database entitles (`supplier_volza_exports`); for anyone else the model holds none and nothing is drawn.
 describe("the export grid works its figures out from the customs record", () => {

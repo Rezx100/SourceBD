@@ -21,6 +21,7 @@ import { hasSourceMark } from "@/components/patterns/source-mark";
 import { buyersOf, customsWindow, initials, type VolzaMarketName } from "@/lib/dashboard/facts";
 import type { ContactDetails, SupplierSheetModel } from "@/lib/dashboard/models";
 import { cn } from "@/lib/utils";
+import { GroupExportsNote } from "./group-exports";
 import { mailHref, siteHref, telHref } from "./contact-card";
 import { CopyButton } from "./copy-button";
 import { DesktopSites } from "./desktop-sites";
@@ -387,6 +388,7 @@ export function OverviewSection({ model, today, level, exportsHref, market = nul
   return (
     <section id="record-overview" aria-label="Overview" className="flex scroll-mt-[calc(var(--record-offset,0px)+12px)] flex-col gap-[26px] [@container_(min-width:760px)]:gap-8">
       <ExportGrid model={model} today={today} level={level} href={exportsHref} market={market} rank={rank} />
+      {!model.volza && model.groupExports ? <GroupExportsNote group={model.groupExports} className="mx-3" /> : null}
       {model.sanctionSample ? (
         <p className="flex flex-wrap items-center gap-2 px-3 text-xs text-ink-3">
           <span className="flex h-[22px] items-center rounded border border-dashed border-line-strong px-2 font-medium text-ink">Sample state</span>
@@ -420,6 +422,7 @@ export function ExportsSection({ model, today, level }: SectionProps) {
       <Section id="exports" title="Exports" level={level}>
         <div className="flex flex-col gap-5">
           {noCustoms(model) ? <Absent title={NO_CUSTOMS.title} body={NO_CUSTOMS.body} note={model.products.onEpb ? { title: NO_CUSTOMS.epbTitle, body: NO_CUSTOMS.epbBody } : null} /> : null}
+          {model.groupExports ? <GroupExportsNote group={model.groupExports} className="mx-3" /> : null}
           {reveal ? <div className="px-3">{reveal}</div> : null}
         </div>
       </Section>
