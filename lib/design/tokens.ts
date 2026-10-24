@@ -265,6 +265,14 @@ export const filmColors = {
   "map-light": "#15181C",
 } as const;
 
+/**
+ * The logo's two swatches (the brand kit, E:\SourceBD-marketing\brand\README.md, 25 Oct 2026): bottle green over
+ * grey-green on any light ground, paper over grey-green on the night ground (`darkLogoColors`). Variables, so the
+ * mark turns with the ground under it as the word (`currentColor`) does.
+ */
+export const logoColors = { "logo-front": "#14451A", "logo-back": "#5D8C60" } as const;
+export const darkLogoColors: Record<keyof typeof logoColors, string> = { "logo-front": "#F7F7F6", "logo-back": "#A8B9A9" };
+
 /** `a` with `share` of `b` mixed in, per channel: how the dark set steps off the v4 colours. */
 function mix(a: string, b: string, share: number): string {
   const [x, y] = [toRgb(a), toRgb(b)];
@@ -326,7 +334,7 @@ function overlay<T extends ColorSet>(base: T, colors: Record<string, string>, sc
 }
 
 /** Every colour the product may use: `legacy` with the v4 set and the film's additions laid over it. */
-export const light = overlay(legacy, { ...v4Colors, ...filmColors }, v4Colors[v4Alpha.scrim.color]);
+export const light = overlay(legacy, { ...v4Colors, ...filmColors, ...logoColors }, v4Colors[v4Alpha.scrim.color]);
 
 /**
  * The old pages' neutral, brand and state-role names, pointed at the dark
@@ -360,7 +368,7 @@ function darkLegacy(): typeof legacy {
  * primary button keeps v4's green and its white label.
  */
 export const dark: typeof light = (() => {
-  const set = overlay(darkLegacy(), darkColors, "#000000");
+  const set = overlay(darkLegacy(), { ...darkColors, ...darkLogoColors }, "#000000");
   set.brand.on = v4Colors.surface;
   // The one old status group the app still draws (a listed check's pill and glyph, record/desktop.tsx), turned over
   // as the signals are: its colour lifted toward its tint, on a ground of it over `ink`.

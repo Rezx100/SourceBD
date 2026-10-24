@@ -27,10 +27,17 @@ const mono = localFont({
 export const metadata: Metadata = {
   title: "SourceBD",
   description: "Verified Bangladesh RMG supplier intelligence.",
+  // The brand kit's (25 Oct 2026): the 32 tile with five teeth for a browser tab, the app tile for anything larger.
   icons: {
-    icon: "/icons/brand/sourcebd-logo.png",
-    shortcut: "/icons/brand/sourcebd-logo.png",
-    apple: "/icons/brand/sourcebd-logo.png",
+    icon: [
+      { url: "/icons/brand/sourcebd-favicon.svg", type: "image/svg+xml" },
+      { url: "/icons/brand/sourcebd-favicon-32.png", sizes: "32x32", type: "image/png" },
+      { url: "/icons/brand/sourcebd-favicon-16.png", sizes: "16x16", type: "image/png" },
+      { url: "/icons/brand/sourcebd-tile-192.png", sizes: "192x192", type: "image/png" },
+      { url: "/icons/brand/sourcebd-tile-512.png", sizes: "512x512", type: "image/png" },
+    ],
+    shortcut: "/icons/brand/sourcebd-favicon-32.png",
+    apple: { url: "/icons/brand/sourcebd-apple-touch-180.png", sizes: "180x180", type: "image/png" },
   },
 };
 
