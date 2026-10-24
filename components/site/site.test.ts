@@ -244,6 +244,9 @@ describe("the logo (brand kit, 25 Oct 2026)", () => {
     }
     assert.deepEqual(typed, []);
     for (const f of ["components/auth/state.tsx", "app/invite/[token]/page.tsx"]) assert.match(readFileSync(join(process.cwd(), f), "utf8"), /<Logo height=\{20\}/, f);
+    // The founder, 25 Oct 2026: a 35 px icon on the bar and the footer, the word 85% of it.
+    assert.match(readFileSync(join(process.cwd(), "components/site/sections/ui.tsx"), "utf8"), /<Logo height=\{35\} \/>/);
+    assert.match(readFileSync(join(process.cwd(), "components/patterns/logo.tsx"), "utf8"), /scale\(1\.0501\)">/);
   });
 
   it("the bar reads the dark blocks on every page, not only the home page's", () => {

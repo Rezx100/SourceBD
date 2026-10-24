@@ -30,11 +30,11 @@ export const ring = "outline-none focus-visible:outline focus-visible:outline-2 
 /** A link in running text: ink, underlined. */
 export const inkLink = cn("font-medium text-ink-strong underline decoration-1 underline-offset-4 hover:decoration-2", ring);
 
-/** The logo, 22 px tall (the brand kit's nav size): the word in the ink of its ground, the two swatches green on a light one and paper on the night (the footer, the bar over a dark section). */
+/** The logo, its icon 35 px tall and the word 85% of that (the founder, 25 Oct 2026): the word in the ink of its ground, the two swatches green on a light one and paper on the night (the footer, the bar over a dark section). */
 export function Wordmark({ className }: { className?: string }) {
   return (
     <Link href="/" className={cn("w-fit rounded-sm text-ink", ring, className)}>
-      <Logo height={22} />
+      <Logo height={35} />
     </Link>
   );
 }
