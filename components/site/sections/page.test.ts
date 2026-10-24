@@ -287,6 +287,8 @@ describe("the home page", () => {
       for (const l of links) assert.ok(routeExists(l.href), `${menu}: ${l.title} → ${l.href}`);
       for (const i of MENU_ITEMS[menu as keyof typeof MENU_ITEMS]) assert.ok(links.some((l) => l.href === i.href), `${menu} panel lacks ${i.title}`);
     }
+    // A click opens a menu, never hover (founder, 24 Oct 2026).
+    assert.doesNotMatch(readFileSync(join(process.cwd(), "components/site/nav.tsx"), "utf8"), /onPointerEnter|onMouseEnter|onMouseLeave|onPointerLeave/);
   });
 
   it("never scores: no grade, rating or star is claimed, and the only score word is the promise not to", () => {

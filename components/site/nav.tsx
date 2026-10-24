@@ -91,7 +91,7 @@ function Panel({ menu }: { menu: Menu }) {
           </div>
         ))}
       </div>
-      <Link href={SUPPLIER_ROW.href} prefetch={false} className={cn("group flex flex-col gap-1 border-t border-line px-8 py-6 max-xl:px-6", ring)}>
+      <Link href={SUPPLIER_ROW.href} prefetch={false} className={cn("group flex flex-col gap-1 border-t border-line px-8 py-6 max-xl:px-6", ring, "focus-visible:-outline-offset-2")}>
         <span className="flex items-center gap-3 text-site-lead text-ink">
           {SUPPLIER_ROW.title}
           <span className="flex size-8 items-center justify-center rounded-full bg-ink/[0.07] transition-colors group-hover:bg-ink/[0.12]">
@@ -246,7 +246,8 @@ export function SiteNav({ over = false }: { /** The home page: the bar floats cl
               key={m.key}
               id={`site-menu-${m.key}`}
               onClick={(e) => (e.target as Element).closest("a") && setOpen(null)}
-              className="absolute inset-x-8 top-full animate-fade overflow-hidden rounded-b-xl border border-line bg-surface max-lg:hidden"
+              // A short window scrolls the panel itself: the bar is sticky, so the page's scroll would never reach its foot.
+              className="absolute inset-x-8 top-full max-h-[calc(100dvh-theme(spacing.nav))] animate-fade overflow-y-auto rounded-b-xl border border-line bg-surface max-lg:hidden"
             >
               <Panel menu={m.key} />
             </div>
