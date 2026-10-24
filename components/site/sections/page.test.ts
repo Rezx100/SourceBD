@@ -206,10 +206,29 @@ describe("the home page", () => {
     assert.equal(toneAt([], 450), null);
   });
 
-  it("the brands are names in our type, never logos, and only brands on the record (context/logos.lock.md)", () => {
+  it("an edge resting near the window's middle never sets the ground flickering: it turns at 42% going down and back at 58% going up (founder, 24 Oct 2026)", () => {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports -- loaded after the test build exists.
+    const { steadyTone } = require("@/components/site/home-main") as typeof import("@/components/site/home-main");
+    const at = (edge: number) => [{ top: -2000, tone: "night" as const }, { top: edge, tone: "warm" as const }];
+    // A 1000 px window: the warm section's top inside the band keeps whatever the page had.
+    assert.equal(steadyTone(at(500), 1000, "night"), "night");
+    assert.equal(steadyTone(at(500), 1000, "warm"), "warm");
+    assert.equal(steadyTone(at(430), 1000, "night"), "night", "not yet past 42%");
+    assert.equal(steadyTone(at(410), 1000, "night"), "warm", "past 42% going down");
+    assert.equal(steadyTone(at(570), 1000, "warm"), "warm", "not yet past 58% going up");
+    assert.equal(steadyTone(at(590), 1000, "warm"), "night", "past 58% going up");
+    assert.equal(steadyTone(at(500), 1000, null), "night", "on load with no tone yet, the one at the band's top");
+    const css = readFileSync(join(process.cwd(), "tailwind.config.ts"), "utf8");
+    assert.match(css, /color \$\{motion\.toneMs \* 0\.2\}ms \$\{motion\.toneMs \* 0\.4\}ms/, "the words change in the fade's middle fifth");
+  });
+
+  it("the brands are their own logos in one colour, each labelled by name, and only brands on the record (founder, 24 Oct 2026)", () => {
     const strip = /<section data-mk-tone="night" aria-labelledby="home-brands"[\s\S]*?<\/section>/.exec(page())![0];
-    assert.doesNotMatch(strip, /<img|<svg/);
-    for (const b of ["H&M", "Inditex", "Next", "Walmart", "M&S", "Tesco", "ASOS"]) assert.ok(strip.includes(`>${b}<`), b);
+    assert.doesNotMatch(strip, /<img|<svg/, "a mask in the ground's ink, never the brand's colours");
+    for (const [b, file] of [["H&M", "hm"], ["Inditex", "inditex"], ["Next", "next"], ["Walmart", "walmart"], ["M&S", "ms"], ["Tesco", "tesco"], ["ASOS", "asos"]]) {
+      assert.match(strip, new RegExp(`role="img" aria-label="${b}"[^>]*mask-image:url\\(/site/home/brands/${file}\\.webp\\)`), b);
+      assert.ok(existsSync(join(process.cwd(), "public/site/home/brands", `${file}.webp`)), file);
+    }
     assert.doesNotMatch(strip, /Primark|Target|Zara/, "a brand with no published list and no customs record is not named");
     assert.equal((strip.match(/aria-hidden="true"/g) ?? []).length, 1, "the drift's second copy is hidden from screen readers");
   });
@@ -334,11 +353,13 @@ describe("the live sections", () => {
     assert.doesNotMatch(live(), /aria-label="Common searches"|\/app\/discover\?/);
   });
 
-  it("where mercury.com tells customer stories, a supplier and two buyers speak over their settings, unnamed and saying so; nothing plays or moves on its own (founder, 24 Oct 2026)", () => {
+  it("where mercury.com tells customer stories, a supplier and two buyers speak over their settings, unnamed; nothing plays or moves on its own, and a slide moves only inside the card's frame (founder, 24 Oct 2026)", () => {
     const sec = /<section data-mk-tone="night" aria-labelledby="home-voices"[\s\S]*?<\/section>/.exec(live())![0];
     const t = text(sec);
     for (const s of ["Buyer “Vetting a factory in Bangladesh", "Sourcing manager Womenswear brand · London", "Supplier “Our certificates were always there", "Managing director Knitwear factory · Gazipur", "Technical sourcing lead Knitwear importer · Germany"]) assert.ok(t.includes(s), s);
-    assert.ok(t.includes("Said to us before launch. Names are withheld until then; the photographs show the setting, not the speaker."));
+    assert.ok(!t.includes("Said to us before launch"), "no small print under the slides (his recording of 24 Oct 2026)");
+    // The frame holds still and clips the slides: the track that moves sits inside the rounded card, not round it.
+    assert.match(sec, /class="[^"]*relative aspect-\[4\/5\][^"]*overflow-hidden rounded-frame[^"]*"[^>]*><div class="flex size-full[^"]*transition-transform/);
     for (const p of ["buyer-uk", "supplier", "buyer-eu"]) assert.match(sec, new RegExp(`<img src="/site/home/voice-${p}\\.webp" alt=""`), p);
     assert.doesNotMatch(sec, /<video|<a /, "no recording plays and no speaker is linked");
     // One slide showing, the other two inert until dragged or picked; a rule per slide, none of them filling as a timer.
@@ -348,12 +369,12 @@ describe("the live sections", () => {
     // Mercury's order of weight: the quote large, then the name and the role in grey, one size down. Every glyph measured
     // WCAG AAA on all three rooms at 390, 820 and 1440 (24 Oct 2026: worst 6.80:1 for the large quote, 7.96:1 for normal
     // text) only while the oval of shade holds 0.82 under the words and they stay inside 44% of the card; thinning either
-    // lets a bright room through. The blur steps up to 6 px at most, never one hard-masked layer (founder: a seam showed).
+    // lets a bright room through. Since his recording of 24 Oct 2026 the shade is neutral black (darker than the night it
+    // replaced, so those measures hold) and nothing is blurred: a clear screen, no tint.
     assert.match(sec, /<blockquote class="[^"]*text-ink lg:text-site-lead"/);
-    assert.match(sec, /radial-gradient\(ellipse_44%_62%_at_24%_72%,rgb\(var\(--mk-ground-night\)\/0\.84\)_0%,rgb\(var\(--mk-ground-night\)\/0\.82\)_50%/);
+    assert.match(sec, /radial-gradient\(ellipse_44%_62%_at_24%_72%,rgb\(0_0_0\/0\.84\)_0%,rgb\(0_0_0\/0\.82\)_50%/);
     assert.match(sec, /sm:max-w-\[min\(440px,44%\)\]/);
-    assert.deepEqual([...sec.matchAll(/backdrop-blur-\[(\d)px\]/g)].map((m) => m[1]), ["2", "4", "6", "2", "4", "6", "2", "4", "6"]);
-    assert.doesNotMatch(sec, /backdrop-blur-(?:sm|md|lg|xl)\b/);
+    assert.doesNotMatch(sec, /backdrop-blur|--mk-ground-night/);
   });
 
   it("the checks: three cards, each one panel of the real app held still (no stand-in photograph, no video), no tabs that shift the page", () => {

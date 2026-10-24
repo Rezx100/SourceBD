@@ -2,9 +2,11 @@
 
 // The home page's two grids of four, mercury.com's "Banking's been a headache" and "Run your business like a seasoned
 // pro" (the founder's walkthrough of 23 Oct 2026, measured at 1440): a hairline rule, the headline under it, then two
-// by two the cards (496 × 331, a 12 px radius, the ground's raised panel), each a part of the real app composed in code
-// from a real capture (`Clip`, PROVENANCE.md) filling its card, its name and its line under it. The four start two
-// seconds apart so only one moves strongly at a time. The first grid stands on the warm ground, the second on the day.
+// by two the cards (496 × 331, a 12 px radius, the ground's raised panel), each a walk through the real app cut as the
+// tour's dark flows are (`Clip`, PROVENANCE.md; founder, 24 Oct 2026): one window at the app's own size from the card's
+// top left, the same in every card, sharp where it reads and falling into a blur, its name and its line under it. The
+// four start two seconds apart so only one moves strongly at a time. The first grid stands on the warm ground, the
+// second on the day.
 
 import type { ReactNode } from "react";
 import type { HomeGround } from "@/lib/design/tokens";
@@ -62,7 +64,7 @@ export const HEAD_START: readonly GridCard[] = [
     title: "Filter the way you buy",
     body: "Tick the certificate you need and the list narrows to the suppliers that hold it, the count changing as you tick.",
     clip: "filters",
-    says: "The search's Certificates menu: GOTS is ticked and 10,048 suppliers narrow to the 587 holding a valid GOTS certificate, then it is unticked.",
+    says: "The search's Certificates menu: GOTS is ticked and 10,048 suppliers narrow to the 581 holding a valid GOTS certificate.",
   },
   {
     title: "See who they already make for",

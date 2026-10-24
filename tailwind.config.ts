@@ -213,8 +213,10 @@ const config: Config = {
         ),
         "[data-mk-page] body": { "background-color": "rgb(var(--mk-ground))", transition: `background-color ${motion.toneMs}ms ${transitionTimingFunction.out}` },
         // Zero specificity: an element with a transition of its own keeps it. Only where the tone shows: the page's
-        // frame, the bar and the main (the footer and the cookie banner keep their own sets).
-        ":where([data-mk-page] body > div, [data-mk-page] header *, [data-mk-page] main *)": { transition: `color ${motion.toneMs}ms, background-color ${motion.toneMs}ms, border-color ${motion.toneMs}ms, fill ${motion.toneMs}ms` },
+        // frame, the bar and the main (the footer and the cookie banner keep their own sets). The grounds fade over the
+        // whole span; the words change in its middle fifth, light on the ground while it is still dark and dark once it
+        // is light, so they never fade into a grey ground (the founder's recording of 24 Oct 2026).
+        ":where([data-mk-page] body > div, [data-mk-page] header *, [data-mk-page] main *)": { transition: `color ${motion.toneMs * 0.2}ms ${motion.toneMs * 0.4}ms, fill ${motion.toneMs * 0.2}ms ${motion.toneMs * 0.4}ms, background-color ${motion.toneMs}ms, border-color ${motion.toneMs}ms` },
       });
     }),
   ],

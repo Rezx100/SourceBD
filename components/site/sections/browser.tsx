@@ -55,9 +55,9 @@ export const LEDGER: Record<string, string> = {
   "clip-memberships": "record: Memberships",
   "clip-safety": "record: Safety (RSC)",
   "clip-sources": "record: Sources",
-  "still-sanctions": "record: sanctions lists",
-  "still-uflpa": "compliance hub: UFLPA checks",
-  "still-locked": "public page: contact details locked",
+  "still-sanctions": "record, dark, phone width: sanctions lists",
+  "still-uflpa": "UFLPA checks, dark, phone width: results and suppliers",
+  "still-locked": "record, dark, phone width: contact details locked",
 };
 
 /** The window's bar: three lights, the address in its field, a hairline under it. 1440 × 52 in the bar's own units. */
@@ -226,16 +226,17 @@ export function Clip({ name, says, active = true, delay, onEnded, bar, className
 }
 
 /**
- * A part of the real app held still (`still-<name>.webp`, PROVENANCE.md): one panel cut from a real capture on the night
- * ground with a glass edge, the page round it hidden (founder's recording of 22 Oct 13:17: Buy with confidence needs no
- * animation). It fills its parent; `says` is the sentence a screen reader gets in its place.
+ * A part of the real app held still (`still-<name>.webp`, PROVENANCE.md): the app in its dark theme at its own pixels,
+ * one window from the card's top left running off its far edges, sharp where it reads and falling into a blur and the
+ * card's ground (founder's recording of 24 Oct 2026: dark, and at least 70% of the card). It fills its parent, a 4:5
+ * card; `says` is the sentence a screen reader gets in its place.
  */
-export function AppStill({ name, says, className, panel = false }: { name: string; says: string; className?: string; /** In a card of any shape: the panel alone at nine tenths of the card's width, its night ground melting into the card's (lighten). */ panel?: boolean }) {
+export function AppStill({ name, says, className }: { name: string; says: string; className?: string }) {
   return (
     <figure className={cn("absolute inset-0 m-0", className)}>
       <figcaption className="sr-only">{says}</figcaption>
       {/* eslint-disable-next-line @next/next/no-img-element -- pre-sized in public/site/home (PROVENANCE.md), no optimizer pass */}
-      <img src={`/site/home/still-${name}.webp`} alt="" width={1200} height={900} loading="lazy" decoding="async" className={panel ? "absolute left-1/2 top-1/2 w-[112%] max-w-none -translate-x-1/2 -translate-y-1/2 mix-blend-lighten" : "size-full object-cover"} />
+      <img src={`/site/home/still-${name}.webp`} alt="" width={640} height={800} loading="lazy" decoding="async" className="size-full object-cover object-left-top" />
     </figure>
   );
 }

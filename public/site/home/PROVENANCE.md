@@ -108,44 +108,70 @@ searches stand in the same order; the compositor drew its first frame as it drew
 read from `takes-light\`) and ffmpeg wrote it as WebP (quality 82). Laid at half strength over the dark frame, every
 line meets its twin. No AI model touched any pixel.
 
-## Animations of the real app (the sections), 22 Oct 2026
+## The grids' clips and the checks' stills, remade 25 Oct 2026
 
-Each is one part of the app at reading size, after mercury.com's product clips. The pixels of the app are cut from
-screenshots of the real pages at 8/3 (3840 px across 1440 CSS px), taken by headless Chrome: signed in on the founder's
-temporary admin profile (deleted after the captures), or signed out for the public pages. The record's sections were
-captured as the app draws them in a window 430 px wide, where each section is one column and its text stays large
-inside a card; the search and the record's head at 1440. A page in the kit (`scene.html`) lays the cuts on the ground
-and moves them; headless Chrome draws it frame by frame at 30 fps, and each ships as H.264 (crf 24) and VP9 (crf 34)
-with its first frame as the poster. Every letter and number is the app's own; the text was checked against the live
-pages on the day. The only things the kit draws are the ground, the lift's hairline and shadow, the pointer and its
-click ring. Captures opened a menu and ticked a filter; nothing was typed, saved or sent.
+The founder's recording of 24 Oct 2026: the eight grid cards made again the way the four dark flows were, every piece
+the same size, and the checks' three pictures dark and filling at least 70% of their cards. Each grid clip is a walk
+through the real app in its light theme on sourcebd.net, recorded on 25 Oct 2026 from the admin account in a headless
+Chrome on a temporary profile the founder signed in to (deleted after the takes), at 1440 × 900 drawn at DPR 2 and
+slowed four times (`E:\SourceBD-marketing\grid
+ec
+ec.py`, the flows' recorder, with `shots.py`). The compositor
+(`grid.py`, the flows' `comp.py` set to a card) lays the app at its own pixels, one window from the card's top left
+running off its far edges, sharp where it reads and falling into a blur on the right and into the card's ground at the
+bottom, every card at the same scale and inset; its camera follows the pointer across a section, as the flows' views
+move; each loops by dissolving back into its first frame. Ships at 992 × 662 as H.264 (crf 22) and VP9 (crf 32) with its
+first frame as the poster. The compositor draws the card's ground and the window's hairline and nothing else. The search
+ticked GOTS in its Certificates menu (the menu item took a DOM click, the pointer already resting on it); nothing was
+typed, saved or sent.
 
-Remade on 22 Oct 2026 after the founder's recording of 13:17: the part of the app is one whole sheet on a ground of the
-design system's colours (no grid, no yellow); nothing is cut out, dimmed or blurred; a glass lift (a hairline and a
-faint, long shadow, never a black one) travels its rows, laid over the sheet as the same pixels so nothing pops; the
-sheet fills its frame and runs off the bottom edge as mercury's cards do; the camera breathes and follows. A public
-record's clip ends where it began, so the hand-over between records is one header for another.
+| Clip | What it shows | Files |
+| -- | -- | -- |
+| `filters` | The search's Certificates menu opened and GOTS ticked: 10,048 suppliers narrow to 581 | `clip-filters.mp4` · `clip-filters.webm` · `clip-filters.webp` |
+| `buyers` | Aboni Knitwear's Buyers, the pointer on ASOS, H&M and NEXT | `clip-buyers.*` |
+| `shipments` | Markets and shipments: where Aboni Knitwear's exports go, then scrolled to its latest shipments | `clip-shipments.*` |
+| `certificates` | Aboni Knitwear's certificates with their numbers and dates, scrolled | `clip-certificates.*` |
+| `keyfacts` | Aboni Knitwear's key facts, the view moving across to women and men and sewing machines | `clip-keyfacts.*` |
+| `memberships` | Aboni Knitwear's four memberships, the view moving across to BGAPMEA and BKMEA | `clip-memberships.*` |
+| `safety` | Aboni Knitwear's two buildings in the RSC programme, their reports and training | `clip-safety.*` |
+| `sources` | Aboni Knitwear's sources in trust order, scrolled | `clip-sources.*` |
 
-| Clip | What it shows | Captured from | Files |
-| -- | -- | -- | -- |
-| `filters` | The search's Certificates menu: GOTS ticked, 10,048 suppliers narrowing to 587, then unticked | `/app/discover` and `/app/discover?cert=gots:valid`, signed in | `clip-filters.mp4` · `clip-filters.webm` · `clip-filters.webp` |
-| `buyers` | Aboni Knitwear's Buyers: the brands' own supplier lists and customs records | `/app/suppliers/aboni-knitwear`, signed in | `clip-buyers.mp4` · `clip-buyers.webm` · `clip-buyers.webp` |
-| `shipments` | Aboni Knitwear's markets and its latest customs shipments | `/app/suppliers/aboni-knitwear`, signed in | `clip-shipments.mp4` · `clip-shipments.webm` · `clip-shipments.webp` |
-| `certificates` | Aboni Knitwear's certificates with their numbers and dates, and the one that ended | `/app/suppliers/aboni-knitwear`, signed in | `clip-certificates.mp4` · `clip-certificates.webm` · `clip-certificates.webp` |
-| `record` | Aboni Knitwear's record as the app draws it, the camera coming in on its head and its export figures and out | `/app/suppliers/aboni-knitwear`, signed in | `clip-record.mp4` · `clip-record.webm` · `clip-record.webp` |
-| `keyfacts` | Aboni Knitwear's key facts | `/app/suppliers/aboni-knitwear`, signed in | `clip-keyfacts.mp4` · `clip-keyfacts.webm` · `clip-keyfacts.webp` |
-| `memberships` | Aboni Knitwear's four memberships, each lifting in turn | `/app/suppliers/aboni-knitwear`, signed in | `clip-memberships.mp4` · `clip-memberships.webm` · `clip-memberships.webp` |
-| `safety` | Aboni Knitwear's RSC safety record | `/app/suppliers/aboni-knitwear`, signed in | `clip-safety.mp4` · `clip-safety.webm` · `clip-safety.webp` |
-| `sources` | Aboni Knitwear's sources in trust order | `/app/suppliers/aboni-knitwear`, signed in | `clip-sources.mp4` · `clip-sources.webm` · `clip-sources.webp` |
+`clip-record.*` (Aboni Knitwear's record, the camera coming in on its head and export figures) is the 22 Oct 2026 kit's
+and no longer on the home page.
 
-## Stills of the real app (Buy with confidence), 22 Oct 2026
+The checks' stills are the record and the UFLPA checks as the app draws them 375 px wide in its dark theme, where each
+panel is one column (same day, account and recorder, `THEME=dark`, `VW=375`), cut at one scale (360 CSS px across the
+card's window) and written 640 × 800 as WebP (quality 86). Under the sanctions panel the page is cleared to the app's own
+ground, so the contact panel, the next card's picture, is not shown twice.
 
-The founder's recording of 22 Oct 13:17: this section needs no animation. Each is one panel cut from the same captures,
-alone on the night ground with a light hairline and glow, the page round it hidden; the kit draws it once (1200 × 900)
-and it ships as WebP (quality 86).
+| Still | What it shows | File |
+| -- | -- | -- |
+| `sanctions` | Aboni Knitwear's sanctions lists: not listed, each list with the day it was read | `still-sanctions.webp` |
+| `uflpa` | The UFLPA checks on the saved list: 0 on the Entity List, 0 possible Xinjiang links, 18 with no link found | `still-uflpa.webp` |
+| `locked` | Aboni Knitwear's contact panel, locked, with Send RFQ under it | `still-locked.webp` |
 
-| Still | What it shows | Captured from | File |
-| -- | -- | -- | -- |
-| `sanctions` | Aboni Knitwear's sanctions lists: not listed, each list with the day it was read (no supplier is sanctioned today, so no sanctioned record exists to show) | `/app/suppliers/aboni-knitwear`, signed in | `still-sanctions.webp` |
-| `uflpa` | The Compliance hub's UFLPA checks on the saved list | `/app/compliance`, signed in | `still-uflpa.webp` |
-| `locked` | A public record's contact panel, locked | `/suppliers/aboni-knitwear`, signed out | `still-locked.webp` |
+## Brand logos, 25 Oct 2026
+
+The founder's recording of 24 Oct 2026 asked for the brands row to show each brand's real logo in one colour, as
+mercury.com's does (context/logos.lock.md §1 records the change). Each logo is the file Wikipedia and Wikimedia Commons
+carry for the brand, fetched on 25 Oct 2026; a headless browser drew it at 200 px high, made every pixel that was not
+near white solid and every near-white one clear (so a white letter knocked out of a colour block stays a hole), cropped
+it to its ink and wrote it 120 px high as lossless WebP. The page uses each only as a mask filled with the ground's ink.
+
+| File | Source |
+| -- | -- |
+| `brands/hm.webp` | Commons `File:H&M-Logo.svg` |
+| `brands/inditex.webp` | Commons `File:Inditex logo black.svg` |
+| `brands/next.webp` | Commons `File:Next logo.svg` |
+| `brands/walmart.webp` | Commons `File:Walmart logo (2025).svg` |
+| `brands/ms.webp` | Commons `File:Marks & Spencer new logo.svg` |
+| `brands/tesco.webp` | Commons `File:Tesco 2016 logo.svg` |
+| `brands/asos.webp` | English Wikipedia `File:Asos.svg` |
+| `brands/bestseller.webp` | Commons `File:Bestseller (Unternehmen) logo.svg` |
+| `brands/lpp.webp` | Commons `File:LPP (company) logo.svg` |
+| `brands/action.webp` | Commons `File:Action Nederland Logo 2020.svg` |
+| `brands/nkd.webp` | Commons `File:NKD Logo 2015.svg` |
+| `brands/promod.webp` | Commons `File:Promod logo.svg` |
+| `brands/deltagalil.webp` | Commons `File:Delta Galil logo.svg` |
+| `brands/lcw.webp` | Commons `File:LC Waikiki logo.svg` |
+| `brands/renner.webp` | Commons `File:Logotipo das Lojas Renner.svg` |

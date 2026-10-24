@@ -7,8 +7,9 @@
 //   live facts (`lib/site-facts.ts`): one that was not read is left out, never guessed; "0 scores" is true by
 //   definition. They count up once as the row scrolls in, ending on the figure the server drew; nothing counts with no
 //   script, under reduced motion, or when the row is on screen as the page opens.
-// - `Protection`: three cards, each one panel of the real app held still (`AppStill`, PROVENANCE.md): the checks a
-//   buyer gets on every record. The words are the Security and Compliance pages'.
+// - `Protection`: three cards, each a part of the real app in its dark theme held still, filling the card (`AppStill`,
+//   PROVENANCE.md; founder's recording of 24 Oct 2026): the checks a buyer gets on every record. The words are the
+//   Security and Compliance pages'.
 // - `Guides`: three of the compliance guides, where Mercury lists its press, each a card with its law's short name on
 //   a tile (our type, no logo) and the way in.
 // - `Finale`: the closing headline with Start free and Book a demo, then a card for buyers and one for suppliers.
@@ -92,9 +93,9 @@ export function Stats({ facts }: { facts: SiteFacts }) {
 }
 
 export const CARDS: { still: string; says: string; title: string; body: string }[] = [
-  { still: "sanctions", says: "A record's sanctions panel: not listed, read for every supplier, with the day each list was read: US Treasury (OFAC) 8 Oct, US Labor (ILAB) 16 Oct, European Union 6 Oct, UK (OFSI) 6 Oct.", title: "Every supplier, against sanctions lists", body: "US, EU and UK lists, each with the day we read it. A supplier on one is marked everywhere and Send RFQ is refused." },
-  { still: "uflpa", says: "The Compliance hub's UFLPA checks on the saved list: none on the UFLPA Entity List, none with a possible Xinjiang link, no link found for 18 suppliers.", title: "Forced-labour lists, checked for you", body: "Every saved supplier against the UFLPA Entity List. Entries added since our last read are said to be unchecked." },
-  { still: "locked", says: "A public record's contact panel: the contact details are locked, with Sign up to contact.", title: "Contacts locked until they are given", body: "Contact details open only when the supplier or a register provides them. Locked is a state, not a blur." },
+  { still: "sanctions", says: "A record's sanctions panel: not listed, read for every supplier, with the day each list was read: US Treasury (OFAC) 8 Oct, US Labor (ILAB) 24 Oct, European Union 6 Oct, UK (OFSI) 6 Oct.", title: "Every supplier, against sanctions lists", body: "US, EU and UK lists, each with the day we read it. A supplier on one is marked everywhere and Send RFQ is refused." },
+  { still: "uflpa", says: "The UFLPA checks on the saved list: none on the UFLPA Entity List, none with a possible Xinjiang link, no link found for 18 suppliers, then the suppliers A to Z.", title: "Forced-labour lists, checked for you", body: "Every saved supplier against the UFLPA Entity List. Entries added since our last read are said to be unchecked." },
+  { still: "locked", says: "A record's contact panel: the contact details are locked, and Send RFQ under it.", title: "Contacts locked until they are given", body: "Contact details open only when the supplier or a register provides them. Locked is a state, not a blur." },
 ];
 
 export function Protection() {
@@ -108,7 +109,7 @@ export function Protection() {
           {CARDS.map((c) => (
             <li key={c.title} className="flex flex-col">
               <div className="relative aspect-[4/5] overflow-hidden rounded-frame bg-sunken">
-                <AppStill name={c.still} says={c.says} panel />
+                <AppStill name={c.still} says={c.says} />
               </div>
               <CardWords title={c.title} body={c.body} />
             </li>
