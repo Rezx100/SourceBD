@@ -85,7 +85,7 @@ describe("the navigation", () => {
     const out = draw(createElement(site().nav.SiteNav));
     const t = text(out);
     // The brand kit's logo (25 Oct 2026), drawn inline and named for a screen reader, in place of the typed wordmark.
-    assert.match(out, /<a[^>]*href="\/"[^>]*><svg[^>]*height="22"[^>]*role="img"[^>]*aria-label="SourceBD"[^>]*data-logo/);
+    assert.match(out, /<a[^>]*href="\/"[^>]*><svg[^>]*height="35"[^>]*role="img"[^>]*aria-label="SourceBD"[^>]*data-logo/);
     assert.match(out, /class="fill-logo-back[^"]*"[\s\S]*class="fill-logo-front[^"]*"[\s\S]*fill="currentColor"/, "back swatch, front swatch, then the word in the bar's ink");
     for (const w of ["Product", "Solutions", "Resources", "Pricing", "Sign in", "Start free"]) assert.match(t, new RegExp(w));
     // Two actions at the right since the founder's walkthrough of 23 Oct 2026, as mercury.com's; Book a demo stays in the phone's sheet and beside the hero's form.
@@ -244,6 +244,13 @@ describe("the logo (brand kit, 25 Oct 2026)", () => {
     }
     assert.deepEqual(typed, []);
     for (const f of ["components/auth/state.tsx", "app/invite/[token]/page.tsx"]) assert.match(readFileSync(join(process.cwd(), f), "utf8"), /<Logo height=\{20\}/, f);
+    // The founder, 25 Oct 2026: a 35 px icon on the bar and the footer, the word 75% of it.
+    assert.match(readFileSync(join(process.cwd(), "components/site/sections/ui.tsx"), "utf8"), /<Logo height=\{35\} \/>/);
+    const logo = readFileSync(join(process.cwd(), "components/patterns/logo.tsx"), "utf8");
+    assert.match(logo, /scale\(0\.9266\)">/);
+    // The toothed swatches at every size (the founder, 25 Oct 2026), never the kit's scalloped small cut.
+    assert.equal((logo.match(/points=\{TEETH\}/g) ?? []).length, 2);
+    assert.doesNotMatch(logo, /A4\.06/);
   });
 
   it("the bar reads the dark blocks on every page, not only the home page's", () => {
