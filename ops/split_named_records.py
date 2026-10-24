@@ -52,9 +52,11 @@ from ops.repair_bgmea_conflations import (  # noqa: E402
     Rest,
     SupplierPool,
     _guard_matches,
+    _lists_from_record,
     _locked_columns,
     _merge_into_profile,
     _recompute_parent,
+    _scalars_from_record,
     _unique_slug,
 )
 
@@ -68,6 +70,51 @@ SPLITS: list[tuple[str, str, list[tuple[str, str]]]] = [
 RENAMES: list[tuple[str, str]] = [("veetex-fabrics", "Vertex Fabrics Ltd.")]
 # host slug -> the name Volza was searched under for that company alone (it found nothing)
 VOLZA_NOT_FOUND: dict[str, str] = {"funny-sweater": "FUNNY SWEATER"}
+
+
+def unproject(rest: Rest, host_id: str, moved: list[tuple[str, dict]], source_codes: dict[str, str],
+              apply: bool) -> None:
+    """Take the moved records' own values off the host profile unless a remaining record gives them too.
+
+    `_recompute_parent` rebuilds numbers and membership numbers only; founding date, address, email,
+    phones and product lists stayed behind (Funny Sweater showed Sunny Sweater's 2018 founding date,
+    Azim Garments showed Aziz Garments' Chittagong phones).
+    """
+    moved_ids = {r["id"] for _, r in moved}
+    remaining = [r for r in rest.all_rows("source_records", {"select": "id,source_id,fields",
+                                                             "supplier_id": f"eq.{host_id}", "status": "eq.active"})
+                 if r["id"] not in moved_ids]
+    keep: dict[str, set] = {"factory_types": set(), "principal_products": set(), "phones": set()}
+    keep_scalar: dict[str, Any] = {}
+    for r in remaining:
+        code, fields = source_codes.get(r["source_id"], ""), r.get("fields") or {}
+        for col, vals in _lists_from_record(fields, code).items():
+            keep[col].update(vals)
+        for col, val in _scalars_from_record(fields, code).items():
+            if col == "phones":
+                keep["phones"].update(val)
+            else:
+                keep_scalar.setdefault(col, val)
+    cols = "factory_types,principal_products,established_date,address_raw,email_primary,phones"
+    current = rest.one("suppliers", {"select": cols, "id": f"eq.{host_id}"}) or {}
+    body: dict[str, Any] = {}
+    for code, rec in moved:
+        fields = rec.get("fields") or {}
+        lists = {**_lists_from_record(fields, code), "phones": _scalars_from_record(fields, code).get("phones", [])}
+        for col, vals in lists.items():
+            have = body.get(col, current.get(col) or [])
+            left = [v for v in have if v not in set(vals) or v in keep[col]]
+            if left != have:
+                body[col] = left
+        for col, val in _scalars_from_record(fields, code).items():
+            if col != "phones" and current.get(col) == val:
+                body[col] = keep_scalar.get(col)  # empty when no remaining record gives one
+    locked = _locked_columns(rest, host_id)
+    body = {c: v for c, v in body.items() if c not in locked}
+    for col, val in body.items():
+        print(f"      old profile {col}: {current.get(col)!r} -> {val!r}")
+    if apply and body:
+        rest.patch("suppliers", {"id": f"eq.{host_id}"}, body)
 
 
 def split(rest: Rest, pool: SupplierPool, source_codes: dict[str, str], code_ids: dict[str, str],
@@ -96,6 +143,8 @@ def split(rest: Rest, pool: SupplierPool, source_codes: dict[str, str], code_ids
     print(f"split {host['company_name']!r} -> {name!r} [{where}]: "
           + ", ".join(f"{c} {r['source_ref']}" + ("" if r["supplier_id"] == host["id"] else " (already moved)")
                       for c, r in records))
+    if on_host and not apply:
+        unproject(rest, host["id"], on_host, source_codes, apply=False)
     if not apply or not on_host:
         return 0
 
@@ -109,6 +158,7 @@ def split(rest: Rest, pool: SupplierPool, source_codes: dict[str, str], code_ids
                 raise
             dest = rest.one("suppliers", {"select": "id,company_name", "slug": f"eq.{slug}"})
         pool.add({"id": dest["id"], "company_name": name})
+    unproject(rest, host["id"], on_host, source_codes, apply=True)  # before the move: a rerun finds nothing to move
     for code, rec in on_host:
         # commit point: the move; claims and profile columns follow it
         moved = rest.patch("source_records", {"id": f"eq.{rec['id']}", "supplier_id": f"eq.{host['id']}"},
