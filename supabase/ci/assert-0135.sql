@@ -12,6 +12,13 @@ insert into auth.users (id, email, raw_user_meta_data) values
   ('00000000-0000-4000-8000-00000000b135', 'buyer-0135@example.invalid', '{"role":"buyer"}'::jsonb)
 on conflict do nothing;
 
+-- The replay itself wrote entries, stamped with the wall clock of whenever it ran: when it ran in the hour
+-- before this file, they counted in the one-hour-ago window (CI run 40104918829). Clear them so the windows
+-- hold only the entries below; the guard is off for this one delete (only the owner can), and it all rolls back.
+alter table public.activity_ledger disable trigger trg_activity_ledger_no_change;
+delete from public.activity_ledger;
+alter table public.activity_ledger enable trigger trg_activity_ledger_no_change;
+
 -- Entries at known times: the writer stamps `at` itself, so these go in directly as the owner (the record's
 -- own writer is tested in assert-0131). Two hours ago, one hour ago, and now.
 insert into public.activity_ledger (at, actor_id, kind, target_table, target_id, content, content_hash) values
