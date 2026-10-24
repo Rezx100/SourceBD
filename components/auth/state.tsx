@@ -5,6 +5,8 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { ButtonLink } from "@/components/kit";
+import { ring } from "@/components/kit/classes";
+import { Logo } from "@/components/patterns/logo";
 import { cn } from "@/lib/utils";
 import { AuthLink, authLinkClass } from "./link";
 
@@ -12,8 +14,8 @@ import { AuthLink, authLinkClass } from "./link";
 export function AuthBar({ lead, link, border }: { lead?: string; link: ReactNode; border?: boolean }) {
   return (
     <div className={cn("flex h-14 shrink-0 items-center justify-between px-4 sm:px-10", border && "border-b border-line")}>
-      <Link href="/" className="text-md font-semibold tracking-tight text-brand-ink">
-        SourceBD
+      <Link href="/" className={cn("rounded-sm text-ink", ring)}>
+        <Logo height={20} />
       </Link>
       <div className="flex items-center gap-1.5 text-base">
         {lead ? <span className="text-ink-3 max-sm:hidden">{lead}</span> : null}

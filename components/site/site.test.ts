@@ -232,6 +232,20 @@ describe("the logo (brand kit, 25 Oct 2026)", () => {
     for (const url of named) assert.ok(existsSync(join(process.cwd(), "public", url)), `${url} is not in public/`);
   });
 
+  it("no screen still types the wordmark: the auth bar and the invite page draw the logo", () => {
+    /* eslint-disable-next-line @typescript-eslint/no-require-imports */
+    const { readdirSync } = require("node:fs") as typeof import("node:fs");
+    const typed: string[] = [];
+    for (const root of ["app", "components"]) {
+      for (const f of readdirSync(join(process.cwd(), root), { recursive: true }).map(String).filter((f) => f.endsWith(".tsx"))) {
+        const src = readFileSync(join(process.cwd(), root, f), "utf8");
+        if (/>\s*SourceBD\s*</.test(src.replace(/<title>[^<]*<\/title>/g, ""))) typed.push(`${root}/${f}`);
+      }
+    }
+    assert.deepEqual(typed, []);
+    for (const f of ["components/auth/state.tsx", "app/invite/[token]/page.tsx"]) assert.match(readFileSync(join(process.cwd(), f), "utf8"), /<Logo height=\{20\}/, f);
+  });
+
   it("the bar reads the dark blocks on every page, not only the home page's", () => {
     // Until 25 Oct 2026 the ground check returned early unless `over`, so on /product/search the bar stayed white glass over the night block.
     const nav = readFileSync(join(process.cwd(), "components/site/nav.tsx"), "utf8");
