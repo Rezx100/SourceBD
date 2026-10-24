@@ -1,7 +1,7 @@
 // The parts every marketing page is drawn with (M1, handoff-mercury-motion-sitewide.md §3): the home page's look,
 // one set for the whole site. One measure (1280 of content at 1440), one rhythm (`py-section`), light display type
-// from the `site-*` scale, ink links, one focus ring. Green is spent on the primary button and the wordmark only,
-// never on a link (the founder's critique of 7 Oct, item 2). Server components; the FAQ, the closing band and the
+// from the `site-*` scale, ink links, one focus ring. Green is spent on the primary button and the logo's swatches
+// only, never on a link (the founder's critique of 7 Oct, item 2). Server components; the FAQ, the closing band and the
 // footer are their own files beside this one.
 
 import Link from "next/link";

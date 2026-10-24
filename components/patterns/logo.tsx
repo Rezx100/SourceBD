@@ -16,7 +16,7 @@ const fade = "transition-[fill] duration-slow motion-reduce:transition-none";
 /** `height` in px; the width follows (5353.5 : 930.7). */
 export function Logo({ height, className }: { height: number; className?: string }) {
   return (
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 5353.5 930.7" height={height} role="img" aria-label="SourceBD" data-logo className={cn("block w-auto shrink-0", className)}>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 5353.5 930.7" height={height} width={Math.round((height * 5353.5) / 930.7)} role="img" aria-label="SourceBD" data-logo className={cn("block shrink-0", className)}>
       <g transform="translate(0 814.3)">
         <g transform="translate(-15.14 -829.47) scale(11.3792)">
           <path transform="translate(10.22 20.45) rotate(45 32 32)" d={SWATCH} className={cn("fill-logo-back", fade)} />
