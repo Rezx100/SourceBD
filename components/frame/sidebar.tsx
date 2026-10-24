@@ -25,6 +25,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Suspense, type ReactNode } from "react";
 import { ringInset } from "@/components/kit/classes";
+import { Logo } from "@/components/patterns/logo";
 import { FRAME_FOOT, FRAME_NAV, frameMatch, type FrameItem, type FrameKey } from "@/lib/frame-nav";
 import { cn } from "@/lib/utils";
 import { NO_BADGES, useBadges, type BadgesInput, type FrameBadges } from "./badges";
@@ -141,8 +142,9 @@ function SidebarBody({ badges, extra, account }: { badges: FrameBadges; extra?: 
     <aside aria-label="Menu" className="hidden h-full w-16 shrink-0 flex-col justify-between border-r border-line bg-subtle md:flex 2xl:w-sidebar">
       <div className="flex min-h-0 flex-col">
         <div className="flex h-14 shrink-0 items-center px-5">
-          <Link href="/app" className={cn("hidden rounded-sm text-md font-semibold tracking-tight text-brand 2xl:block app-dark:text-ink", ringInset)}>
-            SourceBD
+          {/* 20 px, the brand kit's smallest lockup; its swatches turn with the app's dark theme. */}
+          <Link href="/app" className={cn("hidden w-fit rounded-sm text-ink 2xl:block", ringInset)}>
+            <Logo height={20} />
           </Link>
         </div>
         <nav aria-label="Main menu" className="relative flex min-h-0 flex-col gap-0.5 overflow-y-auto px-3 py-2">
