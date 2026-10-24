@@ -193,6 +193,10 @@ export function marketOfCountry(iso: string | null | undefined): VolzaMarketName
   return c === "GB" ? "United Kingdom" : c === "US" ? "United States" : c === "CA" ? "Canada" : EU_COUNTRIES.has(c) ? "EU" : null;
 }
 export type VolzaMarket = { shipments: number; fob_usd: number | null; buyers: number | null; top: VolzaShipment | null };
+/** One sister company's customs totals (`supplier_group_exports`, 0157). */
+export type GroupMemberExports = { name: string; slug: string; shipments: number; fob_usd: number | null; buyers: number | null; window_start: string; window_end: string };
+/** `supplier_group_exports` (0157): the group's sisters with customs records, for a member with none of its own; null otherwise. */
+export type GroupExports = { group: string; members: GroupMemberExports[] };
 /** `supplier_volza_exports` (0137, 0139, 0140): null unless the reader is on a paying plan and there is an exact match. */
 export type VolzaExports = {
   shipments: number;

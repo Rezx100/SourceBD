@@ -107,7 +107,7 @@ from etl.core.projection import (
     value_for_column,
     within_numeric_cap,
 )
-from etl.core.upsert import _FUZZY_THRESHOLD, _names_compatible
+from etl.core.upsert import _FUZZY_THRESHOLD, _names_compatible, _same_head_word
 
 # Historical aliases — existing tests import these names from this module.
 _CAPS = NUMERIC_CAPS
@@ -171,6 +171,29 @@ class Rest:
         return r.json()[0]
 
 
+# One company under two spellings, checked by hand against the register entries' address and owner.
+SAME_COMPANY_SPELLINGS = {
+    frozenset((normalize_company_name(x), normalize_company_name(y)))
+    for x, y in (
+        ("VARONICA APPARELS", "Veronica Apparels"),  # same premises, Chairman Market, Dakshin Khan (24 Oct 2026)
+    )
+}
+
+
+def head_word_differs(a: str, b: str) -> bool:
+    """Whether two normalized names start with a different own-name word, not just a different spacing.
+
+    "gold star fashions" and "goldstar fashions" spell one word two ways; "funny sweater" and
+    "sunny sweater" are two companies. The letters of the longer leading word must agree.
+    """
+    if _same_head_word(a, b):
+        return False
+    ha, hb = (next((t for t in n.split() if t != "the"), "") for n in (a, b))
+    sa, sb = (re.sub(r"[^a-z0-9]", "", n) for n in (a, b))
+    span = max(len(ha), len(hb))
+    return sa[:span] != sb[:span]
+
+
 def _compatible(host_name: str, member_name: str) -> bool:
     """Whether a host supplier and a BGMEA member name are the same company.
 
@@ -186,7 +209,13 @@ def _compatible(host_name: str, member_name: str) -> bool:
     if not a or not b:
         # Nothing to compare — do not flag what cannot be checked.
         return True
-    if _names_compatible(a, b):
+    # The leading word is the company's own name (`_same_head_word`, the merge matcher's rule). Without it
+    # "funny sweater" and "sunny sweater" score 92 and Sunny Sweater's BGMEA membership sat unseen on
+    # Funny Sweater (24 Oct 2026). A one-letter spelling of one company passes only once a person has
+    # checked the address or owner and listed it in SAME_COMPANY_SPELLINGS.
+    same_letters = re.sub(r"[^a-z0-9]", "", (host_name or "").lower()) == re.sub(r"[^a-z0-9]", "", (member_name or "").lower())
+    if _names_compatible(a, b) and (same_letters or not head_word_differs(a, b)
+                                    or frozenset((a, b)) in SAME_COMPANY_SPELLINGS):
         return True
     # Either side may be the building: host "X (Extension)" with member "X",
     # or host "X" with member "X (Unit-2)".

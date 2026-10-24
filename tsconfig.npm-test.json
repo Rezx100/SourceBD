@@ -178,7 +178,6 @@
     "components/site/type.test.ts",
     "components/site/sections/icons.test.ts",
     "components/site/sections/page.test.ts",
-    "lib/home-records.test.ts",
     "components/site/pages.test.ts",
     "components/site/home.tsx",
     "components/site/legal.test.ts",

@@ -133,6 +133,26 @@ class TestStowawayDetection:
         ]:
             assert _compatible(host, member), (host, member)
 
+    def test_one_letter_in_the_leading_word_is_another_company(self):
+        # 24 Oct 2026: these scored 90+ and sat unseen; owners and cities differ on the register entries.
+        for host, member in [
+            ("FUNNY SWEATER LTD.", "Sunny Sweater Ltd."),
+            ("Azim Garments Ltd.", "Aziz Garments Ltd."),
+            ("RAFIA KNITWEARS", "Rafin Knitwears Ltd."),
+            ("UNITED ATTIRES LIMITED.", "Unitex Attires Ltd."),
+            ("Western Dresses Ltd", "Eastern Dresses Ltd."),
+        ]:
+            assert not _compatible(host, member), (host, member)
+
+    def test_spacing_punctuation_and_checked_spellings_are_one_company(self):
+        for host, member in [
+            ("Goldstar Fashions Ltd.", "Gold Star Fashions Ltd."),
+            ("KEI LOCK NEWAGE BANGLADESH LTD", "Keilock Newage Bangladesh Ltd."),
+            ("That's It Fashions Ltd.", "Thats' It Fashions Ltd."),
+            ("VARONICA APPARELS", "Veronica Apparels"),  # same premises, checked by hand
+        ]:
+            assert _compatible(host, member), (host, member)
+
     def test_extension_host_is_the_unit_class_not_a_conflation(self):
         assert _compatible(
             "AKH KNITTING & DYEING LTD. (Extension)", "AKH Knitting & Dyeing Ltd."

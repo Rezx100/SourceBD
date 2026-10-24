@@ -39,6 +39,7 @@ import {
   rscTrainingWords,
   sortCerts,
   type CertChecks,
+  type GroupExports,
   type ShipmentRevealState,
   type VolzaExports,
   type VolzaMarketName,
@@ -1136,6 +1137,8 @@ export type SheetOptions = {
   certChecks?: CertChecks | null;
   /** `supplier_volza_exports(slug)` (0137); null for a reader not on a paying plan, or no match. */
   volza?: VolzaExports | null;
+  /** `supplier_group_exports(slug)` (0157); null unless this one has no customs row and a sister does. */
+  groupExports?: GroupExports | null;
   /** `supplier_shipment_reveal_state(slug)` (0141); null draws no Recent shipments section. */
   shipments?: ShipmentRevealState | null;
   /** The reader's own customs market (their onboarding country), for the export grid. */
@@ -1540,6 +1543,7 @@ export function buildSheet(filed: RecordInput, options: SheetOptions = {}): Supp
     sanctionLists: options.sanctionLists ?? null,
     certChecks: options.certChecks ?? null,
     volza: options.volza ?? null,
+    groupExports: options.volza ? null : (options.groupExports ?? null),
     shipments: options.shipments ?? null,
     market: options.market ?? null,
     exportRank: options.exportRank ?? null,
