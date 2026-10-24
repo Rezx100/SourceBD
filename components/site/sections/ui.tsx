@@ -1,13 +1,14 @@
 // The parts every marketing page is drawn with (M1, handoff-mercury-motion-sitewide.md §3): the home page's look,
 // one set for the whole site. One measure (1280 of content at 1440), one rhythm (`py-section`), light display type
-// from the `site-*` scale, ink links, one focus ring. Green is spent on the primary button and the wordmark only,
-// never on a link (the founder's critique of 7 Oct, item 2). Server components; the FAQ, the closing band and the
+// from the `site-*` scale, ink links, one focus ring. Green is spent on the primary button and the logo's swatches
+// only, never on a link (the founder's critique of 7 Oct, item 2). Server components; the FAQ, the closing band and the
 // footer are their own files beside this one.
 
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { ButtonLink } from "@/components/kit";
 import { buttonClass } from "@/components/kit/button-class";
+import { Logo } from "@/components/patterns/logo";
 import { SourceMark } from "@/components/patterns/source-mark";
 import { cn } from "@/lib/utils";
 
@@ -29,11 +30,11 @@ export const ring = "outline-none focus-visible:outline focus-visible:outline-2 
 /** A link in running text: ink, underlined. */
 export const inkLink = cn("font-medium text-ink-strong underline decoration-1 underline-offset-4 hover:decoration-2", ring);
 
-/** The wordmark: the one green word on the site besides the main button; on the night ground (the footer, the bar over a dark section) its green is the night set's, so it still reads. */
+/** The logo, 22 px tall (the brand kit's nav size): the word in the ink of its ground, the two swatches green on a light one and paper on the night (the footer, the bar over a dark section). */
 export function Wordmark({ className }: { className?: string }) {
   return (
-    <Link href="/" className={cn("w-fit text-xl font-semibold tracking-tight text-brand-ink", ring, className)}>
-      SourceBD
+    <Link href="/" className={cn("w-fit rounded-sm text-ink", ring, className)}>
+      <Logo height={22} />
     </Link>
   );
 }

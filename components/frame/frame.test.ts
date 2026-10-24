@@ -114,7 +114,6 @@ describe("the frame a buyer receives", () => {
         if (f === "pane-divider.tsx") continue; // the founder's 40% green divider (6 Oct 2026), decided
         const src = readFileSync(path.join(root, f), "utf8");
         for (const [i, line] of src.split("\n").entries()) {
-          if (/tracking-tight text-brand 2xl:block/.test(line)) continue; // the wordmark
           if (retired.test(line)) hits.push(`${path.basename(root)}/${f}:${i + 1}`);
           retired.lastIndex = 0;
         }

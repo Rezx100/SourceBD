@@ -10,8 +10,9 @@
 // of 22 Oct 2026 13:17 and his review of 14:18, it starts as glass over the studio photograph, with no ground and no
 // line under it, and once the page scrolls it takes the ground of the section under it: the night set while a dark
 // section (the opening's scene, the brands, Buy with confidence) is under the bar, the paper's white over the rest,
-// each fading into the other in a moment. Never a white bar over the dark scene. Phones keep the solid bar; everywhere
-// else it has its ground from the first paint. Where the whole page takes one ground at a time (the home page since
+// each fading into the other in a moment. Never a white bar over the dark scene. Phones keep the solid bar; every
+// other page has its ground from the first paint and takes the night set over its `data-tone="dark"` blocks in the
+// same way (it read only the home page's until 25 Oct 2026, so the product pages' bar went grey over them). Where the whole page takes one ground at a time (the home page since
 // the founder's walkthrough of 23 Oct 2026, `HomeMain`), the bar is that ground, solid, with no line under it.
 //
 // Its layout is mercury.com's since that walkthrough: the full width with 32 px a side, the wordmark at the left, the
@@ -121,17 +122,17 @@ export function SiteNav({ over = false }: { /** The home page: the bar floats cl
     setSheet(false);
   }, [path]);
 
-  // Over the opening: glass while the page sits at its top; once it has scrolled a little, the ground of the section
-  // whose bounds hold the bar's lower edge (night for a dark one, from 1024 up; phones keep the solid bar).
+  // Over the opening: glass while the page sits at its top. Once it has scrolled a little, and on every other page
+  // (the product pages' `data-tone="dark"` blocks), the ground of the section whose bounds hold the bar's lower edge
+  // (night for a dark one, from 1024 up; phones keep the solid bar).
   useEffect(() => {
-    if (!over) return;
     const wide = matchMedia("(min-width: 1024px)");
     let raf = 0;
     const read = () => {
       raf = 0;
       // At the top a phone keeps a light bar over the hero's paper (it has no studio to float over); see `clear`.
       const tone = !!document.documentElement.dataset.mkPage;
-      let next: "top" | "night" | "paper" | "page" = scrollY < 16 && (wide.matches || tone) ? "top" : "paper";
+      let next: "top" | "night" | "paper" | "page" = over && scrollY < 16 && (wide.matches || tone) ? "top" : "paper";
       if (next === "paper" && tone) next = "page";
       else if (next === "paper" && wide.matches) {
         const edge = head.current?.offsetHeight ?? 0;

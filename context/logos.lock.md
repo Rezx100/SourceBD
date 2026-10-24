@@ -173,7 +173,9 @@ the `sources` table. **Status legend:** `pending` = no asset yet ·
 
 | Asset | Path | Use |
 |---|---|---|
-| SourceBD logomark, full colour | `brand/sourcebd-logo.png` | Hero, footer, favicon — the only mark allowed >32 px |
+| SourceBD logo, the swatch cascade (25 Oct 2026; kit and every number in `E:\SourceBD-marketing\brand\README.md`) | `components/patterns/logo.tsx` (small cut, inline SVG) | Nav, footer, app sidebar, 20–31 px tall; swatches follow the ground (`--ds-logo-*`) |
+| SourceBD favicon and app tile | `brand/sourcebd-favicon.svg`, `-favicon-32/16.png`, `-tile-512/192.png`, `-apple-touch-180.png` | Browser tab, home screen (`app/layout.tsx`) |
+| Old logomark, retired 25 Oct 2026 | `brand/sourcebd-logo.png` | Nothing; kept so old links do not break |
 | Flame logomark, mono | `brand/sourcebd-mark-mono.svg` | When laid over imagery / coloured ground |
 | Wordmark, "SourceBD" | `brand/sourcebd-wordmark.svg` | Nav, email signature |
 | Stroke icon set | `meta/*.svg` | All product metadata icons (Lucide family, 1.5 px stroke, 24 grid, no frame) |

@@ -81,10 +81,13 @@ describe("the live facts", () => {
 });
 
 describe("the navigation", () => {
-  it("the wordmark, three menus, Pricing, Sign in and Start free, mercury.com's bar: every one a real link or button", () => {
+  it("the logo, three menus, Pricing, Sign in and Start free, mercury.com's bar: every one a real link or button", () => {
     const out = draw(createElement(site().nav.SiteNav));
     const t = text(out);
-    for (const w of ["SourceBD", "Product", "Solutions", "Resources", "Pricing", "Sign in", "Start free"]) assert.match(t, new RegExp(w));
+    // The brand kit's logo (25 Oct 2026), drawn inline and named for a screen reader, in place of the typed wordmark.
+    assert.match(out, /<a[^>]*href="\/"[^>]*><svg[^>]*height="22"[^>]*role="img"[^>]*aria-label="SourceBD"[^>]*data-logo/);
+    assert.match(out, /class="fill-logo-back[^"]*"[\s\S]*class="fill-logo-front[^"]*"[\s\S]*fill="currentColor"/, "back swatch, front swatch, then the word in the bar's ink");
+    for (const w of ["Product", "Solutions", "Resources", "Pricing", "Sign in", "Start free"]) assert.match(t, new RegExp(w));
     // Two actions at the right since the founder's walkthrough of 23 Oct 2026, as mercury.com's; Book a demo stays in the phone's sheet and beside the hero's form.
     assert.doesNotMatch(t, /Book a demo/);
     assert.match(out, /href="\/signup"[^>]*>Start free/);
@@ -189,6 +192,68 @@ describe("the skip link", () => {
   });
 });
 
+describe("the logo (brand kit, 25 Oct 2026)", () => {
+  /* eslint-disable @typescript-eslint/no-require-imports -- node built-ins and tailwind's CommonJS loader */
+  const { existsSync, readFileSync } = require("node:fs") as typeof import("node:fs");
+  const { join } = require("node:path") as typeof import("node:path");
+  /* eslint-enable @typescript-eslint/no-require-imports */
+
+  it("its swatches are bottle green over grey-green on every light ground and paper over grey-green on the night", async () => {
+    /* eslint-disable @typescript-eslint/no-require-imports */
+    const postcss = require("postcss") as typeof import("postcss").default;
+    const tailwind = require("tailwindcss") as (config: object) => import("postcss").AcceptedPlugin;
+    const loadConfig = require("tailwindcss/loadConfig") as (file: string) => Record<string, unknown>;
+    /* eslint-enable @typescript-eslint/no-require-imports */
+    const config = loadConfig(join(process.cwd(), "tailwind.config.ts"));
+    const { css } = await postcss([tailwind({ ...config, content: [{ raw: "fill-logo-front fill-logo-back", extension: "html" }] })]).process("@tailwind base; @tailwind utilities;", { from: undefined });
+    assert.match(css, /\.fill-logo-front\s*\{[^}]*var\(--ds-logo-front\)/);
+    assert.match(css, /\.fill-logo-back\s*\{[^}]*var\(--ds-logo-back\)/);
+    // The block a selector opens, so each ground is read on its own.
+    const block = (selector: string) => {
+      const at = css.indexOf(selector + " {");
+      assert.ok(at >= 0, `no ${selector}`);
+      return css.slice(at, css.indexOf("}", at));
+    };
+    const light = { front: "20 69 26", back: "93 140 96" };
+    const night = { front: "247 247 246", back: "168 185 169" };
+    for (const [selector, want] of [[":root", light], ['[data-ground="night"]', night], ['[data-tone="dark"]', night], ['[data-ground="day"]', light], ['[data-mk-page="night"]', night], ['[data-mk-page="warm"]', light], ['[data-mk-page="day"]', light]] as const) {
+      const b = block(selector);
+      assert.match(b, new RegExp(`--ds-logo-front: ${want.front};`), selector);
+      assert.match(b, new RegExp(`--ds-logo-back: ${want.back};`), selector);
+    }
+  });
+
+  it("the browser tab takes the kit's favicon, and every icon the layout names is served", () => {
+    const layout = readFileSync(join(process.cwd(), "app/layout.tsx"), "utf8");
+    assert.match(layout, /"\/icons\/brand\/sourcebd-favicon\.svg"/);
+    assert.doesNotMatch(layout, /sourcebd-logo\.png/, "the old mark is retired");
+    const named = [...layout.matchAll(/"(\/icons\/brand\/[^"]+)"/g)].map((m) => m[1]!);
+    assert.ok(named.length >= 5, "the favicon, its PNGs and the tiles");
+    for (const url of named) assert.ok(existsSync(join(process.cwd(), "public", url)), `${url} is not in public/`);
+  });
+
+  it("no screen still types the wordmark: the auth bar and the invite page draw the logo", () => {
+    /* eslint-disable-next-line @typescript-eslint/no-require-imports */
+    const { readdirSync } = require("node:fs") as typeof import("node:fs");
+    const typed: string[] = [];
+    for (const root of ["app", "components"]) {
+      for (const f of readdirSync(join(process.cwd(), root), { recursive: true }).map(String).filter((f) => f.endsWith(".tsx"))) {
+        const src = readFileSync(join(process.cwd(), root, f), "utf8");
+        if (/>\s*SourceBD\s*</.test(src.replace(/<title>[^<]*<\/title>/g, ""))) typed.push(`${root}/${f}`);
+      }
+    }
+    assert.deepEqual(typed, []);
+    for (const f of ["components/auth/state.tsx", "app/invite/[token]/page.tsx"]) assert.match(readFileSync(join(process.cwd(), f), "utf8"), /<Logo height=\{20\}/, f);
+  });
+
+  it("the bar reads the dark blocks on every page, not only the home page's", () => {
+    // Until 25 Oct 2026 the ground check returned early unless `over`, so on /product/search the bar stayed white glass over the night block.
+    const nav = readFileSync(join(process.cwd(), "components/site/nav.tsx"), "utf8");
+    assert.doesNotMatch(nav, /if \(!over\) return;/);
+    assert.match(nav, /querySelectorAll\('main \[data-tone="dark"\]'\)/);
+  });
+});
+
 describe("one site (M1, handoff-mercury-motion-sitewide.md §3)", () => {
   /* eslint-disable @typescript-eslint/no-require-imports -- node built-ins, loaded where they are used */
   const { readFileSync, readdirSync } = require("node:fs") as typeof import("node:fs");
@@ -217,12 +282,12 @@ describe("one site (M1, handoff-mercury-motion-sitewide.md §3)", () => {
     for (const { f, src } of sources) if (f !== "skip-link.tsx") assert.doesNotMatch(src, /outline-focus\b/, f);
   });
 
-  it("spends green on the main button, the wordmark and the icons' one detail only: every link is ink", () => {
+  it("spends green on the main button, the logo and the icons' one detail only: every link is ink", () => {
     for (const { f, src } of sources) {
       if (f === "sections/icons.tsx") continue;
       const green = src.match(/\b(?:text|bg|border|decoration)-brand(?!-on\b)[\w-]*/g) ?? [];
-      // The wordmark's green is `brand-ink`: the night set gives it a lighter one on a dark ground (the footer, the bar over a dark section).
-      assert.deepEqual(green, f === "sections/ui.tsx" ? ["text-brand-ink"] : [], f);
+      // The logo's green is its own pair of swatches (`--ds-logo-*`, components/patterns/logo.tsx), not a brand class.
+      assert.deepEqual(green, [], f);
     }
   });
 });
