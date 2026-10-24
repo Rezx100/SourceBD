@@ -60,6 +60,13 @@ export const FLOWS: Record<string, { file: string; says: string }> = {
   watch: { file: "clip-dark-sort", says: "The woven shirt WRAP results, 160 suppliers, their workers and certificates coming into focus, then sorted by supplier." },
 };
 const fileOf = (t: TourItem) => FLOWS[t.key]?.file ?? screenFile(t.screen ?? "find");
+/**
+ * The laptop's light picture: the first item's flow's first frame taken again with the app in its light theme, the
+ * same walk, account and framing (PROVENANCE.md), so the light page turns into the dark one with nothing moving (his
+ * review of 24 Oct 2026: the old light search under the new dark one did not match).
+ */
+const LIGHT: Record<string, string> = { find: "clip-light-search" };
+const lightOf = (t: TourItem | undefined) => (t ? LIGHT[t.key] : undefined) ?? screenFile(t?.screen ?? "find");
 
 type Pt = readonly [number, number];
 const clamp = (v: number, a = 0, b = 1) => Math.min(b, Math.max(a, v));
@@ -142,7 +149,7 @@ function Dash({ items, active, cover, onEnded, bar, light }: { items: readonly T
       ) : null}
       {light ? (
         // eslint-disable-next-line @next/next/no-img-element -- the opening's light first frame, pre-sized
-        <img ref={light} src={`/site/home/${screenFile(items[0]?.screen ?? "find")}.webp`} alt="" aria-hidden className="pointer-events-none absolute inset-0 size-full object-cover object-top" />
+        <img ref={light} src={`/site/home/${lightOf(items[0])}.webp`} alt="" aria-hidden className="pointer-events-none absolute inset-0 size-full object-cover object-top" />
       ) : null}
       <PauseButton paused={paused} onToggle={toggle} />
     </figure>
@@ -169,7 +176,7 @@ export function Opening({ suppliers, items = TOUR }: { suppliers: number | null;
   // The app has reached its place beside the list: only then does it play.
   const [settled, setSettled] = useState(false);
   const { active, setActive, next } = useTour(items.length, items, section);
-  const first = screenFile(items[0]?.screen ?? "find");
+  const first = lightOf(items[0]);
 
   useEffect(() => {
     const wide = matchMedia("(min-width: 1024px)");

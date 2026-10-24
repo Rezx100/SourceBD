@@ -137,7 +137,10 @@ describe("the home page", () => {
     // eslint-disable-next-line @typescript-eslint/no-require-imports -- the same.
     const { FLOWS } = require("@/components/site/sections/opening") as typeof import("@/components/site/sections/opening");
     assert.equal(screenFile("find"), "clip-find");
-    assert.match(out, /src="\/site\/home\/clip-find\.webp"/, "the light picture in the laptop");
+    // The light picture is the dark flow's first frame taken in the light theme (his review of 24 Oct: the old light
+    // search did not match the dark page it turns into), so the 22 Oct composition left the opening.
+    assert.match(out, /src="\/site\/home\/clip-light-search\.webp"/, "the light picture in the laptop");
+    assert.doesNotMatch(out, /clip-find\./, "the old light search is gone from the opening");
     assert.deepEqual(Object.values(FLOWS).map((f) => f.file), ["clip-dark-search", "clip-dark-record", "clip-dark-rfq", "clip-dark-sort"]);
     for (const n of ["find", "check", "ask", "watch"] as const) assert.match(tour, new RegExp(`poster="/site/home/${FLOWS[n]!.file}\\.webp"`), n);
     assert.doesNotMatch(tour, /poster="\/site\/home\/app-(?:check|ask|watch)\.webp"/, "the light recordings left the opening");
