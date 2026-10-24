@@ -19,7 +19,7 @@ import { isProfileRpcTimeout } from "@/lib/public-supplier-profile";
 import { hscodesFromRpc } from "@/lib/epb-hscodes";
 import { geocodeTargets } from "@/lib/barikoi";
 import { buildProductSheet, buildSheet, locationTargets, type ProfilePayload, type RecordInput } from "./build-models";
-import { formatCount, formatDay, marketOfCountry, type CertChecks, type ShipmentRevealState, type VolzaExports, type VolzaMarketName } from "./facts";
+import { formatCount, formatDay, marketOfCountry, type CertChecks, type GroupExports, type ShipmentRevealState, type VolzaExports, type VolzaMarketName } from "./facts";
 import { heading4, hsCatalogueRow } from "./hs-photos";
 import { sanitizeFacilityPanel, type FacilityPanel } from "@/lib/format-facility-group";
 import type { ContactCounts, ContactDetailsRead, ProductSheetModel, RecordRfqRow, SanctionListRead, SupplierSheetModel } from "./models";
@@ -224,6 +224,25 @@ export async function fetchVolzaExports(supabase: RecordRpc, slug: string): Prom
     const v = data as VolzaExports;
     const top = Array.isArray(v.top_shipments) ? v.top_shipments.filter((s) => s !== null && typeof s === "object") : [];
     return { ...v, top_shipments: top };
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * The group's customs totals for a member with none of its own (`supplier_group_exports`, 0157): up to three
+ * sister companies, biggest first. Null for a reader the database refuses, no real group, a member with its
+ * own records, no sister with records, a failed read, or 0157 not applied yet.
+ */
+export async function fetchGroupExports(supabase: RecordRpc, slug: string): Promise<GroupExports | null> {
+  try {
+    const { data, error } = await supabase.rpc("supplier_group_exports", { p_slug: slug });
+    if (error || !data || typeof data !== "object") return null;
+    const g = data as GroupExports;
+    const members = Array.isArray(g.members)
+      ? g.members.filter((m) => m && typeof m.slug === "string" && typeof m.name === "string" && typeof m.shipments === "number")
+      : [];
+    return typeof g.group === "string" && members.length ? { group: g.group, members } : null;
   } catch {
     return null;
   }
@@ -481,6 +500,8 @@ export async function loadRecordSheet(
   const marketRead = volzaRead.then((v) => (v ? fetchReaderMarket(supabase) : null));
   // The rank is of the export value, so it is read only when the customs figures came back with one.
   const rankRead = volzaRead.then((v) => (v && v.fob_usd !== null ? fetchExportRank(supabase, slug) : null));
+  // The group's figures stand in only where the supplier's own are missing.
+  const groupRead = volzaRead.then((v) => (v ? null : fetchGroupExports(supabase, slug)));
   // Opened from a row that carries the id: the reads keyed by it start now,
   // beside the profile (founder's video, 29 Sep 2026: every open waited on a
   // second round trip after the first).
@@ -506,7 +527,7 @@ export async function loadRecordSheet(
         .then((found) => found?.map((g) => (g ? { latitude: g.latitude, longitude: g.longitude, confidencePct: g.confidencePct, addressStatus: g.addressStatus } : null)))
         .catch(() => undefined)
     : Promise.resolve(undefined);
-  const [workers, contactCounts, contactDetails, saved, rfqs, facilities, pins, sanctionLists, certChecks, volza, shipments, market, exportRank] = await Promise.all([
+  const [workers, contactCounts, contactDetails, saved, rfqs, facilities, pins, sanctionLists, certChecks, volza, shipments, market, exportRank, groupExports] = await Promise.all([
     // A failed batch leaves the figure the record's own payload carries.
     reuse ? reuse.workers : fetchDisplayWorkersBatch(supabase, [supplierId]).catch(() => null),
     countsRead,
@@ -521,6 +542,7 @@ export async function loadRecordSheet(
     shipmentsRead,
     marketRead,
     rankRead,
+    groupRead,
   ]);
   if (workers) assignWorkers([record], workers);
   return buildSheet(record.input, {
@@ -533,6 +555,7 @@ export async function loadRecordSheet(
     sanctionLists,
     certChecks,
     volza,
+    groupExports,
     shipments,
     market,
     exportRank,

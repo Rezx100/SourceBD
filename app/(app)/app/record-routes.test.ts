@@ -343,6 +343,16 @@ describe("/app/suppliers/[slug] — the full record page", () => {
     assert.ok(rpcCalls.some((c) => c.fn === "supplier_volza_exports" && c.args?.p_slug === "hamza-clothing"), "the page never asked for the customs read");
     assert.ok(!rpcCalls.some((c) => c.fn === "onboarding_get_buyer"), "the reader's market was read with no customs figures to draw it on");
     assert.ok(!rpcCalls.some((c) => c.fn === "supplier_export_rank"), "the rank was read with no export value to rank");
+    assert.ok(rpcCalls.some((c) => c.fn === "supplier_group_exports" && c.args?.p_slug === "hamza-clothing"), "no own records, and the group's were never asked for");
+
+    // 0157 (founder, 24 Oct 2026): no records of its own, a sister's shown as the group's, linked to the sister.
+    const group = { group: "Team Group", members: [{ name: "Mars Stitch Ltd.", slug: "mars-stitch", shipments: 990, fob_usd: 21400000, buyers: 31, window_start: "2024-09-01", window_end: "2026-08-31" }] };
+    given({ profile: PROFILE, hscodes: HS, rpcs: { supplier_group_exports: { data: group, error: null } } });
+    const grouped = html(await outcome(open));
+    const groupText = desk(grouped).replace(/&#x27;/g, "'");
+    assert.match(groupText, /Exports We have no customs records for this supplier yet .* Team Group's export records These belong to its sister companies, not to this one\. .* Mars Stitch Ltd\. 990 shipments · US\$21\.4m · 31 buyers · Sep 2024 – Aug 2026/);
+    assert.equal(groupText.split("Team Group's export records").length, 2, "the group's records are said once, under Exports");
+    assert.match(grouped, /href="\/app\/suppliers\/mars-stitch"/);
 
     // Hamza Clothing's real row (launch batch, 10 Oct 2026), the biggest shipment stored (record_sort "value").
     const top = { shipment_date: "2026-03-24T00:00:00", hsn_code: "61091000", product_description: "BOYS TEE", buyer_name: "THE HADDAD APPAREL GROUP LTD 131 D", destination_country: "United States", trade_value_usd: 607667.888, unit_rate_usd: 1.71, unit: "PCS" };
@@ -361,6 +371,7 @@ describe("/app/suppliers/[slug] — the full record page", () => {
     });
     given({ profile: PROFILE, hscodes: HS, rpcs: { supplier_volza_exports: { data: row({ record_sort: "value" }), error: null } } });
     const text = desk(html(await outcome(open)));
+    assert.ok(!rpcCalls.some((c) => c.fn === "supplier_group_exports"), "the group's records were read beside the supplier's own");
     // The grid: each figure worked out from the stored record. No market is known for this reader, so the fourth names the biggest.
     assert.match(text, /Exports Markets and shipments Export value, 2 years US\$21\.7m Typical shipment US\$53,000 6% under 1,000 pieces Buyers 43 9 shipments each Biggest market EU 72% of exports · 236 shipments Customs records, Sep 2024 – Aug 2026 · read 10 Oct(?: 2026)?/);
     assert.doesNotMatch(text, /latest (shipment )?on record/i, "the biggest shipment's date passed off as the latest");

@@ -17,6 +17,7 @@ import { LinkPending } from "@/components/patterns/link-pending";
 import { buyersOf, customsWindow, formatUsdShort, initials } from "@/lib/dashboard/facts";
 import type { SupplierSheetModel } from "@/lib/dashboard/models";
 import { cn } from "@/lib/utils";
+import { GroupExportsNote } from "./group-exports";
 import { ContactDetailsCard } from "./contact-card";
 import { CERT_MARK, FACT_ICON } from "./desktop";
 import { SECTIONS, certTable, checkRows, exportTiles, factCells, filedWith, headStatuses, issuedBy, memberTiles, sectionCount, type BarPart, type CertLine, type CheckRow, type SectionId } from "./desktop-words";
@@ -407,6 +408,7 @@ function Exports({ model, today, level }: PanelProps) {
             level={level}
           />
         ) : null}
+        {model.groupExports ? <GroupExportsNote group={model.groupExports} className="mx-5 mt-6" /> : null}
         {model.shipments ? (
           <div className="px-5 pt-6">
             <ShipmentRevealSection key={model.slug} slug={model.slug} initial={model.shipments} level={level} />

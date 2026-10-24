@@ -3,7 +3,7 @@
 // them, so a boundary test can construct one and assert the rendered HTML.
 
 import type { TierRank } from "@/lib/design/tokens";
-import type { CertChecks, CertModel, CertState, ShipmentRevealState, VolzaExports, VolzaMarketName } from "./facts";
+import type { CertChecks, CertModel, CertState, GroupExports, ShipmentRevealState, VolzaExports, VolzaMarketName } from "./facts";
 import type { PhotoTileModel } from "./hs-photos";
 import type { SourceMarkModel } from "./source-tiers";
 
@@ -415,6 +415,8 @@ export type SupplierSheetModel = {
   certChecks: CertChecks | null;
   /** `supplier_volza_exports` (0137): customs shipments for paying readers; null otherwise. */
   volza: VolzaExports | null;
+  /** `supplier_group_exports` (0157): sister companies' customs totals, shown as the group's, when this one has none; null or absent otherwise. */
+  groupExports?: GroupExports | null;
   /** `supplier_shipment_reveal_state` (0141): the Recent shipments section; null draws nothing. */
   shipments?: ShipmentRevealState | null;
   /** The reader's own customs market, from the country they gave at onboarding (0109); null or absent when it is not known. Read only beside customs figures. */
