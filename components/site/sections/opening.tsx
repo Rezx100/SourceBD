@@ -9,7 +9,8 @@
 // the sharp laptop with no edge (a wide feather, as a lens would); then the laptop and the studio fade into the night
 // ground and the app alone remains, exactly where it was and always below the navigation's bar; it shrinks a little
 // as it slides right, its far edge falling into the night, and only once it has settled beside the tour's list does
-// it play. While the scene moves the app is a picture laid out at its size on screen, never a video scaled on the
+// it play. As the studio falls into the night the app's light first frame crossfades into the same page in the app's
+// dark theme, and beside the list each item plays one of the dark product flows (his review of 24 Oct 2026). While the scene moves the app is a picture laid out at its size on screen, never a video scaled on the
 // GPU, so nothing shimmers; the laptop's part of the photograph is laid over at 2.56× so its bezel stays sharp too.
 // No shadow is drawn under the app at any point. After the scene the tour never holds the scroll: an item opens when
 // it is clicked or when the one before it has played to its end. Below 1024, and with reduced motion, the studio
@@ -19,7 +20,7 @@ import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "re
 import { stillPreferred } from "@/components/site/motion";
 import { spacing } from "@/lib/design/tokens";
 import { cn } from "@/lib/utils";
-import { AppVideo, PauseButton, SCREENS, pauseOnClick, screenFile } from "./browser";
+import { PauseButton, SCREENS, Video, pauseOnClick, screenFile } from "./browser";
 import { HeroCopy } from "./hero";
 import { TOUR, TourList, useTour, type TourItem } from "./tour";
 import { Still, tourMeasure } from "./ui";
@@ -46,6 +47,19 @@ const NAV = parseInt(spacing.nav, 10);
 const MARGIN = 24;
 /** The app's size beside the list, as a share of its full size: it shrinks a little as it moves aside (the same review). */
 const SETTLE = 0.85;
+
+/**
+ * What each item of the list plays here, in the list's order (the founder's review of 24 Oct 2026): the real app in
+ * its dark theme, Mercury-style flows cut from recordings of it (PROVENANCE.md). The first opens on the search page
+ * the opening's picture shows, so the picture becomes the flow.
+ */
+export const FLOWS: Record<string, { file: string; says: string }> = {
+  find: { file: "clip-dark-search", says: "The search page in the dark theme: knit GOTS is opened from the recent searches, 606 suppliers are listed and scrolled, and Benchmark Apparels' record opens beside them." },
+  check: { file: "clip-dark-record", says: "Aboni Knitwear's export figures, then where its exports go and its latest shipments, then the saved list resting on Aboni Knitwear." },
+  ask: { file: "clip-dark-rfq", says: "The saved list with three suppliers ticked, one RFQ opened for all three, its form read from the top: a men's knitted piqué polo, 24,000 pieces at US$4.80 a piece, shipped to the United Kingdom, the pointer resting on Send." },
+  watch: { file: "clip-dark-sort", says: "The woven shirt WRAP results, 160 suppliers, their workers and certificates coming into focus, then sorted by supplier." },
+};
+const fileOf = (t: TourItem) => FLOWS[t.key]?.file ?? screenFile(t.screen ?? "find");
 
 type Pt = readonly [number, number];
 const clamp = (v: number, a = 0, b = 1) => Math.min(b, Math.max(a, v));
@@ -111,18 +125,24 @@ function Poster({ box, file }: { box?: React.Ref<HTMLImageElement>; file: string
  * The tour's recordings stacked in the app's place, crossfading; a click pauses them, the keyboard finds the button.
  * Until the app has settled beside the list (`cover`), the open item's first frame lies over the recordings as a
  * picture: a picture scales crisp through the scene where a video would not, and nothing plays before its place.
+ * In the scene the light picture of the laptop's screen (`light`) lies over that, and the scene fades it out as the
+ * studio falls into the night, so the light app turns dark in place.
  */
-function Dash({ items, active, cover, onEnded, bar }: { items: readonly TourItem[]; active: number; cover: boolean; onEnded: () => void; bar: React.RefObject<HTMLSpanElement | null> }) {
+function Dash({ items, active, cover, onEnded, bar, light }: { items: readonly TourItem[]; active: number; cover: boolean; onEnded: () => void; bar: React.RefObject<HTMLSpanElement | null>; light?: React.Ref<HTMLImageElement> }) {
   const [paused, setPaused] = useState(false);
   const toggle = () => setPaused((v) => !v);
   const open = items[active]!;
   return (
-    <figure data-ground="day" className="relative m-0 size-full overflow-hidden bg-surface" onClick={cover ? undefined : pauseOnClick(toggle)}>
-      <figcaption className="sr-only">{open.screen ? SCREENS[open.screen].says : open.body}</figcaption>
-      {items.map((t, i) => (t.screen ? <AppVideo key={t.key} name={t.screen} active={i === active} playing={!paused && !cover} restart={cover} eager={i === 0} onEnded={onEnded} bar={bar} /> : null))}
+    <figure data-ground="night" className="relative m-0 size-full overflow-hidden bg-surface" onClick={cover ? undefined : pauseOnClick(toggle)}>
+      <figcaption className="sr-only">{FLOWS[open.key]?.says ?? (open.screen ? SCREENS[open.screen].says : open.body)}</figcaption>
+      {items.map((t, i) => (t.screen ? <Video key={t.key} file={fileOf(t)} active={i === active} playing={!paused && !cover} restart={cover} eager={i === 0} onEnded={onEnded} bar={bar} /> : null))}
       {open.screen ? (
         // eslint-disable-next-line @next/next/no-img-element -- the recording's first frame, pre-sized
-        <img src={`/site/home/${screenFile(open.screen)}.webp`} alt="" aria-hidden className={cn("absolute inset-0 size-full object-cover object-top transition-opacity duration-fast motion-reduce:transition-none", cover ? "opacity-100" : "pointer-events-none opacity-0")} />
+        <img src={`/site/home/${fileOf(open)}.webp`} alt="" aria-hidden className={cn("absolute inset-0 size-full object-cover object-top transition-opacity duration-fast motion-reduce:transition-none", cover ? "opacity-100" : "pointer-events-none opacity-0")} />
+      ) : null}
+      {light ? (
+        // eslint-disable-next-line @next/next/no-img-element -- the opening's light first frame, pre-sized
+        <img ref={light} src={`/site/home/${screenFile(items[0]?.screen ?? "find")}.webp`} alt="" aria-hidden className="pointer-events-none absolute inset-0 size-full object-cover object-top" />
       ) : null}
       <PauseButton paused={paused} onToggle={toggle} />
     </figure>
@@ -137,6 +157,7 @@ export function Opening({ suppliers, items = TOUR }: { suppliers: number | null;
   const room = useRef<HTMLDivElement>(null);
   const laptop = useRef<HTMLDivElement>(null);
   const poster = useRef<HTMLImageElement>(null);
+  const light = useRef<HTMLImageElement>(null);
   const copy = useRef<HTMLDivElement>(null);
   const night = useRef<HTMLDivElement>(null);
   const words = useRef<HTMLDivElement>(null);
@@ -237,6 +258,8 @@ export function Opening({ suppliers, items = TOUR }: { suppliers: number | null;
         studio.current.style.visibility = gone >= 1 ? "hidden" : "";
       }
       if (night.current) night.current.style.opacity = String(gone);
+      // The app turns dark with the ground: its light picture fades off the dark one beneath.
+      if (light.current) light.current.style.opacity = String(1 - gone);
       const c = span(p, 0, 0.4);
       if (copy.current) {
         copy.current.style.opacity = String(1 - c);
@@ -276,7 +299,7 @@ export function Opening({ suppliers, items = TOUR }: { suppliers: number | null;
     };
   }, [pinned]);
 
-  const dashboard = <Dash items={items} active={active} cover={pinned && !settled} onEnded={next} bar={bar} />;
+  const dashboard = <Dash items={items} active={active} cover={pinned && !settled} onEnded={next} bar={bar} light={pinned ? light : undefined} />;
 
   return (
     // From 1024 up the opening starts under the navigation, which floats over the studio until the page scrolls.

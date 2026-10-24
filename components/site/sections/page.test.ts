@@ -130,12 +130,17 @@ describe("the home page", () => {
     // Mercury's list ends in one link under it, not one per item.
     assert.match(tour, /href="\/discover"[^>]*>Try the search</);
     assert.doesNotMatch(tour, />See how</);
-    // The tour's window holds the four screens, each starting from its first frame: the search composed from the
-    // recording's frames (the opening's dashboard, his review of 22 Oct 14:18), the other three the raw recordings.
+    // The laptop's picture is the search composed from the recording's frames (his review of 22 Oct 14:18); beside the
+    // list the app is dark and each item plays a dark product flow, in the list's order (his review of 24 Oct).
     // eslint-disable-next-line @typescript-eslint/no-require-imports -- loaded after the test build exists.
     const { screenFile } = require("@/components/site/sections/browser") as typeof import("@/components/site/sections/browser");
+    // eslint-disable-next-line @typescript-eslint/no-require-imports -- the same.
+    const { FLOWS } = require("@/components/site/sections/opening") as typeof import("@/components/site/sections/opening");
     assert.equal(screenFile("find"), "clip-find");
-    for (const n of ["find", "check", "ask", "watch"] as const) assert.match(tour, new RegExp(`poster="/site/home/${screenFile(n)}\\.webp"`), n);
+    assert.match(out, /src="\/site\/home\/clip-find\.webp"/, "the light picture in the laptop");
+    assert.deepEqual(Object.values(FLOWS).map((f) => f.file), ["clip-dark-search", "clip-dark-record", "clip-dark-rfq", "clip-dark-sort"]);
+    for (const n of ["find", "check", "ask", "watch"] as const) assert.match(tour, new RegExp(`poster="/site/home/${FLOWS[n]!.file}\\.webp"`), n);
+    assert.doesNotMatch(tour, /poster="\/site\/home\/app-(?:check|ask|watch)\.webp"/, "the light recordings left the opening");
     assert.doesNotMatch(out, /app-find\./, "the raw search recording is gone from the page");
     assert.doesNotMatch(out, /<video[^>]*autoplay/i, "nothing plays until it is on screen");
   });
