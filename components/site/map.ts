@@ -24,7 +24,83 @@ export const RESOURCES: readonly NavItem[] = [
   { title: "System status", href: "/status" },
 ];
 
-export const FOOTER: readonly { title: string; links: readonly { label: string; href: string }[] }[] = [
+// The desktop menus' panels, laid out as mercury.com's mega menu (founder, 24 Oct 2026): a lead column, a column per
+// page with the pages it leads to under a small label, and a row for suppliers under them all. Every word is the
+// site's own (the pages' heroes and the footer); a panel holds at least every item of its menu, which the phone
+// sheet lists alone (`page.test.ts`).
+type PanelLink = { title: string; body?: string; href: string };
+export type MenuPanel = {
+  lead: { title: string; body: string; links: readonly PanelLink[] };
+  columns: readonly (PanelLink & { body: string; label: string; links: readonly PanelLink[] })[];
+};
+
+export const PROMISE = "No scores. No paid placement. No fact without a source and a date.";
+export const STRAPLINE = "Every fact on a Bangladesh garment supplier, with its source and date.";
+
+const PRICING = { title: "Pricing", body: "Free during beta. No card needed.", href: "/pricing" };
+const METHOD = { title: "Data & methodology", body: "How we check every supplier.", href: "/methodology" };
+const [SEARCH, RECORDS, RFQS, COMPLIANCE] = PRODUCT;
+const [SOURCING_TEAMS, COMPLIANCE_TEAMS] = SOLUTIONS;
+
+export const PANELS: Record<"product" | "solutions" | "resources", MenuPanel> = {
+  product: {
+    lead: { title: "Product", body: STRAPLINE, links: [PRICING, METHOD] },
+    // Which team uses each, as the two solutions pages say (Find, Check, Ask; Certificates, Screening, Watch, Statement).
+    columns: [
+      { ...SEARCH!, body: SEARCH!.body!, label: "Solutions", links: [SOURCING_TEAMS!] },
+      { ...RECORDS!, body: RECORDS!.body!, label: "Solutions", links: [SOURCING_TEAMS!, COMPLIANCE_TEAMS!] },
+      { ...RFQS!, body: RFQS!.body!, label: "Solutions", links: [SOURCING_TEAMS!] },
+      { ...COMPLIANCE!, body: COMPLIANCE!.body!, label: "Solutions", links: [COMPLIANCE_TEAMS!] },
+    ],
+  },
+  solutions: {
+    lead: { title: "Solutions", body: "Built for buyers who check.", links: [PRICING, METHOD] },
+    columns: [
+      { ...SOURCING_TEAMS!, body: "For sourcing managers buying clothing from Bangladesh.", label: "Product", links: [SEARCH!, RECORDS!, RFQS!] },
+      { ...COMPLIANCE_TEAMS!, body: "For compliance and due diligence staff checking Bangladesh suppliers.", label: "Product", links: [RECORDS!, COMPLIANCE!] },
+    ],
+  },
+  resources: {
+    lead: {
+      title: "Resources",
+      body: PROMISE,
+      links: [
+        { title: "Security", body: "What we do today. No badges, no promises.", href: "/security" },
+        { title: "System status", body: "When we last read each source.", href: "/status" },
+      ],
+    },
+    columns: [
+      {
+        ...METHOD,
+        label: "Sections",
+        links: [
+          { title: "The sources", href: "/methodology#sources" },
+          { title: "Source tiers", href: "/methodology#tiers" },
+          { title: "How we match names", href: "/methodology#matching" },
+          { title: "Report a correction", href: "/methodology#corrections" },
+        ],
+      },
+      {
+        title: "Compliance guides",
+        body: "Five laws a buyer of Bangladesh clothing meets, each with its sources and the date we last reviewed it.",
+        href: "/compliance",
+        label: "Guides",
+        links: [
+          { title: "UFLPA", href: "/compliance/uflpa" },
+          { title: "UK Modern Slavery Act", href: "/compliance/uk-msa" },
+          { title: "EU CSDDD", href: "/compliance/eu-csddd" },
+          { title: "EU CBAM", href: "/compliance/eu-cbam" },
+          { title: "EU EUDR", href: "/compliance/eu-eudr" },
+        ],
+      },
+    ],
+  },
+};
+
+/** The row under every panel: the suppliers' own page, as its hero says it. */
+export const SUPPLIER_ROW = { title: "For suppliers", body: "Claim your factory's record. Buyers in the UK, EU, US and Canada see it today.", href: "/suppliers" };
+
+export const FOOTER:readonly { title: string; links: readonly { label: string; href: string }[] }[] = [
   {
     title: "Product",
     links: [
@@ -76,6 +152,3 @@ export const FOOTER: readonly { title: string; links: readonly { label: string; 
   },
   { title: "Status", links: [{ label: "System status", href: "/status" }] },
 ];
-
-export const PROMISE = "No scores. No paid placement. No fact without a source and a date.";
-export const STRAPLINE = "Every fact on a Bangladesh garment supplier, with its source and date.";
