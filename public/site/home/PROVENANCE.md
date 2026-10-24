@@ -139,14 +139,15 @@ typed, saved or sent.
 `clip-record.*` (Aboni Knitwear's record, the camera coming in on its head and export figures) is the 22 Oct 2026 kit's
 and no longer on the home page.
 
-The checks' stills are the record and the UFLPA checks as the app draws them 375 px wide in its dark theme, where each
-panel is one column (same day, account and recorder, `THEME=dark`, `VW=375`), cut at one scale (360 CSS px across the
-card's window) and written 640 × 800 as WebP (quality 86). Under the sanctions panel the page is cleared to the app's own
-ground, so the contact panel, the next card's picture, is not shown twice.
+The checks' stills are the compliance hub, the UFLPA checks and the record as the app draws them 375 px wide in its
+dark theme, where each panel is one column (same account and recorder, `THEME=dark`, `VW=375`; the hub taken after the
+founder signed in again the same day), cut at one scale (360 CSS px across the card's window) and written 640 × 800 as
+WebP (quality 86). Under the hub's Status panel the page is cleared to the app's own ground, so the card holds the four
+checks and not the list below them.
 
 | Still | What it shows | File |
 | -- | -- | -- |
-| `sanctions` | Aboni Knitwear's sanctions lists: not listed, each list with the day it was read | `still-sanctions.webp` |
+| `sanctions` | The compliance hub's Status: 2 of 10 certificates expired, no UFLPA link, none of 18 on the UK, EU and US sanctions lists (read 6–8 Oct), a statement ready to draft | `still-sanctions.webp` |
 | `uflpa` | The UFLPA checks on the saved list: 0 on the Entity List, 0 possible Xinjiang links, 18 with no link found | `still-uflpa.webp` |
 | `locked` | Aboni Knitwear's contact panel, locked, with Send RFQ under it | `still-locked.webp` |
 

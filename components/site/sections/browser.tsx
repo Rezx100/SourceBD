@@ -55,7 +55,7 @@ export const LEDGER: Record<string, string> = {
   "clip-memberships": "record: Memberships",
   "clip-safety": "record: Safety (RSC)",
   "clip-sources": "record: Sources",
-  "still-sanctions": "record, dark, phone width: sanctions lists",
+  "still-sanctions": "compliance hub, dark, phone width: the four checks, sanctions among them",
   "still-uflpa": "UFLPA checks, dark, phone width: results and suppliers",
   "still-locked": "record, dark, phone width: contact details locked",
 };

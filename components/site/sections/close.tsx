@@ -93,7 +93,7 @@ export function Stats({ facts }: { facts: SiteFacts }) {
 }
 
 export const CARDS: { still: string; says: string; title: string; body: string }[] = [
-  { still: "sanctions", says: "A record's sanctions panel: not listed, read for every supplier, with the day each list was read: US Treasury (OFAC) 8 Oct, US Labor (ILAB) 24 Oct, European Union 6 Oct, UK (OFSI) 6 Oct.", title: "Every supplier, against sanctions lists", body: "US, EU and UK lists, each with the day we read it. A supplier on one is marked everywhere and Send RFQ is refused." },
+  { still: "sanctions", says: "The compliance hub's four checks on the saved list: 2 of 10 certificates expired, no UFLPA link found, none of 18 suppliers on the UK, EU and US sanctions lists, read 6 to 8 Oct, and a statement ready to draft.", title: "Every supplier, against sanctions lists", body: "US, EU and UK lists, each with the day we read it. A supplier on one is marked everywhere and Send RFQ is refused." },
   { still: "uflpa", says: "The UFLPA checks on the saved list: none on the UFLPA Entity List, none with a possible Xinjiang link, no link found for 18 suppliers, then the suppliers A to Z.", title: "Forced-labour lists, checked for you", body: "Every saved supplier against the UFLPA Entity List. Entries added since our last read are said to be unchecked." },
   { still: "locked", says: "A record's contact panel: the contact details are locked, and Send RFQ under it.", title: "Contacts locked until they are given", body: "Contact details open only when the supplier or a register provides them. Locked is a state, not a blur." },
 ];
