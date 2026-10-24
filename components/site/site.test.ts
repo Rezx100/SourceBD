@@ -85,7 +85,7 @@ describe("the navigation", () => {
     const out = draw(createElement(site().nav.SiteNav));
     const t = text(out);
     // The brand kit's logo (25 Oct 2026), drawn inline and named for a screen reader, in place of the typed wordmark.
-    assert.match(out, /<a[^>]*href="\/"[^>]*><svg[^>]*height="22"[^>]*role="img"[^>]*aria-label="SourceBD"[^>]*data-logo/);
+    assert.match(out, /<a[^>]*href="\/"[^>]*><svg[^>]*height="35"[^>]*role="img"[^>]*aria-label="SourceBD"[^>]*data-logo/);
     assert.match(out, /class="fill-logo-back[^"]*"[\s\S]*class="fill-logo-front[^"]*"[\s\S]*fill="currentColor"/, "back swatch, front swatch, then the word in the bar's ink");
     for (const w of ["Product", "Solutions", "Resources", "Pricing", "Sign in", "Start free"]) assert.match(t, new RegExp(w));
     // Two actions at the right since the founder's walkthrough of 23 Oct 2026, as mercury.com's; Book a demo stays in the phone's sheet and beside the hero's form.
