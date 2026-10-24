@@ -58,6 +58,12 @@ Use `<BrandWordmark name="H&M" />` which prints the brand name in our
 display font at the surrounding x-height. This sidesteps trademark
 imitation risk entirely while keeping recognition.
 
+> **24 Oct 2026 (founder):** one exception, the home page's brands row
+> (`components/site/sections/brands.tsx`), draws each brand's real logo in one
+> colour (the ground's quiet ink), as mercury.com's row does. The files are
+> in `public/site/home/brands/`, each with its source in
+> `public/site/home/PROVENANCE.md`. Everywhere else the rule above still holds.
+
 ---
 
 ## 2. Asset filesystem layout
