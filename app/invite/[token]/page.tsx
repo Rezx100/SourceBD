@@ -7,6 +7,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Button, buttonClass } from "@/components/kit";
+import { Logo } from "@/components/patterns/logo";
 import { INVITE_TOKEN_RE, REFUSALS, refusalOf, type InviteRefusal } from "@/components/team/model";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -18,7 +19,7 @@ function Refusal({ kind, email }: { kind: InviteRefusal; email?: string | null }
   const { title, body } = REFUSALS[kind];
   return (
     <main className="mx-auto flex min-h-dvh w-full max-w-[480px] flex-col justify-center gap-4 px-4 py-10">
-      <p className="text-md font-semibold tracking-tight text-brand-ink">SourceBD</p>
+      <Logo height={20} className="text-ink" />
       <h1 className="text-xl font-semibold tracking-tight text-ink">{title}</h1>
       <p className="text-base text-ink-2">{body}</p>
       {kind === "wrong_email" && email ? <p className="text-sm text-ink-3">You are signed in as {email}.</p> : null}
