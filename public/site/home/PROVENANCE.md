@@ -37,9 +37,13 @@ session scratchpad, not the repo.
 
 | Source | Job | Where it is drawn | Files |
 | -- | -- | -- | -- |
-| `uk1.png` (a London buying office, the buyer at her monitor from behind) | `f7ed9998-eec4-4a31-a5f3-02ae4a24dd97` | Slide 1, the UK buyer | `voice-buyer-uk.webp` |
-| `s1.png` (a Gazipur sewing floor, the managing director walking the line from behind) | `1cb9c9d8-841c-4d12-80c4-2a010874da50` | Slide 2, the supplier | `voice-supplier.webp` |
-| `eu1.png` (a Hamburg sample room, the buyer measuring a sweater, his face out of frame) | `cab6350a-e80c-4489-b872-96e254fe5164` | Slide 3, the German buyer | `voice-buyer-eu.webp` |
+| `uk1.png` (a London buying office, the buyer at her monitor from behind) | `f7ed9998-eec4-4a31-a5f3-02ae4a24dd97`, its left side dimmed by `12888243-bcf7-448c-b12c-0acaefc2665b` | Slide 1, the UK buyer | `voice-buyer-uk.webp` |
+| `s1.png` (a Gazipur sewing floor, the managing director walking the line from behind) | `1cb9c9d8-841c-4d12-80c4-2a010874da50`, its left wall's windows shuttered by `31a579b2-ed15-46ba-903d-6b2a7efa92ab` | Slide 2, the supplier | `voice-supplier.webp` |
+| `eu1.png` (a Hamburg sample room, the buyer measuring a sweater, his face out of frame) | `cab6350a-e80c-4489-b872-96e254fe5164`, its left side dimmed by `3cf89131-c9a5-45e8-a80b-09df363aacfc` | Slide 3, the German buyer | `voice-buyer-eu.webp` |
+
+Each was then edited by Nano Banana Pro from its own job (the job as the reference image) so the side the words sit on
+falls into the room's own low light, as Mercury's founder's room does behind his quote; the page adds a light, eased
+shade and a blur in small steps over that side (`sections/voices.tsx`) for WCAG AAA.
 
 The laptop's display in `hf-hero.png` was measured from the pixels (the display's flat grey field inside its black
 bezel): its corners at (1552, 1068), (2279, 1068), (2287, 1522) and (1546, 1522) of 3840 × 2160 (`DISPLAY` in

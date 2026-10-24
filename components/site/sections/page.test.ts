@@ -345,6 +345,15 @@ describe("the live sections", () => {
     assert.equal((sec.match(/<figure inert="" aria-hidden="true"/g) ?? []).length, 2);
     assert.equal((sec.match(/aria-label="Show the [^"]+" aria-pressed="(?:true|false)"/g) ?? []).length, 3);
     assert.doesNotMatch(sec, /scale-x-0|origin-left/);
+    // Mercury's order of weight: the quote large, then the name and the role in grey, one size down. Every glyph measured
+    // WCAG AAA on all three rooms at 390, 820 and 1440 (24 Oct 2026: worst 6.80:1 for the large quote, 7.96:1 for normal
+    // text) only while the oval of shade holds 0.82 under the words and they stay inside 44% of the card; thinning either
+    // lets a bright room through. The blur steps up to 6 px at most, never one hard-masked layer (founder: a seam showed).
+    assert.match(sec, /<blockquote class="[^"]*text-ink lg:text-site-lead"/);
+    assert.match(sec, /radial-gradient\(ellipse_44%_62%_at_24%_72%,rgb\(var\(--mk-ground-night\)\/0\.84\)_0%,rgb\(var\(--mk-ground-night\)\/0\.82\)_50%/);
+    assert.match(sec, /sm:max-w-\[min\(440px,44%\)\]/);
+    assert.deepEqual([...sec.matchAll(/backdrop-blur-\[(\d)px\]/g)].map((m) => m[1]), ["2", "4", "6", "2", "4", "6", "2", "4", "6"]);
+    assert.doesNotMatch(sec, /backdrop-blur-(?:sm|md|lg|xl)\b/);
   });
 
   it("the checks: three cards, each one panel of the real app held still (no stand-in photograph, no video), no tabs that shift the page", () => {

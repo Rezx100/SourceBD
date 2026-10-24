@@ -3,7 +3,7 @@
 // What suppliers and buyers said, in the place of mercury.com's customer stories. The founder spoke with a few of each
 // before launch (24 Oct 2026); their names are withheld until then, so each slide names the role, the kind of company
 // and the place, and the line under the slides says so. The photographs (Higgsfield, PROVENANCE.md) show each
-// speaker's setting and never a face, so no picture stands in for a person. Nothing moves on its own (founder, 24 Oct
+// speaker's setting and never the speaker's face, so no picture stands in for a person. Nothing moves on its own (founder, 24 Oct
 // 2026): a slide changes only when it is dragged or a rule under it is clicked.
 
 import { useRef, useState } from "react";
@@ -33,6 +33,25 @@ export const VOICES = [
     where: "Knitwear importer · Germany",
   },
 ] as const;
+
+/**
+ * The blur under the words, in three light steps (2, 4 and 6 px): each stronger one covers less of an oval centred on the
+ * words (the card's lower part on a phone), so the room goes soft gradually and never at an edge (founder, 24 Oct 2026:
+ * one 12 px blur behind a straight mask read as too much, with a hard seam).
+ */
+const SOFTEN = [
+  "backdrop-blur-[2px] [mask-image:linear-gradient(to_top,black_30%,transparent_72%)] sm:[mask-image:radial-gradient(ellipse_44%_62%_at_24%_72%,black_40%,transparent_90%)]",
+  "backdrop-blur-[4px] [mask-image:linear-gradient(to_top,black_20%,transparent_58%)] sm:[mask-image:radial-gradient(ellipse_44%_62%_at_24%_72%,black_30%,transparent_72%)]",
+  "backdrop-blur-[6px] [mask-image:linear-gradient(to_top,black_8%,transparent_44%)] sm:[mask-image:radial-gradient(ellipse_44%_62%_at_24%_72%,black_20%,transparent_56%)]",
+];
+
+/**
+ * The shade under the words, in the night's own ground: an oval centred on them, holding under the text and easing out
+ * through many stops so no step shows, the rest of the room left bright. Measured on all three rooms at 390, 820 and
+ * 1440: the name and role (normal text) at 7:1 or better, the quote (large text from 1024 px) at 4.5:1 or better, WCAG AAA.
+ */
+const SHADE =
+  "bg-[linear-gradient(to_top,rgb(var(--mk-ground-night)/0.86)_0%,rgb(var(--mk-ground-night)/0.82)_35%,rgb(var(--mk-ground-night)/0.7)_52%,rgb(var(--mk-ground-night)/0.45)_64%,rgb(var(--mk-ground-night)/0.2)_77%,transparent_90%)] sm:bg-[radial-gradient(ellipse_42%_48%_at_0%_100%,rgb(var(--mk-ground-night)/0.55)_0%,rgb(var(--mk-ground-night)/0.38)_45%,rgb(var(--mk-ground-night)/0.16)_75%,transparent_100%),radial-gradient(ellipse_44%_62%_at_24%_72%,rgb(var(--mk-ground-night)/0.84)_0%,rgb(var(--mk-ground-night)/0.82)_50%,rgb(var(--mk-ground-night)/0.68)_62%,rgb(var(--mk-ground-night)/0.45)_74%,rgb(var(--mk-ground-night)/0.24)_85%,rgb(var(--mk-ground-night)/0.08)_94%,transparent_100%)]";
 
 /** How far a drag must travel, in pixels, before it changes the slide. */
 const SWIPE = 60;
@@ -66,18 +85,22 @@ export function Voices() {
           const showing = i === on;
           return (
             <figure key={v.photo} inert={!showing} aria-hidden={!showing} className="w-full shrink-0">
-              <div className={cn(column, "relative aspect-[4/5] overflow-hidden rounded-frame bg-sunken sm:aspect-[2/1]")}>
-                {/* The photograph fills the card, as mercury.com's does (founder, 24 Oct 2026: no dark shadow down the left);
-                    a wash rising from the bottom keeps the words readable over a bright room. */}
+              <div className={cn(column, "relative aspect-[4/5] overflow-hidden rounded-frame bg-sunken sm:aspect-[3/2] lg:aspect-[2/1]")}>
+                {/* The photograph fills the card, as mercury.com's does. Under the words the room eases out of focus and into
+                    shade, as Mercury's founder's room does behind his quote: blur in steps that tighten towards the words'
+                    corner, so the sharp room never meets a blurred edge, then a shade eased out from that corner. */}
                 {/* eslint-disable-next-line @next/next/no-img-element -- pre-sized in public/site/home (PROVENANCE.md), no optimizer pass */}
                 <img src={`/site/home/voice-${v.photo}.webp`} alt="" width={2000} height={1116} loading="lazy" decoding="async" draggable={false} className="absolute inset-0 size-full object-cover" />
-                <div aria-hidden className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_top,rgb(0_0_0/0.82),rgb(0_0_0/0.55)_35%,rgb(0_0_0/0.15)_70%,rgb(0_0_0/0.05))]" />
+                {SOFTEN.map((s) => (
+                  <div key={s} aria-hidden className={cn("pointer-events-none absolute inset-0", s)} />
+                ))}
+                <div aria-hidden className={cn("pointer-events-none absolute inset-0", SHADE)} />
                 <span className="pointer-events-none absolute left-5 top-5 flex h-8 items-center rounded-sm bg-[rgb(var(--mk-ground-night))] px-2 text-site-item text-ink md:left-8 md:top-8">{v.tag}</span>
-                <div className="pointer-events-none absolute inset-x-5 bottom-5 flex max-w-[440px] flex-col gap-6 md:inset-x-8 md:bottom-8 md:gap-8">
-                  <blockquote className="font-display text-site-card text-ink md:text-xl">“{v.quote}”</blockquote>
-                  <figcaption className="flex flex-col">
-                    <span className="font-display text-site-card text-ink md:text-xl">{v.who}</span>
-                    <span className="font-book text-site-card text-ink-2 md:text-xl">{v.where}</span>
+                <div className="pointer-events-none absolute inset-x-5 bottom-5 flex max-w-[440px] flex-col gap-6 sm:max-w-[min(440px,44%)] md:inset-x-8 md:bottom-8 md:gap-10">
+                  <blockquote className="font-display text-site-card text-ink lg:text-site-lead">“{v.quote}”</blockquote>
+                  <figcaption className="flex flex-col text-site-item md:text-site-card">
+                    <span className="font-display text-ink">{v.who}</span>
+                    <span className="font-book text-ink/85">{v.where}</span>
                   </figcaption>
                 </div>
               </div>
