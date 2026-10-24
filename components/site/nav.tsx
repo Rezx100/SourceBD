@@ -1,8 +1,8 @@
 "use client";
 
 // The site's top navigation (Paper `30 Marketing · Global · Navigation`): the wordmark, Product, Solutions and
-// Resources (each opens a panel under the bar), Pricing, Sign in, Book a demo, Start free. The panels open on
-// click, hover or the keyboard and close on Escape, an outside press or a navigation; every item is a real link
+// Resources (each opens a panel under the bar), Pricing, Sign in, Book a demo, Start free. The panels open on a
+// click or the keyboard, never on hover, and close on Escape, an outside press or a navigation; every item is a real link
 // and the bar works with no script as a row of links (the panels are a convenience). Under 1024 the bar is the
 // wordmark, Start free and a Menu button that opens every link in a sheet.
 //
@@ -17,15 +17,14 @@
 // Its layout is mercury.com's since that walkthrough: the full width with 32 px a side, the wordmark at the left, the
 // menus and Pricing centred, Sign in and Start free at the right, every control a 40 px pill.
 
-import { CaretDown, List } from "@phosphor-icons/react";
+import { ArrowRight, ArrowUpRight, CaretDown, List } from "@phosphor-icons/react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { Button, ButtonLink, Sheet } from "@/components/kit";
 import { cn } from "@/lib/utils";
-import { HomeIcon } from "./sections/icons";
-import { Wordmark, measure, ring } from "./sections/ui";
-import { PRODUCT, RESOURCES, SOLUTIONS, type NavItem } from "./map";
+import { Wordmark, ring } from "./sections/ui";
+import { PANELS, PRODUCT, RESOURCES, SOLUTIONS, SUPPLIER_ROW, type NavItem } from "./map";
 
 type Menu = "product" | "solutions" | "resources";
 const MENUS: { key: Menu; label: string }[] = [
@@ -41,25 +40,67 @@ const pill = cn("flex h-10 items-center rounded-full px-5 text-site-item text-in
 /** One list per menu, drawn by the desktop panel and the phone sheet alike, so the two cannot send a visitor to different places. */
 export const MENU_ITEMS: Record<Menu, readonly NavItem[]> = { product: PRODUCT, solutions: SOLUTIONS, resources: RESOURCES };
 
-function Item({ item }: { item: NavItem }) {
-  return (
-    <Link href={item.href} prefetch={false} className={cn("flex flex-col gap-0.5 rounded-lg p-3 hover:bg-sunken", ring)}>
-      <span className="flex items-center gap-2.5 text-md font-medium text-ink">
-        {item.icon ? <HomeIcon name={item.icon} size={20} className="text-ink" /> : null}
-        {item.title}
-      </span>
-      {item.body ? <span className="text-base text-ink-3">{item.body}</span> : null}
-    </Link>
-  );
-}
+/** A link in a panel: the ink, underlined on hover, as mercury.com's lists are. */
+const plain = cn("rounded-sm hover:underline hover:decoration-ink/40 hover:underline-offset-4", ring);
 
+// mercury.com's mega menu (the founder's two screenshots, 24 Oct 2026): one wide panel under the bar framed by a
+// hairline, equal columns parted by hairlines, a lead column, then a row for suppliers. Drawn in the tokens, so it is
+// the night set under a night bar and paper under a paper one, with no shadow and no icons.
 function Panel({ menu }: { menu: Menu }) {
+  const { lead, columns } = PANELS[menu];
   return (
-    <div className={cn(measure, "flex gap-1 pb-8 pt-6")}>
-      {MENU_ITEMS[menu].map((i) => (
-        <Item key={i.href} item={i} />
-      ))}
-    </div>
+    <>
+      <div className="grid divide-x divide-line" style={{ gridTemplateColumns: `minmax(0, 1.2fr) repeat(${columns.length}, minmax(0, 1fr))` }}>
+        <div className="flex flex-col p-8 max-xl:p-6">
+          <p className="text-site-lead text-ink">{lead.title}</p>
+          <p className="mt-2 max-w-[280px] text-site-lede text-ink-3 max-xl:text-md">{lead.body}</p>
+          <ul className="mt-6 flex max-w-[280px] flex-col border-y border-line divide-y divide-line">
+            {lead.links.map((l) => (
+              <li key={l.href}>
+                <Link href={l.href} prefetch={false} className={cn("group flex flex-col gap-0.5 py-3", ring)}>
+                  <span className="text-site-item font-medium text-ink group-hover:underline group-hover:decoration-ink/40 group-hover:underline-offset-4">{l.title}</span>
+                  <span className="text-sm text-ink-3">{l.body}</span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+          <Link href="/contact" prefetch={false} className={cn("mt-8 inline-flex h-8 w-fit items-center gap-1.5 rounded-full bg-ink/[0.07] px-4 text-sm font-medium text-ink hover:bg-ink/[0.12]", ring)}>
+            Book a demo
+            <ArrowUpRight size={13} weight="bold" aria-hidden />
+          </Link>
+        </div>
+        {columns.map((c) => (
+          <div key={c.href} className="flex flex-col p-8 max-xl:p-6">
+            {/* Tall enough that every column's label starts on one line, level with the lead's links. */}
+            <div className="min-h-[118px]">
+              <Link href={c.href} prefetch={false} className={cn("text-site-card font-medium text-ink", plain)}>
+                {c.title}
+              </Link>
+              <p className="mt-1.5 text-base text-ink-3">{c.body}</p>
+            </div>
+            <p className="mt-6 text-xs font-medium uppercase tracking-[0.08em] text-ink-3">{c.label}</p>
+            <ul className="mt-3 flex flex-col gap-1">
+              {c.links.map((l) => (
+                <li key={l.href}>
+                  <Link href={l.href} prefetch={false} className={cn("text-site-body text-ink", plain)}>
+                    {l.title}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ))}
+      </div>
+      <Link href={SUPPLIER_ROW.href} prefetch={false} className={cn("group flex flex-col gap-1 border-t border-line px-8 py-6 max-xl:px-6", ring, "focus-visible:-outline-offset-2")}>
+        <span className="flex items-center gap-3 text-site-lead text-ink">
+          {SUPPLIER_ROW.title}
+          <span className="flex size-8 items-center justify-center rounded-full bg-ink/[0.07] transition-colors group-hover:bg-ink/[0.12]">
+            <ArrowRight size={14} weight="bold" aria-hidden />
+          </span>
+        </span>
+        <span className="text-site-lede text-ink-3">{SUPPLIER_ROW.body}</span>
+      </Link>
+    </>
   );
 }
 
@@ -123,9 +164,10 @@ export function SiteNav({ over = false }: { /** The home page: the bar floats cl
     };
   }, [over]);
 
-  // A menu open over the photograph needs the ground too, so its panel reads.
-  const clear = under === "top" && !open;
+  // A panel has its own ground, so the bar keeps its own when a menu opens.
+  const clear = under === "top";
   const night = under === "night";
+  const page = under === "page";
 
   useEffect(() => {
     if (!open) return;
@@ -146,9 +188,6 @@ export function SiteNav({ over = false }: { /** The home page: the bar floats cl
     };
   }, [open]);
 
-  // A menu opened over the studio draws the bar in the page's ground where the page has one (read when it opens: a menu is only ever open in the browser).
-  const page = under === "page" || (!!open && !!document.documentElement.dataset.mkPage);
-
   return (
     <header
       ref={head}
@@ -159,7 +198,7 @@ export function SiteNav({ over = false }: { /** The home page: the bar floats cl
         clear ? "border-transparent bg-canvas lg:bg-transparent" : page ? "border-transparent bg-canvas" : "border-line bg-surface/90 backdrop-blur-md supports-[backdrop-filter]:bg-surface/80",
       )}
     >
-      <nav ref={bar} aria-label="Main" className="relative" onMouseLeave={() => setOpen(null)}>
+      <nav ref={bar} aria-label="Main" className="relative">
         <div className="relative flex h-nav items-center justify-between px-5 md:px-8">
           <Wordmark className="flex items-center max-sm:min-h-11" />
           <ul className="absolute left-1/2 flex -translate-x-1/2 items-center gap-2 max-lg:hidden">
@@ -172,9 +211,8 @@ export function SiteNav({ over = false }: { /** The home page: the bar floats cl
                   }}
                   aria-expanded={open === m.key}
                   aria-controls={`site-menu-${m.key}`}
+                  // A click opens it, never hover (founder, 24 Oct 2026).
                   onClick={() => setOpen(open === m.key ? null : m.key)}
-                  // Hover opens for a mouse only: on touch the tap would open it and the same tap's click would close it.
-                  onPointerEnter={(e) => e.pointerType === "mouse" && setOpen(m.key)}
                   className={cn(pill, "gap-1.5", open === m.key && "bg-ink/10")}
                 >
                   {m.label}
@@ -183,7 +221,7 @@ export function SiteNav({ over = false }: { /** The home page: the bar floats cl
               </li>
             ))}
             <li>
-              <Link href="/pricing" prefetch={false} className={pill} onPointerEnter={(e) => e.pointerType === "mouse" && setOpen(null)}>
+              <Link href="/pricing" prefetch={false} className={pill}>
                 Pricing
               </Link>
             </li>
@@ -202,7 +240,15 @@ export function SiteNav({ over = false }: { /** The home page: the bar floats cl
         </div>
         {MENUS.map((m) =>
           open === m.key ? (
-            <div key={m.key} id={`site-menu-${m.key}`} className="absolute inset-x-0 top-full border-b border-line bg-surface shadow-dialog max-lg:hidden">
+            // A link to the page already open (a section of it, say) changes no path, so a press on any link closes it here.
+            // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions -- the links are the controls; this only hears their clicks.
+            <div
+              key={m.key}
+              id={`site-menu-${m.key}`}
+              onClick={(e) => (e.target as Element).closest("a") && setOpen(null)}
+              // A short window scrolls the panel itself: the bar is sticky, so the page's scroll would never reach its foot.
+              className="absolute inset-x-8 top-full max-h-[calc(100dvh-theme(spacing.nav))] animate-fade overflow-y-auto rounded-b-xl border border-line bg-surface max-lg:hidden"
+            >
               <Panel menu={m.key} />
             </div>
           ) : null,

@@ -21,7 +21,7 @@ const { homeDescription } = require("@/components/site/sections/hero") as typeof
 // eslint-disable-next-line @typescript-eslint/no-require-imports -- the same.
 const { Announcement } = require("@/components/site/sections/announcement") as typeof import("@/components/site/sections/announcement");
 // eslint-disable-next-line @typescript-eslint/no-require-imports -- the same.
-const { FOOTER } = require("@/components/site/map") as typeof import("@/components/site/map");
+const { FOOTER, PANELS, SUPPLIER_ROW } = require("@/components/site/map") as typeof import("@/components/site/map");
 
 const router = { push() {}, replace() {}, refresh() {}, back() {}, forward() {}, prefetch() {} };
 const plain = (s: string) => s.replace(/&#x27;/g, "'").replace(/&amp;/g, "&").replace(/&quot;/g, '"');
@@ -137,7 +137,10 @@ describe("the home page", () => {
     // eslint-disable-next-line @typescript-eslint/no-require-imports -- the same.
     const { FLOWS } = require("@/components/site/sections/opening") as typeof import("@/components/site/sections/opening");
     assert.equal(screenFile("find"), "clip-find");
-    assert.match(out, /src="\/site\/home\/clip-find\.webp"/, "the light picture in the laptop");
+    // The light picture is the dark flow's first frame taken in the light theme (his review of 24 Oct: the old light
+    // search did not match the dark page it turns into), so the 22 Oct composition left the opening.
+    assert.match(out, /src="\/site\/home\/clip-light-search\.webp"/, "the light picture in the laptop");
+    assert.doesNotMatch(out, /clip-find\./, "the old light search is gone from the opening");
     assert.deepEqual(Object.values(FLOWS).map((f) => f.file), ["clip-dark-search", "clip-dark-record", "clip-dark-rfq", "clip-dark-sort"]);
     for (const n of ["find", "check", "ask", "watch"] as const) assert.match(tour, new RegExp(`poster="/site/home/${FLOWS[n]!.file}\\.webp"`), n);
     assert.doesNotMatch(tour, /poster="\/site\/home\/app-(?:check|ask|watch)\.webp"/, "the light recordings left the opening");
@@ -277,6 +280,15 @@ describe("the home page", () => {
       assert.doesNotMatch(i.href, /^\/(app|supplier|admin)(\/|$)/, i.title);
     }
     assert.ok(!routeExists("/no-such-page") && !routeExists("/app/no-such-page"), "the check can fail");
+    // The desktop panels (mercury.com's mega menu, 24 Oct 2026) add links of their own: each opens, and a panel never
+    // drops an item its menu lists on the phone.
+    for (const [menu, p] of Object.entries(PANELS)) {
+      const links = [...p.lead.links, ...p.columns.flatMap((c) => [c, ...c.links]), SUPPLIER_ROW];
+      for (const l of links) assert.ok(routeExists(l.href), `${menu}: ${l.title} → ${l.href}`);
+      for (const i of MENU_ITEMS[menu as keyof typeof MENU_ITEMS]) assert.ok(links.some((l) => l.href === i.href), `${menu} panel lacks ${i.title}`);
+    }
+    // A click opens a menu, never hover (founder, 24 Oct 2026).
+    assert.doesNotMatch(readFileSync(join(process.cwd(), "components/site/nav.tsx"), "utf8"), /onPointerEnter|onMouseEnter|onMouseLeave|onPointerLeave/);
   });
 
   it("never scores: no grade, rating or star is claimed, and the only score word is the promise not to", () => {

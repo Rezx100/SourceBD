@@ -89,7 +89,7 @@ def page(rows: list[dict[str, Any]], done: dict[str, dict[str, Any]]) -> str:
             for k, v in CHOICES.items() if k != "exact" or r.get("exact_check", {}).get("shipments"))
         lines = "".join(f"<dt>{html.escape(k.replace('_', ' '))}</dt><dd>{html.escape(str(v))}</dd>"
                         for k, v in e.items() if v)
-        cards.append(f'<form method=post action=/decide><h2>{html.escape(r["name"])}</h2>'
+        cards.append(f'<form id="s-{r["id"]}" method=post action=/decide><h2>{html.escape(r["name"])}</h2>'
                      f'<p class=slug>{html.escape(r["slug"])}</p><dl>{lines}</dl>'
                      f'<input type=hidden name=id value="{r["id"]}"><input type=hidden name=name '
                      f'value="{html.escape(r["name"])}">{buttons}</form>')
@@ -97,7 +97,7 @@ def page(rows: list[dict[str, Any]], done: dict[str, dict[str, Any]]) -> str:
     return f"""<!doctype html><meta charset=utf-8><meta name=viewport content="width=device-width">
 <title>Volza review</title><style>
 body{{font:15px/1.5 system-ui;max-width:760px;margin:24px auto;padding:0 16px;background:#fafaf8;color:#1a1a1a}}
-form{{background:#fff;border:1px solid #ddd;border-radius:8px;padding:14px 16px;margin:12px 0}}
+form{{background:#fff;border:1px solid #ddd;border-radius:8px;padding:14px 16px;margin:12px 0;scroll-margin-top:12px}}
 h2{{margin:0;font-size:17px}} .slug{{margin:0;color:#777;font-size:13px}}
 dl{{display:grid;grid-template-columns:130px 1fr;gap:2px 10px;margin:10px 0}} dt{{color:#666}} dd{{margin:0}}
 button{{font:inherit;padding:6px 12px;margin:4px 6px 0 0;border:1px solid #bbb;border-radius:6px;background:#fff;cursor:pointer}}
@@ -124,7 +124,7 @@ def serve(port: int) -> None:
                 self._send(400, "bad answer")
                 return
             self.send_response(303)
-            self.send_header("Location", "/")
+            self.send_header("Location", f"/#s-{f['id'][0]}")  # back to the card just answered, not the top
             self.end_headers()
 
         def _send(self, code: int, body: str) -> None:

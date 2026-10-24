@@ -164,7 +164,7 @@ class Live:
         raise Stop("Volza refused every try for 15 minutes (429): a longer limit is in force; run again in an hour")
 
     def read_daily(self) -> int | None:
-        """Today's requests left, read with one free company-list call on this key."""
+        """Today's requests left, read with one company-list call on this key."""
         try:
             r = self.http.get("/companies/search", params={"company_name": "Square Fashions", "page_size": 1})
         except httpx.HTTPError:
@@ -172,6 +172,11 @@ class Live:
         self.sent.append(time.monotonic())
         left = r.headers.get("X-RateLimit-Remaining-Daily")
         self.daily_left = int(left) if left and left.isdigit() else self.daily_left
+        # 24 Oct 2026: this lookup now costs about $0.011. Its credit reading becomes the step baseline, or
+        # the first export search carries it and looks dearer than its worst case (header_spent still counts it).
+        used = r.headers.get("X-Credit-Used")
+        if used is not None:
+            self.prev_used = float(used)
         return self.daily_left
 
     def _pace(self) -> None:
