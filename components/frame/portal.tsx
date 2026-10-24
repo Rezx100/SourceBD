@@ -33,6 +33,7 @@ import { Dialog as D } from "radix-ui";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { ring, ringInset } from "@/components/kit/classes";
 import { Menu, MenuItem, MenuSeparator } from "@/components/kit/overlay";
+import { Logo } from "@/components/patterns/logo";
 import { PORTAL_HOME, PORTAL_NAME, PORTAL_NAV, portalMatch, portalOf, portalTitle, type PortalBadgeKey, type PortalIconKey, type PortalItem } from "@/lib/portal-nav";
 import { cn } from "@/lib/utils";
 import { MAIN_ID } from "./frame";
@@ -99,8 +100,8 @@ function Sidebar({ badges }: { badges: PortalBadges }) {
   return (
     <aside aria-label="Menu" className="hidden h-full w-16 shrink-0 flex-col border-r border-line bg-subtle md:flex 2xl:w-sidebar">
       <div className="flex h-14 shrink-0 flex-col justify-center px-5">
-        <Link href={PORTAL_HOME[role]} className={cn("hidden rounded-sm text-md font-semibold tracking-tight text-brand 2xl:block", ringInset)}>
-          SourceBD
+        <Link href={PORTAL_HOME[role]} className={cn("hidden w-fit rounded-sm text-ink 2xl:block", ringInset)}>
+          <Logo height={20} />
         </Link>
       </div>
       <nav aria-label={`${PORTAL_NAME[role]} menu`} className="relative flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-3 py-2">
