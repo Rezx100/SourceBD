@@ -400,6 +400,9 @@ export const homeGrounds = {
 
 export type HomeGround = keyof typeof homeGrounds;
 
+/** The shade laid over a photograph under its words (the home page's quotes): neutral black, no tint (founder, 24 Oct 2026). */
+export const photoShade = "#000000";
+
 export type TierRank = 1 | 2 | 3 | 4 | 5;
 
 /** The five buyer-visible source tiers, in rank order (spec §2). */
