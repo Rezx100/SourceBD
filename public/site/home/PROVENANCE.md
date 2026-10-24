@@ -27,6 +27,20 @@ labels or products of any supplier, so they claim nothing about anyone. Each shi
 | `hf-dusk.png` (the studio at dusk, the London skyline lit) | `d6c8e04a-dad0-4638-94a0-29c6b896b86b` | The closing band on every page | `dusk-1600.avif` · `dusk-1600.webp` · `dusk-2560.avif` · `dusk-2560.webp` |
 | `hf-mill.png` (a garment factory floor before the shift) | `a2a2ae62-7de2-4750-9cc6-d575d9f98d9f` | For suppliers | `mill-1600.avif` · `mill-1600.webp` · `mill-2560.avif` · `mill-2560.webp` |
 
+### What suppliers and buyers said, 24 Oct 2026
+
+The home page's three quotes (`sections/voices.tsx`), each over the speaker's setting. People appear, but always from
+behind or below the eyes, so no face stands in for the person quoted. Nano Banana Pro (`nano_banana_pro`, the
+founder's choice), 2K, 16:9, prompted as candid phone snapshots in flat everyday light: he found a first cinematic set
+from `gpt_image_2_5` "super fake", with a dark shadow down its left. WebP quality 80 at 2000 px across. Sources in the
+session scratchpad, not the repo.
+
+| Source | Job | Where it is drawn | Files |
+| -- | -- | -- | -- |
+| `uk1.png` (a London buying office, the buyer at her monitor from behind) | `f7ed9998-eec4-4a31-a5f3-02ae4a24dd97` | Slide 1, the UK buyer | `voice-buyer-uk.webp` |
+| `s1.png` (a Gazipur sewing floor, the managing director walking the line from behind) | `1cb9c9d8-841c-4d12-80c4-2a010874da50` | Slide 2, the supplier | `voice-supplier.webp` |
+| `eu1.png` (a Hamburg sample room, the buyer measuring a sweater, his face out of frame) | `cab6350a-e80c-4489-b872-96e254fe5164` | Slide 3, the German buyer | `voice-buyer-eu.webp` |
+
 The laptop's display in `hf-hero.png` was measured from the pixels (the display's flat grey field inside its black
 bezel): its corners at (1552, 1068), (2279, 1068), (2287, 1522) and (1546, 1522) of 3840 × 2160 (`DISPLAY` in
 `sections/opening.tsx`), so the app is pinned to all four.
@@ -119,9 +133,6 @@ record's clip ends where it began, so the hand-over between records is one heade
 | `memberships` | Aboni Knitwear's four memberships, each lifting in turn | `/app/suppliers/aboni-knitwear`, signed in | `clip-memberships.mp4` · `clip-memberships.webm` · `clip-memberships.webp` |
 | `safety` | Aboni Knitwear's RSC safety record | `/app/suppliers/aboni-knitwear`, signed in | `clip-safety.mp4` · `clip-safety.webm` · `clip-safety.webp` |
 | `sources` | Aboni Knitwear's sources in trust order | `/app/suppliers/aboni-knitwear`, signed in | `clip-sources.mp4` · `clip-sources.webm` · `clip-sources.webp` |
-| `real-mondol` | Mondol Fabrics' public record, scrolled for real to its GOTS certificate, in close and out, back to the top | `/suppliers/mondol-fabrics`, signed out | `clip-real-mondol.mp4` · `clip-real-mondol.webm` · `clip-real-mondol.webp` |
-| `real-aboni` | Aboni Knitwear's public record, scrolled to its WRAP certificate and back | `/suppliers/aboni-knitwear`, signed out | `clip-real-aboni.mp4` · `clip-real-aboni.webm` · `clip-real-aboni.webp` |
-| `real-liberty` | Liberty Knitwear's public record, scrolled to its RSC safety inspections and back | `/suppliers/liberty-knitwear`, signed out | `clip-real-liberty.mp4` · `clip-real-liberty.webm` · `clip-real-liberty.webp` |
 
 ## Stills of the real app (Buy with confidence), 22 Oct 2026
 

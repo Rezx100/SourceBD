@@ -73,7 +73,7 @@ export function sourcesCaption(r: Pick<SnapshotRecord, "sources" | "registers">)
 export const BRAND_LIST: Record<string, string> = { BRAND_HM: "H&M", BRAND_ASOS: "ASOS", BRAND_NEXT: "NEXT", BRAND_MS: "M&S", BRAND_INDITEX: "Inditex", BRAND_PRIMARK: "Primark" };
 
 /**
- * The register a certificate scheme is read from (the home page's names, lib/home-records.ts): the mark's code for
+ * The register a certificate scheme is read from: the mark's code for
  * `SourceMark`, the code the record's read day is filed under (and the receipt is written with), and the register's name.
  */
 export const CERT_REGISTER: Record<string, { mark: string; code: string; name: string }> = {
