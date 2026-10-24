@@ -77,6 +77,32 @@ def test_run_stops_just_before_the_daily_limit():
         raise AssertionError("searched into the last requests of the day")
 
 
+def test_paid_lookup_before_the_run_does_not_stop_the_first_search(monkeypatch):
+    # 24 Oct 2026: the requests-left lookup cost $0.011 and the first $0.15 search read as $0.161, stopping the run
+    class R:
+        def __init__(self, used, status=200, body=None):
+            self.status_code, self._body = status, body or {}
+            self.headers = {"X-Credit-Used": str(used), "X-RateLimit-Remaining-Daily": "990",
+                            "content-type": "application/json"}
+
+        def json(self):
+            return self._body
+
+    class Http:
+        def get(self, *a, **k):
+            return R(100.011)
+
+        def post(self, *a, **k):
+            return R(100.161, body={"api_records": [{}]})
+
+    monkeypatch.setattr(volza_live_sample.time, "sleep", lambda s: None)
+    v = volza_live_sample.Live(10.0, 0.0, http=Http(), start_used=100.0)
+    v.read_daily()
+    status, _, cost = v.search({"supplier_name": ["X"]})
+    assert status == 200 and abs(cost - 0.15) < 1e-9
+    assert abs(v.spent - 0.161) < 1e-6  # the lookup still counts as spent
+
+
 def test_pace_never_sends_more_than_40_in_a_minute(monkeypatch):
     clock = [0.0]
     monkeypatch.setattr(volza_live_sample.time, "monotonic", lambda: clock[0])
