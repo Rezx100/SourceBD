@@ -388,7 +388,6 @@ export function OverviewSection({ model, today, level, exportsHref, market = nul
   return (
     <section id="record-overview" aria-label="Overview" className="flex scroll-mt-[calc(var(--record-offset,0px)+12px)] flex-col gap-[26px] [@container_(min-width:760px)]:gap-8">
       <ExportGrid model={model} today={today} level={level} href={exportsHref} market={market} rank={rank} />
-      {!model.volza && model.groupExports ? <GroupExportsNote group={model.groupExports} className="mx-3" /> : null}
       {model.sanctionSample ? (
         <p className="flex flex-wrap items-center gap-2 px-3 text-xs text-ink-3">
           <span className="flex h-[22px] items-center rounded border border-dashed border-line-strong px-2 font-medium text-ink">Sample state</span>

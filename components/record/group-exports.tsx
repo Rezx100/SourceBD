@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils";
 /**
  * The group's customs records beside a member that has none of its own (0157). Founder, 24 Oct 2026: 4A Yarn Dyeing
  * (Team Group) read "no customs records" while its sister Mars Stitch shipped 990 times. Labelled as the group's on
- * every line, never added to the member's own figures; each sister links to its own record.
+ * every line, never added to the member's own figures; each sister links to its own record. Drawn once, under Exports.
  */
 export function GroupExportsNote({ group, className }: { group: GroupExports; className?: string }) {
   return (
