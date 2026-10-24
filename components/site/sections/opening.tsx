@@ -56,7 +56,7 @@ const SETTLE = 0.85;
 export const FLOWS: Record<string, { file: string; says: string }> = {
   find: { file: "clip-dark-search", says: "The search page in the dark theme: knit GOTS is opened from the recent searches, 606 suppliers are listed and scrolled, and Benchmark Apparels' record opens beside them." },
   check: { file: "clip-dark-record", says: "Aboni Knitwear's export figures, then where its exports go and its latest shipments, then the saved list resting on Aboni Knitwear." },
-  ask: { file: "clip-dark-pack", says: "A modern slavery statement composed from the saved suppliers, read from the top, then the evidence pack downloaded." },
+  ask: { file: "clip-dark-rfq", says: "Three saved suppliers ticked, then one RFQ for them: a knitted piqué polo, 24,000 pieces at US$4.80, shipped to the United Kingdom by 15 Jan 2027, read from the top, the pointer resting on Send." },
   watch: { file: "clip-dark-sort", says: "The woven shirt WRAP results, 160 suppliers, their workers and certificates coming into focus, then sorted by supplier." },
 };
 const fileOf = (t: TourItem) => FLOWS[t.key]?.file ?? screenFile(t.screen ?? "find");

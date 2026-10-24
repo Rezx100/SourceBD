@@ -68,18 +68,19 @@ glass lift's hairline and shadow on the pointed-at row, the pointer and its clic
 
 The founder's review of 24 Oct 2026: as the studio falls into the night the opening's light picture turns dark in place,
 and beside the list each item plays one of four product flows cut after mercury.com's `flow_1..4`. The flows are the
-real app in its dark theme on sourcebd.net (release #592), recorded from the admin account in a headless Chrome on a
-temporary profile the founder signed in to, at 1440 × 900 drawn at DPR 2 and slowed down. One real write was made, with
-his yes: one evidence pack download. The compositor (outside the repo, `E:\SourceBD-marketing\flows\rec\comp.py`, run
+real app in its dark theme on sourcebd.net (re-recorded on 24 Oct 2026 once the dark theme's softer lines were live),
+from the admin account in a headless Chrome on a temporary profile the founder signed in to, at 1440 × 900 drawn at
+DPR 2 and slowed down. Nothing was written: the RFQ is typed into the composer (his wording, his yes) and never sent
+or saved as a draft. The compositor (outside the repo, `E:\SourceBD-marketing\flows\rec\comp.py`, run
 with `FLOW_WEB=1`) only crops, retimes, eases the view, blurs and fades those frames; it draws the dark window ground
-(the app's ink #15181C) and nothing else. Each ships at 2880 × 1800 as H.264 (crf 24) and VP9 (crf 34), with its first
+(the app's ink #15181C) and nothing else; where a margin would show the sidebar's or a pane's divider, it repeats the page's own column beside it. Each ships at 2880 × 1800 as H.264 (crf 24) and VP9 (crf 34), with its first
 frame as the poster; no AI model touched any pixel.
 
 | Clip | What it shows | Files |
 | -- | -- | -- |
 | `dark-search` | The search page whole (the picture the opening leaves), the view coming in on the recent searches, knit GOTS opened, the 606 results scrolled, Benchmark Apparels' record beside them | `clip-dark-search.mp4` · `clip-dark-search.webm` · `clip-dark-search.webp` |
 | `dark-record` | Aboni Knitwear's export figures, Markets and shipments clicked, scrolled to the latest shipments, then the Saved list resting on Aboni Knitwear | `clip-dark-record.mp4` · `clip-dark-record.webm` · `clip-dark-record.webp` |
-| `dark-pack` | The modern slavery statement composed from the saved suppliers, coming into focus from the top, then the evidence pack dialog, Download pack clicked, its toast | `clip-dark-pack.mp4` · `clip-dark-pack.webm` · `clip-dark-pack.webp` |
+| `dark-rfq` | The Saved list, its first three suppliers ticked, Send one RFQ to 3 clicked; the composer filled (Men's knitted piqué polo, 220 gsm; 24,000 pieces; US$4.80; ship by 15 Jan 2027 to the United Kingdom), coming into focus from the top; the pointer resting on Send to 3 suppliers, never clicked | `clip-dark-rfq.mp4` · `clip-dark-rfq.webm` · `clip-dark-rfq.webp` |
 | `dark-sort` | The woven shirt WRAP results (160 suppliers), the rows coming into focus from the top (a focus sweep over the real rows), the view moving left to the names, sorted by supplier | `clip-dark-sort.mp4` · `clip-dark-sort.webm` · `clip-dark-sort.webp` |
 
 ## Animations of the real app (the sections), 22 Oct 2026
