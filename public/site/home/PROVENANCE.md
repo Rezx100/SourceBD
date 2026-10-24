@@ -82,6 +82,14 @@ frame as the poster; no AI model touched any pixel.
 | `dark-rfq` | The Saved list, three suppliers ticked, Send one RFQ to 3, the composer read from the top (Men's knitted piqué polo, 220 gsm; 24,000 pieces; US$4.80 a piece; ship by 15 Jan 2027 to the United Kingdom), the pointer resting on Send to 3 suppliers, never clicked | `clip-dark-rfq.mp4` · `clip-dark-rfq.webm` · `clip-dark-rfq.webp` |
 | `dark-sort` | The woven shirt WRAP results (160 suppliers), the rows coming into focus from the top (a focus sweep over the real rows), the view moving left to the names, sorted by supplier | `clip-dark-sort.mp4` · `clip-dark-sort.webm` · `clip-dark-sort.webp` |
 
+The laptop's light picture, `clip-light-search.webp`, is `dark-search`'s first frame taken again in the light theme
+(the founder's review of 24 Oct 2026: the 22 Oct `clip-find` picture showed the older search page, so it did not line
+up with the dark one it turns into). Same day, account, recorder and walk (`rec.py f1` with `THEME=light`, the
+`sb-theme` cookie and `prefers-color-scheme` set to light), the woven shirt WRAP search opened first so the recent
+searches stand in the same order; the compositor drew its first frame as it drew the dark one's (`FLOW_WEB=1`, the take
+read from `takes-light\`) and ffmpeg wrote it as WebP (quality 82). Laid at half strength over the dark frame, every
+line meets its twin. No AI model touched any pixel.
+
 ## Animations of the real app (the sections), 22 Oct 2026
 
 Each is one part of the app at reading size, after mercury.com's product clips. The pixels of the app are cut from
