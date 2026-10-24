@@ -54,7 +54,7 @@ export function Voices() {
   const from = useRef(0);
   const go = (i: number) => setOn(Math.max(0, Math.min(VOICES.length - 1, i)));
   return (
-    <section data-mk-tone="night" aria-labelledby="home-voices" className="overflow-hidden pb-14 pt-12 md:pb-20 md:pt-[72px]">
+    <section data-mk-tone="night" aria-labelledby="home-voices" className="pb-14 pt-12 md:pb-20 md:pt-[72px]">
       <h2 id="home-voices" className="sr-only">
         What suppliers and buyers told us
       </h2>

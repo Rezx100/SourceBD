@@ -218,8 +218,9 @@ describe("the home page", () => {
     assert.equal(steadyTone(at(570), 1000, "warm"), "warm", "not yet past 58% going up");
     assert.equal(steadyTone(at(590), 1000, "warm"), "night", "past 58% going up");
     assert.equal(steadyTone(at(500), 1000, null), "night", "on load with no tone yet, the one at the band's top");
+    assert.equal(steadyTone([{ top: -2000, tone: "night" as const }, { top: 410, tone: "warm" as const }, { top: 500, tone: "day" as const }], 1000, "night"), "warm", "two edges in the band and neither line night: no stale ground");
     const css = readFileSync(join(process.cwd(), "tailwind.config.ts"), "utf8");
-    assert.match(css, /color \$\{motion\.toneMs \* 0\.2\}ms \$\{motion\.toneMs \* 0\.4\}ms/, "the words change in the fade's middle fifth");
+    assert.match(css, /\[data-mk-switching\] main \*\)": \{ transition: `color \$\{motion\.toneMs \* 0\.2\}ms \$\{motion\.toneMs \* 0\.4\}ms/, "during a fade the words change in its middle fifth, never on a hover");
   });
 
   it("the brands are their own logos in one colour, each labelled by name, and only brands on the record (founder, 24 Oct 2026)", () => {

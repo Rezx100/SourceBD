@@ -11,7 +11,7 @@
 // With no script the sections stand on their own grounds, fixed, so the page reads the same without this.
 
 import { useEffect, useRef, type ReactNode } from "react";
-import type { HomeGround } from "@/lib/design/tokens";
+import { motion, type HomeGround } from "@/lib/design/tokens";
 import { cn } from "@/lib/utils";
 
 /** The tone of the last section whose top has passed `line` (the window's middle), or the first section's before any has. */
@@ -27,10 +27,11 @@ export function toneAt(sections: readonly { top: number; tone: HomeGround }[], l
 /** The band round the window's middle, as shares of its height: the ground turns only when both lines agree. */
 export const BAND = [0.42, 0.58] as const;
 
-/** The page's tone with the band: the tone both of the band's lines are in, or `current` while an edge is inside it. */
+/** The page's tone with the band: the tone both of the band's lines are in, or `current` while an edge is inside it (unless neither line is in `current` any more). */
 export function steadyTone(sections: readonly { top: number; tone: HomeGround }[], height: number, current: HomeGround | null): HomeGround | null {
   const a = toneAt(sections, height * BAND[0]);
-  return a === toneAt(sections, height * BAND[1]) || current === null ? a : current;
+  const b = toneAt(sections, height * BAND[1]);
+  return a === b || (a !== current && b !== current) ? a : current;
 }
 
 export function HomeMain({ className, children }: { className?: string; children: ReactNode }) {
@@ -38,13 +39,20 @@ export function HomeMain({ className, children }: { className?: string; children
   useEffect(() => {
     const root = document.documentElement;
     let raf = 0;
+    let switching = 0;
     const read = () => {
       raf = 0;
       const el = main.current;
       if (!el) return;
       const sections = [...el.querySelectorAll<HTMLElement>(":scope > [data-mk-tone]")].map((s) => ({ top: s.getBoundingClientRect().top, tone: s.dataset.mkTone as HomeGround }));
       const tone = steadyTone(sections, innerHeight, (root.dataset.mkPage as HomeGround | undefined) ?? null);
-      if (tone && root.dataset.mkPage !== tone) root.dataset.mkPage = tone;
+      if (tone && root.dataset.mkPage !== tone) {
+        // While the ground fades the words wait for its middle (tailwind.config.ts); a hover at any other time is not held back.
+        root.dataset.mkSwitching = "";
+        clearTimeout(switching);
+        switching = window.setTimeout(() => delete root.dataset.mkSwitching, motion.toneMs);
+        root.dataset.mkPage = tone;
+      }
     };
     const onScroll = () => {
       if (!raf) raf = requestAnimationFrame(read);
@@ -54,9 +62,11 @@ export function HomeMain({ className, children }: { className?: string; children
     addEventListener("resize", onScroll);
     return () => {
       cancelAnimationFrame(raf);
+      clearTimeout(switching);
       removeEventListener("scroll", onScroll);
       removeEventListener("resize", onScroll);
       delete root.dataset.mkPage;
+      delete root.dataset.mkSwitching;
     };
   }, []);
   return (
