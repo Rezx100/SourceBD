@@ -1,7 +1,7 @@
-// The SourceBD logo, the brand kit's small cut (E:SourceBD-marketingrandsourcebd-logo-small.svg, 25 Oct 2026; the
-// founder's pick: icon C16, colourway K4, word W1, lockup L4): two scalloped swatches turned 45° and the outlined word,
-// so no font is needed. The kit draws it for any lockup whose mark is under 32 px tall; the site's bar and footer draw
-// it at 35 on the founder's word (25 Oct 2026). Never scale it below 20 px tall (the kit's smallest lockup).
+// The SourceBD logo (E:/SourceBD-marketing/brand/sourcebd-logo.svg, 25 Oct 2026; the founder's pick: icon C16, colourway
+// K4, word W1, lockup L4): two pinked swatches turned 45° and the outlined word, so no font is needed. The kit also has a
+// scalloped small cut for marks under 32 px; the founder chose the teeth at every size (25 Oct 2026). Never scale it
+// below 20 px tall (the kit's smallest lockup).
 //
 // The word is `currentColor`, so it is the ink of whatever it sits in; the swatches are `--ds-logo-front` and
 // `--ds-logo-back` (lib/design/tokens.ts `logoColors`), which the dark set turns to paper over grey-green, so the
@@ -9,9 +9,10 @@
 
 import { cn } from "@/lib/utils";
 
-const SWATCH = "M12,12 A4.06,4.06 0 0 1 20.00,12.00 A4.06,4.06 0 0 1 28.00,12.00 A4.06,4.06 0 0 1 36.00,12.00 A4.06,4.06 0 0 1 44.00,12.00 A4.06,4.06 0 0 1 52.00,12.00 A4.06,4.06 0 0 1 52.00,20.00 A4.06,4.06 0 0 1 52.00,28.00 A4.06,4.06 0 0 1 52.00,36.00 A4.06,4.06 0 0 1 52.00,44.00 A4.06,4.06 0 0 1 52.00,52.00 A4.06,4.06 0 0 1 44.00,52.00 A4.06,4.06 0 0 1 36.00,52.00 A4.06,4.06 0 0 1 28.00,52.00 A4.06,4.06 0 0 1 20.00,52.00 A4.06,4.06 0 0 1 12.00,52.00 A4.06,4.06 0 0 1 12.00,44.00 A4.06,4.06 0 0 1 12.00,36.00 A4.06,4.06 0 0 1 12.00,28.00 A4.06,4.06 0 0 1 12.00,20.00 A4.06,4.06 0 0 1 12.00,12.00 Z";
+/** The kit cut's pinked square: 14 teeth a side, drawn with a same-colour 1.8 stroke and round joins. */
+const TEETH = "12,12 13.4,10.6 14.9,12 16.3,10.6 17.7,12 19.1,10.6 20.6,12 22,10.6 23.4,12 24.9,10.6 26.3,12 27.7,10.6 29.1,12 30.6,10.6 32,12 33.4,10.6 34.9,12 36.3,10.6 37.7,12 39.1,10.6 40.6,12 42,10.6 43.4,12 44.9,10.6 46.3,12 47.7,10.6 49.1,12 50.6,10.6 52,12 53.4,13.4 52,14.9 53.4,16.3 52,17.7 53.4,19.1 52,20.6 53.4,22 52,23.4 53.4,24.9 52,26.3 53.4,27.7 52,29.1 53.4,30.6 52,32 53.4,33.4 52,34.9 53.4,36.3 52,37.7 53.4,39.1 52,40.6 53.4,42 52,43.4 53.4,44.9 52,46.3 53.4,47.7 52,49.1 53.4,50.6 52,52 50.6,53.4 49.1,52 47.7,53.4 46.3,52 44.9,53.4 43.4,52 42,53.4 40.6,52 39.1,53.4 37.7,52 36.3,53.4 34.9,52 33.4,53.4 32,52 30.6,53.4 29.1,52 27.7,53.4 26.3,52 24.9,53.4 23.4,52 22,53.4 20.6,52 19.1,53.4 17.7,52 16.3,53.4 14.9,52 13.4,53.4 12,52 10.6,50.6 12,49.1 10.6,47.7 12,46.3 10.6,44.9 12,43.4 10.6,42 12,40.6 10.6,39.1 12,37.7 10.6,36.3 12,34.9 10.6,33.4 12,32 10.6,30.6 12,29.1 10.6,27.7 12,26.3 10.6,24.9 12,23.4 10.6,22 12,20.6 10.6,19.1 12,17.7 10.6,16.3 12,14.9 10.6,13.4";
 
-const fade = "transition-[fill] duration-slow motion-reduce:transition-none";
+const fade = "transition-[fill,stroke] duration-slow motion-reduce:transition-none";
 
 /**
  * `height` is the icon's, in px; the word is 75% of it (the founder, 25 Oct 2026: a 35 px icon on the
@@ -20,10 +21,11 @@ const fade = "transition-[fill] duration-slow motion-reduce:transition-none";
 export function Logo({ height, className }: { height: number; className?: string }) {
   return (
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="17 17 5030 896" height={height} width={Math.round((height * 5030) / 896)} role="img" aria-label="SourceBD" data-logo className={cn("block shrink-0", className)}>
-      <g transform="translate(0 814.3)">
-        <g transform="translate(-15.14 -829.47) scale(11.3792)">
-          <path transform="translate(10.22 20.45) rotate(45 32 32)" d={SWATCH} className={cn("fill-logo-back", fade)} />
-          <path transform="translate(0.00 0.00) rotate(45 32 32)" d={SWATCH} className={cn("fill-logo-front", fade)} />
+      {/* The kit's mark is 931 tall from 0; fitted into the box the word is laid out against (896 from 17). */}
+      <g transform="translate(17 17) scale(0.9624) translate(0 814.3)">
+        <g transform="translate(-33.93 -848.27) scale(12.0514)">
+          <polygon transform="translate(9.43 18.86) rotate(45 32 32)" points={TEETH} strokeWidth="1.8" strokeLinejoin="round" className={cn("fill-logo-back stroke-logo-back", fade)} />
+          <polygon transform="rotate(45 32 32)" points={TEETH} strokeWidth="1.8" strokeLinejoin="round" className={cn("fill-logo-front stroke-logo-front", fade)} />
         </g>
       </g>
       <g transform="translate(83.71 33.86) scale(0.9266)">

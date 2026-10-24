@@ -246,7 +246,11 @@ describe("the logo (brand kit, 25 Oct 2026)", () => {
     for (const f of ["components/auth/state.tsx", "app/invite/[token]/page.tsx"]) assert.match(readFileSync(join(process.cwd(), f), "utf8"), /<Logo height=\{20\}/, f);
     // The founder, 25 Oct 2026: a 35 px icon on the bar and the footer, the word 75% of it.
     assert.match(readFileSync(join(process.cwd(), "components/site/sections/ui.tsx"), "utf8"), /<Logo height=\{35\} \/>/);
-    assert.match(readFileSync(join(process.cwd(), "components/patterns/logo.tsx"), "utf8"), /scale\(0\.9266\)">/);
+    const logo = readFileSync(join(process.cwd(), "components/patterns/logo.tsx"), "utf8");
+    assert.match(logo, /scale\(0\.9266\)">/);
+    // The toothed swatches at every size (the founder, 25 Oct 2026), never the kit's scalloped small cut.
+    assert.equal((logo.match(/points=\{TEETH\}/g) ?? []).length, 2);
+    assert.doesNotMatch(logo, /A4\.06/);
   });
 
   it("the bar reads the dark blocks on every page, not only the home page's", () => {
