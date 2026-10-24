@@ -31,9 +31,7 @@ const text = (m: string) => m.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ");
 const LIVE = parseFacts({ suppliers_indexed: 10278, last_refreshed_at: "2026-10-09T00:00:00Z" }, { sources_listed: 21, sources_with_records: 14, certificates_on_file: 4289, latest_read: "2026-10-09" });
 const page = (facts: SiteFacts = LIVE) => draw(createElement(HomeMercury, { facts }));
 
-const CARD = { slug: "aboni-knitwear", name: "Aboni Knitwear Ltd", meta: "Factory · Dhaka · 3,314 workers filed · 8 sources", marks: ["EPB", "WRAP"], facts: [{ icon: "rosette" as const, title: "WRAP 7865 · valid to 25 Aug 2027", sub: "WRAP register · read 8 Oct 2026" }] };
-const MONDOL = { slug: "mondol-fabrics", name: "Mondol Fabrics Ltd", meta: "Factory · Gazipur · 4,200 workers filed · 5 sources", marks: ["EPB", "GOTS"], facts: [{ icon: "rosette" as const, title: "GOTS-19020 · valid to 15 Dec 2026", sub: "GOTS database · read 26 Jun 2026" }] };
-const live = (over: Partial<Parameters<typeof HomeMercury>[0]> = {}) => draw(createElement(HomeMercury, { facts: LIVE, cards: [CARD], ...over }));
+const live = page;
 
 /** Whether the app serves a page at `href`: route groups `(x)` are see-through, `[slug]` takes any segment. */
 function routeExists(href: string, dir = join(process.cwd(), "app"), segs = href.split(/[?#]/)[0]!.split("/").filter(Boolean)): boolean {
@@ -93,7 +91,7 @@ describe("the home page", () => {
       "Bangladesh sourcing, on the record.",
       "Everything you do to vet a factory.",
       "Factories on SourceBD already make for brands like these",
-      "Real records, as production holds them",
+      "What suppliers and buyers told us",
       "Vetting a factory used to take weeks. Now it’s a head start.",
       "Every fact on a SourceBD record names the register it came from",
       "Get started in minutes. And never chase a factory again.",
@@ -151,7 +149,7 @@ describe("the home page", () => {
   it("every picture of the product is the real app playing or held still, with no pause button drawn, no dark shadow and nothing captioned under it (founder's videos of 22 Oct)", () => {
     const out = live();
     const videos = out.match(/<video [^>]*>/g) ?? [];
-    assert.ok(videos.length >= 13, `${videos.length} videos`);
+    assert.ok(videos.length >= 12, `${videos.length} videos`);
     for (const v of videos) assert.match(v, /poster="\/site\/home\/(?:app|clip)-[a-z-]+\.webp"/, v);
     // The checks hold three parts of the app still (his recording of 22 Oct 13:17), each from a capture.
     const stills = out.match(/<img [^>]*src="\/site\/home\/still-[a-z-]+\.webp"[^>]*>/g) ?? [];
@@ -169,7 +167,7 @@ describe("the home page", () => {
   it("shows each moment of the app once: no two sections play the same one (the ledger, founder's video 3)", () => {
     // eslint-disable-next-line @typescript-eslint/no-require-imports -- loaded after the test build exists.
     const { LEDGER } = require("@/components/site/sections/browser") as typeof import("@/components/site/sections/browser");
-    const out = live({ cards: [MONDOL, CARD] });
+    const out = live();
     const starts = [...out.matchAll(/<section [^>]*aria-labelledby="([^"]+)"/g)].map((m) => ({ at: m.index, id: m[1]! }));
     const where = new Map<string, Set<string>>();
     for (const m of out.matchAll(/(?:poster|src)="\/site\/home\/((?:app|clip|still)-[a-z-]+)\.webp"/g)) {
@@ -180,7 +178,7 @@ describe("the home page", () => {
       if (!where.has(moment)) where.set(moment, new Set());
       where.get(moment)!.add(section);
     }
-    assert.ok(where.size >= 17, `${where.size} moments`);
+    assert.ok(where.size >= 16, `${where.size} moments`);
     for (const [moment, sections] of where) assert.equal(sections.size, 1, `"${moment}" is shown in ${[...sections].join(" and ")}`);
     assert.equal(new Set(Object.values(LEDGER)).size, Object.keys(LEDGER).length, "two files of the ledger show one moment");
   });
@@ -216,10 +214,9 @@ describe("the home page", () => {
     assert.equal((strip.match(/aria-hidden="true"/g) ?? []).length, 1, "the drift's second copy is hidden from screen readers");
   });
 
-  it("no testimonial is invented: where mercury.com quotes a customer the page states its own promise and says whose it is", () => {
+  it("where mercury.com quotes its founder the page states its own promise and says whose it is", () => {
     const out = live();
     const t = text(out);
-    assert.doesNotMatch(t, /Founder,|CEO,|Head of Sourcing|Sourcing Director/, "no customer's name or title");
     assert.ok(t.includes("“Every fact on a SourceBD record names the register it came from and the day we read it. No scores. No paid placement.” Our methodology Read how we check every fact"));
     assert.match(out, /href="\/methodology"[^>]*>Read how we check every fact</);
   });
@@ -231,7 +228,7 @@ describe("the home page", () => {
     assert.ok(/href="\/signup\?role=supplier"[^>]*>(?:<[^>]+>)*\s*Claim your record/.test(out), "a claim button");
   });
 
-  it("no screenshot and no stand-in: the only photograph is the buyer's studio (its laptop is laid over it only by the scene), decoration", () => {
+  it("no screenshot and no stand-in: the only photographs are the buyer's studio (its laptop is laid over it only by the scene) and the speakers' settings, decoration", () => {
     const out = page();
     for (const img of out.match(/<img [^>]*>/g) ?? []) if (/\/site\/home\//.test(img)) assert.match(img, /alt=""/, img);
     assert.doesNotMatch(out, /\/site\/home\/screen-|\/site\/[a-z-]+\.png|hero-cotton|weave-|hero-loop/);
@@ -251,18 +248,14 @@ describe("the home page", () => {
     }
   });
 
-  it("the first paint waits for no slow read: the three records stream in, and no chip count is read (critique 22 Oct, S9; founder's recording of 22 Oct 13:17)", () => {
+  it("the first paint waits only for the site's facts: no record and no chip count is read (critique 22 Oct, S9; founder's recording of 22 Oct 13:17)", () => {
     const route = readFileSync(join(process.cwd(), "app/(home)/page.tsx"), "utf8");
-    assert.match(route, /<Suspense fallback=\{null\}>\s*<LiveRecords/);
-    assert.doesNotMatch(route, /Chips|chipsOf|loadChips/);
-    const body = route.slice(route.indexOf("export default async function HomePage"));
-    assert.ok(body.length < route.length, "the page function");
-    assert.doesNotMatch(body, /await loadHomeRecords|await Promise\.all/);
+    assert.doesNotMatch(route, /Chips|chipsOf|loadChips|loadHomeRecords|Promise\.all/);
+    assert.equal((route.match(/\bawait\b/g) ?? []).length, 2, "the metadata's facts and the page's");
   });
 
-  it("the streamed records land in their place: after the brands, before the first grid", () => {
-    const mark = (id: string) => createElement("p", { "data-slot": id }, id);
-    inOrder(text(draw(createElement(HomeMercury, { facts: LIVE, slots: { records: mark("records-slot") } }))), ["on the record.", "Everything you do to vet a factory.", "brands like these", "records-slot", "Now it’s a head start."]);
+  it("what suppliers and buyers said sits after the brands, before the first grid", () => {
+    inOrder(text(live()), ["on the record.", "Everything you do to vet a factory.", "brands like these", "What suppliers and buyers told us", "Now it’s a head start."]);
   });
 
   it("every link on the page and in its footer is a route of the site", () => {
@@ -320,7 +313,7 @@ describe("the live sections", () => {
   it("the figures are the site's facts, the true-by-definition one always, and a figure not read is left out", () => {
     const t = text(live());
     for (const f of ["10,278 Garment suppliers published", "4,289 Certificates on file", "14 Of 21 public sources hold records", "0 Scores, grades or stars"]) assert.ok(t.includes(f), f);
-    const bare = text(live({ facts: NO_FACTS }));
+    const bare = text(live(NO_FACTS));
     assert.doesNotMatch(bare, /Garment suppliers published|public sources hold records|Certificates on file/);
     assert.ok(bare.includes("0 Scores, grades or stars"));
   });
@@ -341,19 +334,26 @@ describe("the live sections", () => {
     assert.doesNotMatch(live(), /aria-label="Common searches"|\/app\/discover\?/);
   });
 
-  it("the real records are slides where mercury.com tells customer stories: the record's page playing, its kind as the tag, its fact, its name to open it and its line; with none read, the section is not drawn", () => {
-    const out = live({ cards: [MONDOL, CARD] });
-    const sec = /<section data-mk-tone="night" aria-labelledby="home-records"[\s\S]*?<\/section>/.exec(out)![0];
+  it("where mercury.com tells customer stories, a supplier and two buyers speak over their settings, unnamed and saying so; nothing plays or moves on its own (founder, 24 Oct 2026)", () => {
+    const sec = /<section data-mk-tone="night" aria-labelledby="home-voices"[\s\S]*?<\/section>/.exec(live())![0];
     const t = text(sec);
-    assert.ok(t.includes("Factory GOTS-19020 · valid to 15 Dec 2026 Mondol Fabrics Ltd Gazipur · 4,200 workers filed · 5 sources"), t);
-    assert.ok(t.includes("WRAP 7865 · valid to 25 Aug 2027 Aboni Knitwear Ltd Dhaka · 3,314 workers filed · 8 sources"), t);
-    assert.doesNotMatch(t, /read 8 Oct 2026|read 26 Jun 2026/, "the source line stays on the record");
-    assert.match(sec, /href="\/suppliers\/aboni-knitwear"[^>]*>Aboni Knitwear Ltd</);
-    for (const c of ["real-mondol", "real-aboni"]) assert.match(sec, new RegExp(`poster="/site/home/clip-${c}\\.webp"`), c);
-    // One slide showing; the other inert and hidden until it slides in; a rule per record under them.
-    assert.equal((sec.match(/<div inert="" aria-hidden="true" class="w-full shrink-0">/g) ?? []).length, 1);
-    assert.equal((sec.match(/aria-label="Show [^"]+" aria-pressed="(?:true|false)"/g) ?? []).length, 2);
-    assert.ok(!text(live({ cards: [] })).includes("Real records, as production holds them"));
+    for (const s of ["Buyer “Vetting a factory in Bangladesh", "Sourcing manager Womenswear brand · London", "Supplier “Our certificates were always there", "Managing director Knitwear factory · Gazipur", "Technical sourcing lead Knitwear importer · Germany"]) assert.ok(t.includes(s), s);
+    assert.ok(t.includes("Said to us before launch. Names are withheld until then; the photographs show the setting, not the speaker."));
+    for (const p of ["buyer-uk", "supplier", "buyer-eu"]) assert.match(sec, new RegExp(`<img src="/site/home/voice-${p}\\.webp" alt=""`), p);
+    assert.doesNotMatch(sec, /<video|<a /, "no recording plays and no speaker is linked");
+    // One slide showing, the other two inert until dragged or picked; a rule per slide, none of them filling as a timer.
+    assert.equal((sec.match(/<figure inert="" aria-hidden="true"/g) ?? []).length, 2);
+    assert.equal((sec.match(/aria-label="Show the [^"]+" aria-pressed="(?:true|false)"/g) ?? []).length, 3);
+    assert.doesNotMatch(sec, /scale-x-0|origin-left/);
+    // Mercury's order of weight: the quote large, then the name and the role in grey, one size down. Every glyph measured
+    // WCAG AAA on all three rooms at 390, 820 and 1440 (24 Oct 2026: worst 6.80:1 for the large quote, 7.96:1 for normal
+    // text) only while the oval of shade holds 0.82 under the words and they stay inside 44% of the card; thinning either
+    // lets a bright room through. The blur steps up to 6 px at most, never one hard-masked layer (founder: a seam showed).
+    assert.match(sec, /<blockquote class="[^"]*text-ink lg:text-site-lead"/);
+    assert.match(sec, /radial-gradient\(ellipse_44%_62%_at_24%_72%,rgb\(var\(--mk-ground-night\)\/0\.84\)_0%,rgb\(var\(--mk-ground-night\)\/0\.82\)_50%/);
+    assert.match(sec, /sm:max-w-\[min\(440px,44%\)\]/);
+    assert.deepEqual([...sec.matchAll(/backdrop-blur-\[(\d)px\]/g)].map((m) => m[1]), ["2", "4", "6", "2", "4", "6", "2", "4", "6"]);
+    assert.doesNotMatch(sec, /backdrop-blur-(?:sm|md|lg|xl)\b/);
   });
 
   it("the checks: three cards, each one panel of the real app held still (no stand-in photograph, no video), no tabs that shift the page", () => {
