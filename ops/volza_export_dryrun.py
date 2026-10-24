@@ -80,12 +80,46 @@ def search_name(name: str) -> str:
     return n if len(re.sub(r"[^A-Za-z0-9]", "", n)) >= 4 else (name or "").strip()
 
 
+_LONG_FORMS = (  # short forms the registers use, as Volza writes them out
+    (re.compile(r"(?i)\bint'?l\.?(?=\s|$)"), "International"),
+    (re.compile(r"(?i)\bind'?s?\.?(?=\s|$)"), "Industries"),
+    (re.compile(r"(?i)\b(?:mfg|manf)\.?(?=\s|$)"), "Manufacturing"),
+)
+
+
+def spellings(name: str) -> list[str]:
+    """Other ways Volza may file a search name, most likely first; the name itself is not repeated.
+
+    24 Oct 2026: "A. B. Sweater Inds" found nothing; Volza files it "A B Sweater Industries Bd Ltd". "A. S. S
+    KNITWEAR" found nothing; Volza files it "Ass Knitwear Ltd". Its search matches from the first letter, so a
+    full stop or a short form misses: try the name without punctuation, with short forms written out, and with
+    leading initials both spaced and run together.
+    """
+    long = name
+    for pattern, word in _LONG_FORMS:
+        long = pattern.sub(word, long)
+    out: list[str] = []
+    words = re.sub(r"[.,()/\-]+", " ", re.sub(r"['`]", "", long)).split()  # "Zisa's" is "Zisas", not "Zisa s"
+    if words:
+        lead = 0
+        while lead < len(words) and len(words[lead]) == 1 and words[lead].isalpha():
+            lead += 1
+        forms = [" ".join(words)]
+        if lead >= 2:
+            forms.append(" ".join(["".join(words[:lead])] + words[lead:]))
+        for f in forms:
+            if f.lower() != name.lower() and f.lower() not in {o.lower() for o in out}:
+                out.append(f)
+    return out
+
+
 def variants(row: dict[str, Any]) -> list[str]:
     out: list[str] = []
     for raw in [row["company_name"], row.get("name_display"), *(row.get("scraped_names") or [])]:
         v = search_name(raw or "")
-        if len(re.sub(r"[^A-Za-z0-9]", "", v)) >= 4 and v.lower() not in {o.lower() for o in out}:
-            out.append(v)
+        for s in [v, *spellings(v)]:
+            if len(re.sub(r"[^A-Za-z0-9]", "", s)) >= 4 and s.lower() not in {o.lower() for o in out}:
+                out.append(s)
     return out
 
 

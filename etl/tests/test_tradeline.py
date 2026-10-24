@@ -64,6 +64,19 @@ def test_saved_rows_keep_each_paid_supplier_once_and_drop_expired(tmp_path):
     assert rows[0]["results_file"] == f.name and rows[0]["expires_at"].startswith("2027-10-22")
 
 
+def test_spellings_drop_full_stops_write_short_forms_out_and_try_initials_both_ways():
+    # 24 Oct 2026: Volza files A.B. Sweater Inds. as "A B Sweater Industries Bd Ltd" and A.S.S Knitwear as "Ass Knitwear Ltd"
+    from volza_export_dryrun import spellings, variants
+
+    assert variants({"company_name": "A.B. Sweater Inds. (BD) Ltd."}) == [
+        "A. B. Sweater Inds", "A B Sweater Industries", "AB Sweater Industries"]
+    assert spellings("A. S. S KNITWEAR") == ["A S S KNITWEAR", "ASS KNITWEAR"]
+    assert spellings("Mas Trade Int'l. Garments") == ["Mas Trade International Garments"]
+    assert spellings("DOWAS-LAND DYEING & FINISHING IND'S") == ["DOWAS LAND DYEING & FINISHING Industries"]
+    assert spellings("THAT'S IT KNIT") == ["THATS IT KNIT"]
+    assert spellings("Square Fashions") == []  # nothing to change, nothing more to pay for
+
+
 def test_run_stops_just_before_the_daily_limit():
     # 23 Oct 2026: the founder dropped the 300 kept for reveals; a few stay so a run ends between suppliers
     assert 0 < volza_live_sample.DAILY_RESERVE <= 10
