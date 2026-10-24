@@ -373,7 +373,7 @@ describe("the live sections", () => {
     // lets a bright room through. Since his recording of 24 Oct 2026 the shade is neutral black (darker than the night it
     // replaced, so those measures hold) and nothing is blurred: a clear screen, no tint.
     assert.match(sec, /<blockquote class="[^"]*text-ink lg:text-site-lead"/);
-    assert.match(sec, /radial-gradient\(ellipse_44%_62%_at_24%_72%,rgb\(0_0_0\/0\.84\)_0%,rgb\(0_0_0\/0\.82\)_50%/);
+    assert.match(sec, /radial-gradient\(ellipse_44%_62%_at_24%_72%,rgb\(var\(--mk-shade\)\/0\.84\)_0%,rgb\(var\(--mk-shade\)\/0\.82\)_50%/);
     assert.match(sec, /sm:max-w-\[min\(440px,44%\)\]/);
     assert.doesNotMatch(sec, /backdrop-blur|--mk-ground-night/);
   });

@@ -128,15 +128,15 @@ typed, saved or sent.
 | Clip | What it shows | Files |
 | -- | -- | -- |
 | `filters` | The search's Certificates menu opened and GOTS ticked: 10,048 suppliers narrow to 581 | `clip-filters.mp4` · `clip-filters.webm` · `clip-filters.webp` |
-| `buyers` | Aboni Knitwear's Buyers, the pointer on ASOS, H&M and NEXT | `clip-buyers.*` |
-| `shipments` | Markets and shipments: where Aboni Knitwear's exports go, then scrolled to its latest shipments | `clip-shipments.*` |
-| `certificates` | Aboni Knitwear's certificates with their numbers and dates, scrolled | `clip-certificates.*` |
-| `keyfacts` | Aboni Knitwear's key facts, the view moving across to women and men and sewing machines | `clip-keyfacts.*` |
-| `memberships` | Aboni Knitwear's four memberships, the view moving across to BGAPMEA and BKMEA | `clip-memberships.*` |
-| `safety` | Aboni Knitwear's two buildings in the RSC programme, their reports and training | `clip-safety.*` |
-| `sources` | Aboni Knitwear's sources in trust order, scrolled | `clip-sources.*` |
+| `buyers` | Aboni Knitwear's Buyers, the pointer on ASOS, H&M and NEXT | `clip-buyers.mp4` · `clip-buyers.webm` · `clip-buyers.webp` |
+| `shipments` | Markets and shipments: where Aboni Knitwear's exports go, then scrolled to its latest shipments | `clip-shipments.mp4` · `clip-shipments.webm` · `clip-shipments.webp` |
+| `certificates` | Aboni Knitwear's certificates with their numbers and dates, scrolled | `clip-certificates.mp4` · `clip-certificates.webm` · `clip-certificates.webp` |
+| `keyfacts` | Aboni Knitwear's key facts, the view moving across to women and men and sewing machines | `clip-keyfacts.mp4` · `clip-keyfacts.webm` · `clip-keyfacts.webp` |
+| `memberships` | Aboni Knitwear's four memberships, the view moving across to BGAPMEA and BKMEA | `clip-memberships.mp4` · `clip-memberships.webm` · `clip-memberships.webp` |
+| `safety` | Aboni Knitwear's two buildings in the RSC programme, their reports and training | `clip-safety.mp4` · `clip-safety.webm` · `clip-safety.webp` |
+| `sources` | Aboni Knitwear's sources in trust order, scrolled | `clip-sources.mp4` · `clip-sources.webm` · `clip-sources.webp` |
 
-`clip-record.*` (Aboni Knitwear's record, the camera coming in on its head and export figures) is the 22 Oct 2026 kit's
+`clip-record.mp4` · `clip-record.webm` · `clip-record.webp` (Aboni Knitwear's record, the camera coming in on its head and export figures) is the 22 Oct 2026 kit's
 and no longer on the home page.
 
 The checks' stills are the compliance hub, the UFLPA checks and the record as the app draws them 375 px wide in its

@@ -43,7 +43,7 @@ export const VOICES = [
  * quote (large text from 1024 px) at 4.5:1 or better, WCAG AAA.
  */
 const SHADE =
-  "bg-[linear-gradient(to_top,rgb(0_0_0/0.86)_0%,rgb(0_0_0/0.82)_35%,rgb(0_0_0/0.7)_52%,rgb(0_0_0/0.45)_64%,rgb(0_0_0/0.2)_77%,transparent_90%)] sm:bg-[radial-gradient(ellipse_42%_48%_at_0%_100%,rgb(0_0_0/0.55)_0%,rgb(0_0_0/0.38)_45%,rgb(0_0_0/0.16)_75%,transparent_100%),radial-gradient(ellipse_44%_62%_at_24%_72%,rgb(0_0_0/0.84)_0%,rgb(0_0_0/0.82)_50%,rgb(0_0_0/0.68)_62%,rgb(0_0_0/0.45)_74%,rgb(0_0_0/0.24)_85%,rgb(0_0_0/0.08)_94%,transparent_100%)]";
+  "bg-[linear-gradient(to_top,rgb(var(--mk-shade)/0.86)_0%,rgb(var(--mk-shade)/0.82)_35%,rgb(var(--mk-shade)/0.7)_52%,rgb(var(--mk-shade)/0.45)_64%,rgb(var(--mk-shade)/0.2)_77%,transparent_90%)] sm:bg-[radial-gradient(ellipse_42%_48%_at_0%_100%,rgb(var(--mk-shade)/0.55)_0%,rgb(var(--mk-shade)/0.38)_45%,rgb(var(--mk-shade)/0.16)_75%,transparent_100%),radial-gradient(ellipse_44%_62%_at_24%_72%,rgb(var(--mk-shade)/0.84)_0%,rgb(var(--mk-shade)/0.82)_50%,rgb(var(--mk-shade)/0.68)_62%,rgb(var(--mk-shade)/0.45)_74%,rgb(var(--mk-shade)/0.24)_85%,rgb(var(--mk-shade)/0.08)_94%,transparent_100%)]";
 
 /** How far a drag must travel, in pixels, before it changes the slide. */
 const SWIPE = 60;
@@ -86,7 +86,7 @@ export function Voices() {
                   {/* eslint-disable-next-line @next/next/no-img-element -- pre-sized in public/site/home (PROVENANCE.md), no optimizer pass */}
                   <img src={`/site/home/voice-${v.photo}.webp`} alt="" width={2000} height={1116} loading="lazy" decoding="async" draggable={false} className="absolute inset-0 size-full object-cover" />
                   <div aria-hidden className={cn("pointer-events-none absolute inset-0", SHADE)} />
-                  <span className="pointer-events-none absolute left-5 top-5 flex h-8 items-center rounded-sm bg-black/70 px-2 text-site-item text-ink md:left-8 md:top-8">{v.tag}</span>
+                  <span className="pointer-events-none absolute left-5 top-5 flex h-8 items-center rounded-sm bg-[rgb(var(--mk-shade)/0.7)] px-2 text-site-item text-ink md:left-8 md:top-8">{v.tag}</span>
                   <div className="pointer-events-none absolute inset-x-5 bottom-5 flex max-w-[440px] flex-col gap-6 sm:max-w-[min(440px,44%)] md:inset-x-8 md:bottom-8 md:gap-10">
                     <blockquote className="font-display text-site-card text-ink lg:text-site-lead">“{v.quote}”</blockquote>
                     <figcaption className="flex flex-col text-site-item md:text-site-card">

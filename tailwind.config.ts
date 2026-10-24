@@ -11,6 +11,7 @@ import {
   fontSize,
   fontWeight,
   homeGrounds,
+  photoShade,
   letterSpacing,
   light,
   maxWidth,
@@ -186,7 +187,7 @@ const config: Config = {
       addBase({
         // `--mk-ground-*`: the marketing site's two grounds, fixed in either scene; the night is the dark set's ground,
         // our design system's (founder, 23 Oct 2026; `homeGrounds.night`).
-        ":root": { ...colorVars(light), ...paneMaterial.light, "--mk-ground-paper": toChannels(resolve(light, "canvas")), "--mk-ground-night": toChannels(homeGrounds.night.ground) },
+        ":root": { ...colorVars(light), ...paneMaterial.light, "--mk-ground-paper": toChannels(resolve(light, "canvas")), "--mk-ground-night": toChannels(homeGrounds.night.ground), "--mk-shade": toChannels(photoShade) },
         "@media (prefers-color-scheme: dark)": { ":root:has([data-theme-auto])": darkSet },
         '[data-ground="night"]': night,
         // The buyer app in the dark set, when the reader picked Dark in Settings: on the root, so a dialog or menu
