@@ -132,6 +132,41 @@ def plan() -> list[dict[str, Any]]:
     return rows
 
 
+def recheck_plan() -> list[dict[str, Any]]:
+    """Suppliers Volza found nothing for, with only the spellings no search has tried yet (24 Oct 2026).
+
+    `spellings` came after 111 of 378 such suppliers had been searched with full stops or short forms in the name.
+    The names a supplier was searched under are the stored row's own and every one its saved results tried; a
+    supplier the founder said no to is left alone.
+    """
+    from collections import defaultdict
+
+    from volza_export_dryrun import search_name
+
+    http = rest()
+    tried: dict[str, set[str]] = defaultdict(set)
+    for r in _rest_all(http, "/volza_export_checks?select=supplier_id,name_searched&match_class=eq.none&order=supplier_id"):
+        tried[r["supplier_id"]].add((r["name_searched"] or "").lower())
+    for r in _rest_all(http, "/volza_raw_results?select=supplier_id,tried:record->tried&results_file=like.*_*"
+                             "&order=results_file,supplier_id"):
+        if r["supplier_id"] in tried:
+            tried[r["supplier_id"]].update(str(t[0]).removeprefix("exact:").lower() for t in r.get("tried") or [])
+    said_no = {k for k, d in decisions().items() if d["decision"] == "no"}
+    if not CANDIDATES.exists():
+        cmd_candidates(None)
+    cands = {c["id"]: c for c in json.loads(CANDIDATES.read_text(encoding="utf-8"))}
+    rows = []
+    for sid in sorted(tried):
+        c = cands.get(sid)
+        if c is None or sid in said_no:
+            continue
+        before = {search_name(n or "").lower() for n in [c["company_name"], c.get("name_display"), *(c.get("scraped_names") or [])]}
+        new = [v for v in variants(c) if v.lower() not in tried[sid] and v.lower() not in before]
+        if new:
+            rows.append({"id": sid, "slug": c["slug"], "name": c["company_name"], "variants": new})
+    return rows
+
+
 class Rejected(Exception):
     """Volza refused this supplier's search (400): skip the supplier, keep the batch going."""
 
@@ -218,6 +253,9 @@ def fetch(v: Live, row: dict[str, Any], rec: dict[str, Any]) -> None:
             rec["exact_check"] = {"shipments": shipments(data), "exporter_ids": summary_suppliers(data),
                                   "starts_with": swept}
         rec["class"] = classify(row["name"], rec["volza_supplier"], rec["shipments"], rec["suppliers"])
+        if rec["class"] == "likely" and rec["matched_variant"] and classify(
+                rec["matched_variant"], rec["volza_supplier"], rec["shipments"], rec["suppliers"]) == "exact":
+            rec["class"] = "exact"  # Volza files it under the spelling that found it ("Int'l" written out)
         check = rec.get("exact_check")
         if rec["class"] == "exact" and check and check["shipments"] < SHOWN_SHARE * check["starts_with"]:
             # Batch 1: Volza's exact search can keep a fraction of the right company (Columbia Apparels, same
@@ -335,10 +373,25 @@ def started(path: Path) -> int:
     return len({r["id"] for r in load(path) if not r.get("partial") and any(c["kind"] == "preview" for c in r["calls"])})
 
 
-def run_batch(path: Path, limit: int | None, cap: float, apply: bool) -> None:
-    """limit and cap count the whole file, so a rerun resumes inside them."""
-    rows = plan()
-    if limit is not None:
+def run_batch(path: Path, limit: int | None, cap: float, apply: bool, rows: list[dict[str, Any]] | None = None) -> None:
+    """limit and cap count the whole file, so a rerun resumes inside them. `rows`: a re-search (`recheck_plan`)
+    in place of the plan; a supplier this file has finished is not searched again."""
+    if rows is not None:
+        done = {r["id"] for r in load(path) if not r.get("partial")}
+        rows = [r for r in rows if r["id"] not in done]
+        searches = sum(len(r["variants"]) for r in rows)
+        if not apply:
+            print(f"{path.name}: {len(rows)} suppliers Volza found nothing for, {searches} new spellings to try "
+                  f"(about {len(done)} already done today). A miss costs $0.10, so ${0.10 * searches:.0f} if none is "
+                  f"found; each supplier found costs about $0.55 more (exact check, markets, small orders), so at most "
+                  f"about ${0.10 * searches + 0.55 * len(rows):.0f}. The cap of ${cap:.0f} stops it whatever happens. "
+                  f"About {searches + 4 * len(rows) // 3} Volza requests. Pass --apply to run.")
+            for r in rows:
+                print(f"  {r['name']}: {' | '.join(r['variants'])}")
+            return
+    else:
+        rows = plan()
+    if limit is not None and rows is not None:
         fresh = [r for r in rows if "variants" in r][:max(0, limit - started(path))]
         rows = [r for r in rows if "variants" not in r] + fresh
     if not apply:

@@ -6,6 +6,8 @@
   python ops/tradeline.py fetch 200 --cap 130 --apply  # the founder runs it: spends at most $130
   python ops/tradeline.py load                         # dry run of today's results into production
   python ops/tradeline.py load --apply                 # the founder runs it
+  python ops/tradeline.py recheck --cap 50             # not-found suppliers under spellings not yet tried; no calls
+  python ops/tradeline.py recheck --cap 50 --apply     # the founder runs it
   python ops/tradeline.py save                         # copy every results file to the server (0156)
   python ops/tradeline.py restore                      # write lost results files back from the server
 
@@ -35,7 +37,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from volza_company_list import load  # noqa: E402
 from volza_export_dryrun import RAW, _rest_all  # noqa: E402
-from volza_launch import plan, rest, run_batch, started  # noqa: E402
+from volza_launch import plan, recheck_plan, rest, run_batch, started  # noqa: E402
 from volza_load_sample import one_year_on, shown_class  # noqa: E402
 from volza_review import REVIEW, decisions, newest, queue, serve  # noqa: E402
 
@@ -126,6 +128,9 @@ def main() -> None:
     ld = sub.add_parser("load")
     ld.add_argument("--file", type=Path, help="a results file (default: the newest)")
     ld.add_argument("--apply", action="store_true")
+    rc = sub.add_parser("recheck", help="search the not-found suppliers again under spellings not yet tried")
+    rc.add_argument("--cap", type=float, required=True, help="dollars this run may spend")
+    rc.add_argument("--apply", action="store_true")
     sub.add_parser("save").add_argument("files", type=Path, nargs="*", help="results files (default: all of them)")
     sub.add_parser("restore")
     a = p.parse_args()
@@ -142,6 +147,15 @@ def main() -> None:
         try:
             run_batch(path, started(path) + a.companies, prior + a.cap, a.apply)
         finally:  # stopped or not, what was paid for goes to the server
+            if a.apply and path.exists():
+                save([path])
+    elif a.cmd == "recheck":
+        # a "launch_" file, so the review page and the plan read its results like any fetch's
+        path = RAW / f"launch_recheck_{date.today().isoformat()}.jsonl"
+        prior = sum(r["cost"] for r in load(path))
+        try:
+            run_batch(path, None, prior + a.cap, a.apply, rows=recheck_plan())
+        finally:
             if a.apply and path.exists():
                 save([path])
     elif a.cmd == "save":
