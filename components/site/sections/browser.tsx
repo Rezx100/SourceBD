@@ -38,6 +38,10 @@ export const screenFile = (name: ScreenName): string => COMPOSED[name] ?? `app-$
  */
 export const LEDGER: Record<string, string> = {
   "clip-find": "search: knit GOTS typed, the results",
+  "clip-dark-search": "dark: knit GOTS from the recent searches, the results, Benchmark Apparels' record",
+  "clip-dark-record": "dark: Aboni Knitwear's export figures, its shipments, the saved list",
+  "clip-dark-pack": "dark: the modern slavery statement, the evidence pack downloaded",
+  "clip-dark-sort": "dark: woven shirt WRAP results coming into focus, sorted by supplier",
   "app-check": "a record opened beside the results",
   "app-ask": "saved list: three ticked, the request opens",
   "app-watch": "compliance hub: certificates that need attention",
