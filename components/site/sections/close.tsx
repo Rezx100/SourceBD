@@ -23,7 +23,7 @@ import { withCommas, type SiteFacts } from "@/lib/site-facts";
 import { cn } from "@/lib/utils";
 import { AppStill } from "./browser";
 import { CardWords, SectionHead } from "./card-grid";
-import { column, ring } from "./ui";
+import { column, ring, secondary } from "./ui";
 
 /** The figures as [figure, what it counts], each only when it was read; four at most, as the row holds. */
 export function statCells(f: SiteFacts): [string, string][] {
@@ -126,13 +126,14 @@ export const GUIDES: { href: string; mark: string; title: string }[] = [
   { href: "/compliance/eu-csddd", mark: "CSDDD", title: "Due diligence under the EU’s CSDDD" },
 ];
 
-export function Guides() {
+/** The guides as tiles; an inner page passes its own heading and list (the compliance index shows all five). */
+export function Guides({ id = "home-guides", heading = "From our compliance guides", guides = GUIDES }: { id?: string; heading?: string; guides?: readonly { href: string; mark: string; title: string }[] }) {
   return (
-    <section data-mk-tone="night" aria-labelledby="home-guides" className="pt-20 md:pt-[72px]">
+    <section data-mk-tone="night" aria-labelledby={id} className="pt-20 md:pt-[72px]">
       <div className={column}>
-        <SectionHead id="home-guides">From our compliance guides</SectionHead>
+        <SectionHead id={id}>{heading}</SectionHead>
         <ul className="mt-8 grid gap-8 md:mt-10 md:grid-cols-3">
-          {GUIDES.map((g) => (
+          {guides.map((g) => (
             <li key={g.href}>
               <Link href={g.href} prefetch={false} className={cn("group flex h-full min-h-[447px] flex-col rounded-frame bg-sunken p-8 max-md:min-h-0", ring)}>
                 <span aria-hidden className="flex aspect-[256/171] items-center justify-center rounded-lg bg-ink/[0.06] font-display text-site-section text-ink">
@@ -157,24 +158,30 @@ export const HOME_CARDS = [
   { who: "SourceBD for suppliers", body: "Your record is already here, read from the registers. Claim it, keep it current and answer buyers’ RFQs at no cost.", link: ["Claim your record", "/signup?role=supplier"] },
 ] as const;
 
-const secondary = cn("inline-flex h-10 w-fit items-center gap-1.5 rounded-full bg-ink/15 px-4 text-site-item text-ink transition-colors hover:bg-ink/25", ring);
+/** The close's two ways in, Start free and Book a demo; an inner page's head draws the same pair (`primary` swaps the first, as the suppliers' claim does). */
+export function CloseActions({ primary = ["Start free", "/signup"], className }: { primary?: readonly [string, string]; className?: string }) {
+  return (
+    <div className={cn("flex flex-wrap items-center justify-center gap-2", className)}>
+      <ButtonLink href={primary[1]} prefetch={false} kind="primary" size="lg" className="h-10 rounded-full px-5 text-site-item">
+        {primary[0]}
+      </ButtonLink>
+      <Link href="/contact" prefetch={false} className={secondary}>
+        Book a demo
+        <ArrowUpRight size={14} aria-hidden />
+      </Link>
+    </div>
+  );
+}
 
-export function Finale() {
+/** The closing headline and the two ways in, then a card for buyers and one for suppliers; an inner page passes its own headline. */
+export function Finale({ heading = "Sourcing, rebuilt from the register up.", primary }: { heading?: string; primary?: readonly [string, string] }) {
   return (
     <section data-mk-tone="night" aria-labelledby="site-close" className="pb-8 pt-24 md:pb-40 md:pt-36">
       <div className={cn(column, "flex flex-col items-center")}>
         <h2 id="site-close" className="max-w-[672px] text-center font-display text-site-headline-sm text-ink [text-wrap:balance] md:text-site-headline">
-          Sourcing, rebuilt from the register up.
+          {heading}
         </h2>
-        <div className="mt-10 flex flex-wrap items-center justify-center gap-2">
-          <ButtonLink href="/signup" prefetch={false} kind="primary" size="lg" className="h-10 rounded-full px-5 text-site-item">
-            Start free
-          </ButtonLink>
-          <Link href="/contact" prefetch={false} className={secondary}>
-            Book a demo
-            <ArrowUpRight size={14} aria-hidden />
-          </Link>
-        </div>
+        <CloseActions primary={primary} className="mt-10" />
         <ul className="mt-16 grid w-full gap-8 md:mt-[72px] md:grid-cols-2">
           {HOME_CARDS.map((c) => (
             <li key={c.who} className="flex flex-col gap-3 rounded-frame bg-sunken p-8">

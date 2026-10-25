@@ -420,21 +420,10 @@ describe("what the home's rebuild shares with the rest of the site", () => {
     }
   });
 
-  it("the solutions pages' tours keep their short names and each item's way to its product page", () => {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports -- loaded after the test build exists.
-    const { SourcingTour, ComplianceTour } = require("@/components/site/product/solutions-tours") as typeof import("@/components/site/product/solutions-tours");
-    const sourcing = draw(createElement(SourcingTour));
-    for (const w of ["Find", "Check", "Ask"]) assert.match(sourcing, new RegExp(`aria-controls="tour-[a-z]+"[^>]*>(?:<[^>]+>)*${w}<`), w);
-    assert.doesNotMatch(text(sourcing), /Supplier search|Records you can check/);
-    assert.match(sourcing, /href="\/product\/search"[^>]*>See how</);
-    assert.match(text(draw(createElement(ComplianceTour))), /Check .*Watch .*Screen/);
-  });
-
-  it("the footer lines up with its page: the home's column on the home, the site's measure everywhere else", () => {
+  it("the footer lines up with the home's column, on every page (25 Oct 2026)", () => {
     // eslint-disable-next-line @typescript-eslint/no-require-imports -- loaded after the test build exists.
     const { Footer } = require("@/components/site/sections/footer") as typeof import("@/components/site/sections/footer");
-    const inner = (narrow: boolean) => /<footer [^>]*><div class="([^"]*)"/.exec(draw(createElement(Footer, { facts: LIVE, year: 2026, narrow })))![1]!;
-    assert.match(inner(true), /\bmax-w-column\b/);
-    assert.match(inner(false), /\bmax-w-site\b/);
+    const inner = /<footer [^>]*><div class="([^"]*)"/.exec(draw(createElement(Footer, { facts: LIVE, year: 2026 })))![1]!;
+    assert.match(inner, /\bmax-w-column\b/);
   });
 });

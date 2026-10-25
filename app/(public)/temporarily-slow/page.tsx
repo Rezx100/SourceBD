@@ -1,6 +1,12 @@
+// A supplier's public record that could not be read in time (the middleware's 307 lands here), in the marketing site's
+// design since 25 Oct 2026: home's head on the day ground and one action, Retry, which posts to the retry route.
+
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
+import { buttonClass } from "@/components/kit/button-class";
+import { HomeMain } from "@/components/site/home-main";
+import { PageHead } from "@/components/site/sections/inner";
 import { isPublicSupplierSlug } from "@/lib/public-supplier-profile";
 
 export const dynamic = "force-dynamic";
@@ -22,27 +28,24 @@ export default async function TemporarilySlowPage({
     notFound();
   }
   return (
-    <div className="mx-auto max-w-2xl px-4 py-12">
-      <div className="rounded-lg border border-amber-200 bg-amber-50 p-6">
-        <h1 className="text-lg font-semibold text-amber-900">
-          Service temporarily slow
-        </h1>
-        <p className="mt-2 text-sm text-amber-800">
-          The factory profile for{" "}
-          <span className="font-mono">{slug}</span> couldn&apos;t load
-          within the time limit. Use Retry to try the factory page again.
-          Refreshing this page will not reload it.
-        </p>
+    <HomeMain className="font-sans antialiased">
+      <PageHead
+        tone="day"
+        label="Service temporarily slow"
+        title="This factory page is taking too long."
+        lede={
+          <>
+            The factory profile for <span className="font-mono text-ink">{slug}</span> couldn&apos;t load within the time limit. Use Retry to try the factory page again. Refreshing this page will not reload it.
+          </>
+        }
+      >
         <form action="/temporarily-slow/retry" method="POST">
           <input type="hidden" name="slug" value={slug} />
-          <button
-            type="submit"
-            className="mt-4 inline-flex items-center rounded-md bg-amber-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-amber-700"
-          >
+          <button type="submit" className={buttonClass({ kind: "primary", size: "lg", className: "h-10 rounded-full px-5 text-site-item" })}>
             Retry
           </button>
         </form>
-      </div>
-    </div>
+      </PageHead>
+    </HomeMain>
   );
 }

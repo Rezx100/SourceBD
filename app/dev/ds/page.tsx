@@ -25,7 +25,6 @@ import {
   transitionDuration,
   type TierRank,
 } from "@/lib/design/tokens";
-import { Demos } from "./demos";
 import { V4Kit } from "./v4-kit";
 import { V4Patterns } from "./v4-patterns";
 import { V4Tokens } from "./v4-tokens";
@@ -228,14 +227,6 @@ export default async function DesignSystemGallery() {
         note="components/patterns: source marks, fact and certificate rows, RSC block, sanction banner, locked contact, supplier rows, quotes, timeline, chat, needs attention, locations, statement claim, exports. Shrink the window under 640px for the phone forms."
       >
         <V4Patterns />
-      </Section>
-
-      <Section
-        id="demos"
-        title="Marketing demos (M2, real records)"
-        note="components/site/demos: the home tour's four demos, the suppliers' claim, and the four vignettes, each playing a committed snapshot of production read through the anon RPCs. Every one has a pause button and reads complete with no script."
-      >
-        <Demos />
       </Section>
 
       <Section

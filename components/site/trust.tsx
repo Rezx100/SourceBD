@@ -9,13 +9,15 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import { ButtonLink } from "@/components/kit";
-import { DemoClaim } from "@/components/site/demos";
-import { HeroActions, HeroCentered, inkLink, measure, Section, TextLink } from "@/components/site/sections/ui";
-import { Closing } from "@/components/site/sections/closing";
+import { HomeMain } from "@/components/site/home-main";
+import { Clip } from "@/components/site/sections/browser";
+import { CloseActions, Finale } from "@/components/site/sections/close";
+import { Band, FactCards, PageHead, tabular } from "@/components/site/sections/inner";
+import { inkLink, secondary, TextLink } from "@/components/site/sections/ui";
 import { SOURCE_COUNT, TIERS, type Tier } from "@/components/site/sources";
 import { SUBPROCESSORS, subprocessorCount } from "@/components/site/subprocessors";
 import { readDay, withCommas, type SiteFacts, type SourceFact } from "@/lib/site-facts";
-import { cn } from "@/lib/utils";
+import { SUPPLIER_CLIP } from "@/components/site/clips";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://sourcebd.net";
 
@@ -34,17 +36,6 @@ const A = ({ href, children }: { href: string; children: ReactNode }) =>
       {children}
     </Link>
   );
-
-function Hero({ label, h1, lede, children, actions = true, stage }: { label: string; h1: ReactNode; lede: ReactNode; children?: ReactNode; actions?: boolean; stage?: ReactNode }) {
-  return (
-    <HeroCentered label={label} title={h1} lede={lede} stage={stage}>
-      {actions ? <HeroActions center /> : null}
-      {children}
-    </HeroCentered>
-  );
-}
-
-const countOf = (f: SiteFacts) => (f.suppliers !== null ? withCommas(f.suppliers) : null);
 
 /**
  * How often the sources are read, as it is today: every scheduled read has been switched off since 6 Oct 2026
@@ -80,30 +71,15 @@ const ANSWERS: [string, string][] = [
 
 export function Security() {
   return (
-    <main className="font-sans text-ink">
-      <Hero label="Security" h1="Security, stated plainly." lede="What we do today. No badges, no promises." />
+    <HomeMain className="font-sans antialiased">
+      <PageHead label="Security" title="Security, stated plainly." lede="What we do today. No badges, no promises.">
+        <CloseActions />
+      </PageHead>
 
-      <section aria-labelledby="nine" className="bg-surface py-14 md:py-section">
-        <div className={cn(measure, "flex flex-col gap-8")}>
-          <div className="flex flex-col gap-2">
-            <h2 id="nine" className="text-site-body font-medium text-ink-subtle">
-              Nine answers for your security review
-            </h2>
-            <p className="text-sm text-ink-3">Checked against our own runbooks · 5 Oct 2026</p>
-          </div>
-          <dl className="grid gap-x-10 gap-y-6 sm:grid-cols-2 lg:grid-cols-3">
-            {ANSWERS.map(([q, a]) => (
-              <div key={q} className="flex flex-col gap-1 border-t border-ink pt-3">
-                <dt className="text-lg font-semibold text-ink">{q}</dt>
-                <dd className="text-md text-ink-2">{a}</dd>
-              </div>
-            ))}
-          </dl>
-        </div>
-      </section>
+      <FactCards id="nine" tone="warm" heading="Nine answers for your security review" lede="Checked against our own runbooks on 5 Oct 2026." items={ANSWERS.map(([q, a]) => ({ title: q, body: a }))} />
 
-      <Section label="The details" headline="Each answer, in one place.">
-        <div className="flex max-w-[800px] flex-col gap-8">
+      <Band id="details" tone="day" heading="Each answer, in one place.">
+        <div className="grid gap-x-8 gap-y-10 md:grid-cols-2">
           <Detail title="Hosting and region">The database runs on Supabase, in AWS region us-west-1, United States. The app deploys only from reviewed code on GitHub.</Detail>
           <Detail title="Encryption in transit">Every page loads over HTTPS through Cloudflare, and is encrypted again from Cloudflare to our server.</Detail>
           <Detail title="Access control">Your role and ownership are checked on the server on every request. Hiding a button is never the control. Contact details leave the server only when you may see them.</Detail>
@@ -128,28 +104,30 @@ export function Security() {
             Found a security problem? Write to <A href="mailto:support@sourcebd.net">support@sourcebd.net</A>.
           </Detail>
         </div>
-      </Section>
+      </Band>
 
-      <Section label="Not today" headline="What we don't have yet." tone="subtle">
-        <ul className="flex max-w-[800px] flex-col gap-3 text-lg text-ink">
-          <li>No SOC 2 or ISO 27001 report. We will not show a badge we have not earned.</li>
-          <li>No single sign-on yet.</li>
-          <li>
-            Our UK ICO registration is pending; the <A href="/legal/privacy">privacy notice</A> says so.
-          </li>
-        </ul>
-      </Section>
+      <FactCards
+        id="not-today"
+        tone="day"
+        heading="What we don't have yet."
+        items={[
+          { title: "No SOC 2 or ISO 27001 report", body: "We will not show a badge we have not earned." },
+          { title: "No single sign-on yet", body: "Not in the product today." },
+          { title: "UK ICO registration pending", body: <>The <A href="/legal/privacy">privacy notice</A> says so.</> },
+        ]}
+      />
 
-      <Closing headline="Questions for your review? Ask us." lede="Free during beta. No card needed." />
-    </main>
+      <Finale heading="Questions for your review? Ask us." />
+    </HomeMain>
   );
 }
 
+/** A detail under the security answers: its name, then its words, in home's card type with a rule above. */
 function Detail({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <div className="flex flex-col gap-1">
-      <h3 className="text-lg font-semibold text-ink">{title}</h3>
-      <div className="text-md text-ink-2">{children}</div>
+    <div className="flex flex-col gap-1 border-t border-line pt-4">
+      <h3 className="font-display text-site-card text-ink">{title}</h3>
+      <div className="font-book text-site-card text-ink-2">{children}</div>
     </div>
   );
 }
@@ -176,7 +154,7 @@ export function listCells(f: SourceFact | null, now: number): { entries: ReactNo
       f && f.records > 0 && f.latest ? (
         <>
           {readDay(f.latest)}
-          {stale ? <span className="font-medium text-ink"> · over 90 days ago</span> : null}
+          {stale ? <span className="font-display text-ink"> · over 90 days ago</span> : null}
         </>
       ) : f && f.records > 0 ? (
         "Read in part, no full read yet"
@@ -195,55 +173,55 @@ function TierTable({ tier, facts, now }: { tier: Tier; facts: SiteFacts; now: nu
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-col gap-1">
-        <h3 className="text-xl font-semibold text-ink">
+        <h3 className="font-display text-site-lead text-ink">
           Tier {tier.n} · {tier.label}
         </h3>
-        <p className="max-w-prose text-md text-ink-2">{tier.note}</p>
+        <p className="max-w-[672px] font-book text-site-card text-ink-2">{tier.note}</p>
       </div>
-      <div tabIndex={0} role="region" aria-label={`Tier ${tier.n} sources, scrolls sideways`} className="overflow-x-auto outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent">
-        <table className="w-full min-w-[640px] border-collapse text-left">
+      <div tabIndex={0} role="region" aria-label={`Tier ${tier.n} sources, scrolls sideways`} className={tabular}>
+        <table>
           <caption className="sr-only">
             Tier {tier.n}, {tier.label}: each source{regs ? ", who keeps it" : " and what it gives us"}
             {read ? (regs ? ", its entries and when we last read it" : ", how many suppliers have a record from it and when we last read it") : ""}
           </caption>
           <thead>
-            <tr className="border-b border-ink text-sm text-ink-3">
-              <th scope="col" className="py-2 pr-4 font-medium">{regs ? "List" : "Source"}</th>
-              <th scope="col" className="py-2 pr-4 font-medium">{regs ? "Kept by" : "What it gives us"}</th>
+            <tr>
+              <th scope="col">{regs ? "List" : "Source"}</th>
+              <th scope="col">{regs ? "Kept by" : "What it gives us"}</th>
               {read ? (
                 <>
-                  <th scope="col" className="py-2 pr-4 text-right font-medium">{regs ? "Entries" : "Suppliers with a record"}</th>
-                  <th scope="col" className="py-2 font-medium">Last read</th>
+                  <th scope="col" className="text-right">{regs ? "Entries" : "Suppliers with a record"}</th>
+                  <th scope="col">Last read</th>
                 </>
               ) : null}
             </tr>
           </thead>
-          <tbody className="divide-y divide-line">
+          <tbody>
             {tier.sources.map((s) => {
               const f = sourceFigures(facts, s.code);
               const figure = f ? (regs ? f.records : f.suppliers) : null;
               const stale = f?.latest ? now - Date.parse(f.latest) > NINETY_DAYS : false;
               const list = regs ? listCells(f, now) : null;
               return (
-                <tr key={s.code} className="align-top text-md">
-                  <th scope="row" className="py-3 pr-4 font-semibold text-ink">
+                <tr key={s.code}>
+                  <th scope="row">
                     {s.name}
-                    {regs ? null : <span className="block text-sm font-normal text-ink-3">{s.full}</span>}
+                    {regs ? null : <span className="block font-book text-ink-3">{s.full}</span>}
                   </th>
-                  <td className="py-3 pr-4 text-ink-2">{regs ? s.full : s.gives}</td>
+                  <td>{regs ? s.full : s.gives}</td>
                   {read && list ? (
                     <>
-                      <td className="py-3 pr-4 text-right tabular-nums text-ink">{list.entries}</td>
-                      <td className="py-3 text-ink-2">{list.read}</td>
+                      <td className="text-right tabular-nums text-ink">{list.entries}</td>
+                      <td>{list.read}</td>
                     </>
                   ) : read ? (
                     <>
-                      <td className="py-3 pr-4 text-right tabular-nums text-ink">{f && f.records > 0 && figure !== null ? withCommas(figure) : <span className="text-ink-3">{f ? "Listed, no records yet" : "Not read yet"}</span>}</td>
-                      <td className="py-3 text-ink-2">
+                      <td className="text-right tabular-nums text-ink">{f && f.records > 0 && figure !== null ? withCommas(figure) : <span className="text-ink-3">{f ? "Listed, no records yet" : "Not read yet"}</span>}</td>
+                      <td>
                         {f && f.records > 0 && f.latest ? (
                           <>
                             {readDay(f.latest)}
-                            {stale ? <span className="font-medium text-ink"> · over 90 days ago</span> : null}
+                            {stale ? <span className="font-display text-ink"> · over 90 days ago</span> : null}
                           </>
                         ) : (
                           "Not read yet"
@@ -269,71 +247,48 @@ export function Methodology({ facts, now = Date.now() }: { facts: SiteFacts; now
   const sub = facts.sourcesWithRecords !== null ? `${listed} sources listed · ${facts.sourcesWithRecords} hold supplier records. Read in order of trust. No scores.` : `${listed} sources listed. Read in order of trust. No scores.`;
   const updated = readDay(facts.latestRead);
   return (
-    <main className="font-sans text-ink">
-      <Hero label="Data & methodology" h1="How we check every supplier." lede={sub}>
-        <div id="tiers" className="flex scroll-mt-24 flex-col gap-4 pt-6">
-          <p className="text-sm text-ink-3">The source ladder · a higher tier is never overwritten by a lower one</p>
-          <ol className="grid gap-x-8 gap-y-6 sm:grid-cols-2 lg:grid-cols-5">
-            {TIERS.map((t) => (
-              <li key={t.key} className="flex flex-col gap-1 border-t border-ink pt-3">
-                <span className="text-sm tabular-nums text-ink-3">
-                  Tier {t.n} · {t.sources.length} {t.n === 5 ? "lists" : "sources"}
-                </span>
-                <span className="text-xl font-semibold text-ink">{t.label}</span>
-                <span className="text-base text-ink-2">{t.ladder}</span>
-              </li>
-            ))}
-          </ol>
-        </div>
-      </Hero>
+    <HomeMain className="font-sans antialiased">
+      <PageHead label="Data & methodology" title="How we check every supplier." lede={sub}>
+        <CloseActions />
+      </PageHead>
 
-      <Section id="sources" label={`The ${SOURCE_COUNT} sources`} headline="Every source, what it gives, and when we read it." lede={facts.sources !== null ? "Counts are published suppliers with a record from that source. A date marked “over 90 days ago” was read more than 90 days ago." : "Every source we list, and what it gives us. The counts and dates appear here when the register has been read."} tone="subtle">
+      <FactCards
+        id="tiers"
+        tone="warm"
+        heading="The source ladder. A higher tier is never overwritten by a lower one."
+        items={TIERS.map((t) => ({ figure: `Tier ${t.n}`, title: `${t.label} · ${t.sources.length} ${t.n === 5 ? "lists" : "sources"}`, body: t.ladder }))}
+      />
+
+      <Band id="sources" tone="day" heading={`Every source, what it gives, and when we read it. All ${SOURCE_COUNT}.`} lede={facts.sources !== null ? "Counts are published suppliers with a record from that source. A date marked “over 90 days ago” was read more than 90 days ago." : "Every source we list, and what it gives us. The counts and dates appear here when the register has been read."}>
         <div className="flex flex-col gap-14">
           {TIERS.map((t) => (
             <TierTable key={t.key} tier={t} facts={facts} now={now} />
           ))}
-          {facts.sources !== null && updated ? <p className="text-sm text-ink-3">From the sources table · latest read {updated}</p> : null}
+          {facts.sources !== null && updated ? <p className="font-book text-site-item text-ink-2">From the sources table · latest read {updated}</p> : null}
         </div>
-      </Section>
+      </Band>
 
-      <Section label="How fresh" headline="Every fact carries the date we read it.">
-        <p className="max-w-prose text-md text-ink-2">{FRESH}</p>
-      </Section>
+      <FactCards
+        id="matching"
+        tone="day"
+        heading="Every fact carries the date we read it. One factory, one record."
+        items={[
+          { title: "How fresh", body: FRESH },
+          ...MATCH.map((m, i) => ({ title: ["One number, one supplier", "Name and address, then a person", "Both sides when sources disagree"][i]!, body: m })),
+        ]}
+        cols={2}
+      />
 
-      <Section id="matching" label="How we match" headline="One factory, one record." tone="subtle" className="scroll-mt-24">
-        <ol className="flex max-w-[800px] flex-col gap-3 text-md text-ink-2">
-          {MATCH.map((m, i) => (
-            <li key={m}>
-              {i + 1}. {m}
-            </li>
-          ))}
-        </ol>
-      </Section>
+      <FactCards id="corrections" tone="day" heading="Spot a wrong fact? Tell us." items={[{ title: "Corrections", body: <Correction /> }]} cols={2}>
+        <a href="mailto:data@sourcebd.net?subject=Correction" className={secondary}>
+          Report a correction
+        </a>
+      </FactCards>
 
-      <Section id="corrections" label="Corrections" headline="Spot a wrong fact? Tell us." className="scroll-mt-24">
-        <p className="max-w-prose text-md text-ink-2">
-          <Correction />
-        </p>
-        <div>
-          <ButtonLink href="mailto:data@sourcebd.net?subject=Correction" kind="secondary" size="lg" className="max-sm:h-input-touch">
-            Report a correction
-          </ButtonLink>
-        </div>
-      </Section>
+      <FactCards id="never" tone="night" heading="What we never do. Receipts, not opinions." items={NEVER.map((n, i) => ({ figure: String(i + 1).padStart(2, "0"), title: n, body: null }))} />
 
-      <Section label="What we never do" headline="Receipts, not opinions." tone="subtle">
-        <ol className="grid max-w-[800px] gap-4">
-          {NEVER.map((n, i) => (
-            <li key={n} className="flex gap-4 border-t border-line pt-3 text-lg text-ink">
-              <span className="text-site-body font-medium text-ink-subtle">{String(i + 1).padStart(2, "0")}</span>
-              {n}
-            </li>
-          ))}
-        </ol>
-      </Section>
-
-      <Closing headline="See the sources on a real record." lede="Free during beta. No card needed." />
-    </main>
+      <Finale heading="See the sources on a real record." />
+    </HomeMain>
   );
 }
 
@@ -353,81 +308,44 @@ const STEPS: [string, string][] = [
   ["Approved, or a person checks", "If your email domain matches the company's, the claim is approved at once. If not, a person reviews it."],
 ];
 
-export function ForSuppliers({ facts }: { facts: SiteFacts }) {
-  const count = countOf(facts);
-  const updated = readDay(facts.latestRead);
+export function ForSuppliers() {
   return (
-    <main className="font-sans text-ink">
-      <Hero
+    <HomeMain className="font-sans antialiased">
+      <PageHead
         label="For suppliers"
-        h1="Claim your factory's record."
+        title="Claim your factory's record."
         lede="Buyers in the UK, EU, US and Canada see it today. Check it, flag what is out of date, answer RFQs."
-        actions={false}
-        stage={
-          // The claim, played on the snapshot's real record (critique 22 Oct: the 3 Oct screenshot on concrete is gone).
-          <DemoClaim
-            stage="swatches"
-            eager
-            after={count ? <p className="text-sm text-ink-subtle">{count} published suppliers{updated ? ` · updated ${updated}` : ""}</p> : null}
-          />
-        }
+        picture={<Clip name={SUPPLIER_CLIP.file} says={SUPPLIER_CLIP.says} />}
       >
-        <div className="flex flex-wrap items-center justify-center gap-2.5">
-          <ButtonLink href="/signup?role=supplier" prefetch={false} kind="primary" size="lg" className="h-12 rounded-frame px-5 text-site-body">
-            Start your claim
-          </ButtonLink>
-          <TextLink href="/contact" className="px-4">
-            Book a demo
-          </TextLink>
-        </div>
-      </Hero>
+        <CloseActions primary={CLAIM} />
+      </PageHead>
 
-      <Section label="Why claim" headline="Buyers already look you up." tone="subtle">
-        <dl className="grid gap-x-10 gap-y-6 md:grid-cols-3">
-          {WHY.map(([t, b]) => (
-            <div key={t} className="flex flex-col gap-1 border-t border-ink pt-3">
-              <dt className="text-xl font-semibold text-ink">{t}</dt>
-              <dd className="text-md text-ink-2">{b}</dd>
-            </div>
-          ))}
-        </dl>
-      </Section>
+      <FactCards id="why" tone="warm" heading="Buyers already look you up." items={WHY.map(([t, b]) => ({ title: t, body: b }))} />
 
-      <Section label="What you can change" headline="Your answers. Not your receipts.">
-        <div className="grid max-w-[900px] gap-8 md:grid-cols-2">
-          <div className="flex flex-col gap-2">
-            <h3 className="text-base font-semibold text-ink">You can</h3>
-            <p className="text-md text-ink-2">Reply to buyers&apos; RFQs and messages, and report a fact that is out of date.</p>
-          </div>
-          <div className="flex flex-col gap-2">
-            <h3 className="text-base font-semibold text-ink">Only the source can change</h3>
-            <p className="text-md text-ink-2">Register facts, certificates, safety reports and sanctions. Ask the source to update it; we read it again.</p>
-          </div>
-        </div>
-        <p className="w-fit rounded-sm border border-dashed border-line-strong px-2 py-1 text-sm font-semibold text-ink-2">Editing your own products: in design, not in the product yet</p>
-      </Section>
+      <FactCards
+        id="change"
+        tone="day"
+        heading="Your answers. Not your receipts."
+        lede="Editing your own products is in design, not in the product yet."
+        items={[
+          { title: "You can", body: "Reply to buyers' RFQs and messages, and report a fact that is out of date." },
+          { title: "Only the source can change", body: "Register facts, certificates, safety reports and sanctions. Ask the source to update it; we read it again." },
+        ]}
+        cols={2}
+      />
 
-      <Section label="How we check it is you" headline="Three steps to claim your record." tone="subtle">
-        <ol className="grid gap-x-10 gap-y-6 md:grid-cols-3">
-          {STEPS.map(([t, b], i) => (
-            <li key={t} className="flex flex-col gap-2 border-t border-ink pt-3">
-              <span className="text-2xl tabular-nums text-ink-3">{i + 1}</span>
-              <span className="text-lg font-semibold text-ink">{t}</span>
-              <span className="text-md text-ink-2">{b}</span>
-            </li>
-          ))}
-        </ol>
-        <div>
-          <ButtonLink href="/signup?role=supplier" prefetch={false} kind="primary" size="lg" className="max-sm:h-input-touch">
-            Start your claim
-          </ButtonLink>
-        </div>
-      </Section>
+      <FactCards id="steps" tone="day" heading="Three steps to claim your record." items={STEPS.map(([t, b], i) => ({ figure: String(i + 1), title: t, body: b }))}>
+        <ButtonLink href={CLAIM[1]} prefetch={false} kind="primary" size="lg" className="h-10 rounded-full px-5 text-site-item">
+          {CLAIM[0]}
+        </ButtonLink>
+      </FactCards>
 
-      <Closing headline="Your record is already public. Claim it." lede="Claiming is free. Buyers can also start here." />
-    </main>
+      <Finale heading="Your record is already public. Claim it." primary={CLAIM} />
+    </HomeMain>
   );
 }
+
+const CLAIM = ["Start your claim", "/signup?role=supplier"] as const;
 
 // ---- About -------------------------------------------------------------------------------------------------------
 
@@ -459,19 +377,7 @@ const WHO: [string, ReactNode][] = [
   ["Where the data lives", <>In our Supabase database, AWS region us-west-1, in the United States. See <A href="/security">Security</A>.</>],
 ];
 
-/** About's lists of facts: a term over its words, a rule above each, two across from 768. */
-function FactList({ items }: { items: readonly (readonly [string, ReactNode])[] }) {
-  return (
-    <dl className="grid max-w-[900px] gap-x-10 gap-y-6 md:grid-cols-2">
-      {items.map(([t, b]) => (
-        <div key={t} className="flex flex-col gap-1 border-t border-ink pt-3">
-          <dt className="text-lg font-semibold text-ink">{t}</dt>
-          <dd className="text-md text-ink-2">{b}</dd>
-        </div>
-      ))}
-    </dl>
-  );
-}
+const facts2 = (items: readonly (readonly [string, ReactNode])[]) => items.map(([title, body]) => ({ title, body }));
 
 const HOW: [string, string][] = [
   ["Every fact shows its source.", "In words, with the date we read it."],
@@ -483,50 +389,32 @@ const HOW: [string, string][] = [
 export function About({ facts }: { facts: SiteFacts }) {
   const latest = readDay(facts.latestRead);
   return (
-    <main className="font-sans text-ink">
-      <Hero label="Company · About" h1="Built for buyers who check." lede="We make every fact about a Bangladesh garment supplier checkable: the source, the number, the date." />
+    <HomeMain className="font-sans antialiased">
+      <PageHead label="About" title="Built for buyers who check." lede="We make every fact about a Bangladesh garment supplier checkable: the source, the number, the date.">
+        <CloseActions />
+      </PageHead>
 
-      <section aria-labelledby="where" className="bg-surface py-14 md:py-section">
-        <div className={cn(measure, "flex flex-col gap-8")}>
-          <div className="flex flex-col gap-2">
-            <h2 id="where" className="text-site-body font-medium text-ink-subtle">
-              Bangladesh only · where the suppliers are
-            </h2>
-            <p className="text-sm text-ink-3">Published suppliers by district · counted {DISTRICTS_READ}</p>
-          </div>
-          <dl className="grid gap-x-10 gap-y-6 sm:grid-cols-2 lg:grid-cols-3">
-            {DISTRICTS.map(([place, n, what]) => (
-              <div key={place} className="flex flex-col gap-1 border-t border-ink pt-3">
-                <dt className="text-xl font-semibold text-ink">{place}</dt>
-                <dd className="text-xl tabular-nums text-ink">{n}</dd>
-                <dd className="text-md text-ink-2">{what}</dd>
-              </div>
-            ))}
-          </dl>
-        </div>
-      </section>
+      <FactCards id="where" tone="warm" heading="Bangladesh only. Where the suppliers are." lede={`Published suppliers by district, counted ${DISTRICTS_READ}.`} items={DISTRICTS.map(([place, n, what]) => ({ figure: n, title: place, body: what }))} />
 
-      <Section label="How we work" headline="Receipts, not opinions.">
-        <FactList items={HOW} />
-        <A href="/methodology">Read the methodology</A>
-      </Section>
+      <FactCards id="how" tone="day" heading="How we work. Receipts, not opinions." items={facts2(HOW)} cols={2}>
+        <TextLink href="/methodology">Read the methodology</TextLink>
+      </FactCards>
 
       {/* How often the registers are read and how to report a wrong fact, in the methodology page's own words (critique 22 Oct, About). */}
-      <Section label="Freshness and corrections" headline="How often we read, and how to correct us." tone="subtle">
-        <FactList
-          items={[
-            ["How often we read", `${FRESH}${latest ? ` The latest register read was ${latest}.` : ""}`],
-            ["A wrong fact", <Correction key="correction" />],
-          ]}
-        />
-      </Section>
+      <FactCards
+        id="fresh"
+        tone="day"
+        heading="How often we read, and how to correct us."
+        items={facts2([
+          ["How often we read", `${FRESH}${latest ? ` The latest register read was ${latest}.` : ""}`],
+          ["A wrong fact", <Correction key="correction" />],
+        ])}
+        cols={2}
+      />
 
-      <Section label="The company" headline="Who runs SourceBD.">
-        <FactList items={WHO} />
-      </Section>
+      <FactCards id="company" tone="day" heading="Who runs SourceBD." items={facts2(WHO)} cols={2} />
 
-      {/* The closing band every other page ends on (critique 22 Oct). */}
-      <Closing headline="Check your first supplier today." lede="Free during beta. No card needed." />
-    </main>
+      <Finale heading="Check your first supplier today." />
+    </HomeMain>
   );
 }

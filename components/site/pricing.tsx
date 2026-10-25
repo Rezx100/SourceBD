@@ -3,15 +3,15 @@
 // page says so. Enterprise lists only what exists (the agreements and a call), never SSO or an audit log.
 // The supplier count comes from the site's live facts and is left out when it was not read.
 
+import { ArrowUpRight } from "@phosphor-icons/react/dist/ssr";
 import Link from "next/link";
 import type { Metadata } from "next";
-import type { ReactNode } from "react";
 import { ButtonLink } from "@/components/kit";
-import { HeroActions, HeroCentered, inkLink, measure, Section, TextLink } from "@/components/site/sections/ui";
-import { Closing } from "@/components/site/sections/closing";
-import { Faq } from "@/components/site/sections/faq";
+import { HomeMain } from "@/components/site/home-main";
+import { CloseActions, Finale } from "@/components/site/sections/close";
+import { Band, FactCards, PageHead, tabular } from "@/components/site/sections/inner";
+import { inkLink, secondary } from "@/components/site/sections/ui";
 import { withCommas, type SiteFacts } from "@/lib/site-facts";
-import { cn } from "@/lib/utils";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://sourcebd.net";
 
@@ -62,21 +62,31 @@ const FAQ = [
   { q: "Can a supplier pay to rank higher?", a: "No. There is no paid placement, and no supplier score." },
 ];
 
-function Plan({ name, tag, headline, lede, cta, listLabel, items, className }: { name: string; tag: string; headline: string; lede: string; cta: ReactNode; listLabel: string; items: string[]; className?: string }) {
+/** A plan as home's close draws its two cards: a sunken panel, its name and line, the way in, then what it holds. */
+function Plan({ name, tag, headline, lede, primary, listLabel, items }: { name: string; tag: string; headline: string; lede: string; primary: boolean; listLabel: string; items: string[] }) {
   return (
-    <article className={cn("flex flex-col gap-6 rounded-frame border border-line-strong bg-surface p-8 shadow-sm max-sm:p-5", className)}>
-      <div className="flex flex-col gap-2">
-        <h3 className="text-lg font-semibold text-ink">{name}</h3>
-        <p className="text-sm text-ink-3">{tag}</p>
+    <article className="flex flex-col gap-6 rounded-frame bg-sunken p-6 md:p-8">
+      <div className="flex flex-col gap-1">
+        <h3 className="font-display text-site-card text-ink">{name}</h3>
+        <p className="font-book text-site-card text-ink-2">{tag}</p>
       </div>
       <div className="flex flex-col gap-2">
-        <p className="text-site-h2-sm font-light text-ink-strong md:text-site-h2">{headline}</p>
-        <p className="text-md text-ink-2">{lede}</p>
+        <p className="font-display text-site-section-sm text-ink md:text-site-section">{headline}</p>
+        <p className="font-book text-site-card text-ink-2">{lede}</p>
       </div>
-      <div>{cta}</div>
+      {primary ? (
+        <ButtonLink href="/signup" prefetch={false} kind="primary" size="lg" className="h-10 w-fit rounded-full px-5 text-site-item">
+          Start free
+        </ButtonLink>
+      ) : (
+        <Link href="/contact" prefetch={false} className={secondary}>
+          Book a demo
+          <ArrowUpRight size={14} aria-hidden />
+        </Link>
+      )}
       <div className="flex flex-col gap-3 border-t border-line pt-5">
-        <p className="text-sm text-ink-3">{listLabel}</p>
-        <ul className="flex flex-col gap-2 text-md text-ink">
+        <p className="font-display text-site-item text-ink-2">{listLabel}</p>
+        <ul className="flex flex-col gap-2 font-book text-site-item text-ink">
           {items.map((i) => (
             <li key={i} className="flex gap-3">
               <span aria-hidden className="mt-2.5 h-px w-3 shrink-0 bg-ink-3" />
@@ -88,84 +98,52 @@ function Plan({ name, tag, headline, lede, cta, listLabel, items, className }: {
     </article>
   );
 }
+
 export function Pricing({ facts }: { facts: SiteFacts }) {
   const count = facts.suppliers !== null ? withCommas(facts.suppliers) : null;
   const beta = BETA.map((b) => (count ? b.replace("{n}", count) : b.replace("Search {n} suppliers", "Search suppliers")));
   return (
-    <main className="font-sans text-ink">
-      {/* The plans follow the hero at once: no empty band of paper between them (critique 22 Oct). */}
-      <HeroCentered label="Pricing" title="Free during beta." lede="Everything in SourceBD is free while we are in beta. No card needed." className="pb-10 md:pb-16">
-        <HeroActions center />
-      </HeroCentered>
+    <HomeMain className="font-sans antialiased">
+      <PageHead label="Pricing" title="Free during beta." lede="Everything in SourceBD is free while we are in beta. No card needed.">
+        <CloseActions />
+      </PageHead>
 
-      <section aria-labelledby="plans">
-        <div className={cn(measure, "flex flex-col gap-8")}>
-          <div className="flex flex-col gap-2">
-            <h2 id="plans" className="text-site-body font-medium text-ink-subtle">
-              Two plans, as they really are today
-            </h2>
-            <p className="text-sm text-ink-3">No prices yet</p>
-          </div>
-          <div className="grid gap-6 md:grid-cols-2">
-            <Plan
-              name="Beta"
-              tag="For every buyer, today"
-              headline="Free during beta"
-              lede="Every feature in the product. No card, no trial clock."
-              cta={
-                <ButtonLink href="/signup" prefetch={false} kind="primary" size="lg" className="max-sm:h-input-touch">
-                  Start free
-                </ButtonLink>
-              }
-              listLabel="What you get"
-              items={beta}
-            />
-            <Plan
-              name="Enterprise"
-              tag="For teams with paperwork"
-              headline="Terms agreed with you"
-              lede="The same product, with the agreements your company needs."
-              cta={
-                <ButtonLink href="/contact" prefetch={false} kind="secondary" size="lg" className="max-sm:h-input-touch">
-                  Book a demo
-                </ButtonLink>
-              }
-              listLabel="Everything in Beta, plus"
-              items={ENTERPRISE}
-            />
-          </div>
+      <Band id="plans" tone="warm" heading="Two plans, as they really are today" lede="No prices yet.">
+        <div className="grid gap-4 md:grid-cols-2 md:gap-8">
+          <Plan name="Beta" tag="For every buyer, today" headline="Free during beta" lede="Every feature in the product. No card, no trial clock." primary listLabel="What you get" items={beta} />
+          <Plan name="Enterprise" tag="For teams with paperwork" headline="Terms agreed with you" lede="The same product, with the agreements your company needs." primary={false} listLabel="Everything in Beta, plus" items={ENTERPRISE} />
         </div>
-      </section>
+      </Band>
 
-      <Section label="Compare" headline="What is in the product today." lede="Only what ships now. Designs that are not built yet are not on this list.">
-        <div tabIndex={0} role="region" aria-label="What each plan includes, scrolls sideways" className="overflow-x-auto outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent">
-          <table className="w-full min-w-[640px] border-collapse text-left">
+      <Band id="compare" tone="day" heading="What is in the product today." lede="Only what ships now. Designs that are not built yet are not on this list.">
+        <div tabIndex={0} role="region" aria-label="What each plan includes, scrolls sideways" className={tabular}>
+          <table>
             <caption className="sr-only">What each plan includes today</caption>
             <thead>
-              <tr className="border-b border-ink text-base font-semibold text-ink">
-                <th scope="col" className="py-3 pr-4">
+              <tr>
+                <th scope="col">
                   <span className="sr-only">Feature</span>
                 </th>
-                <th scope="col" className="py-3 pr-4">Beta</th>
-                <th scope="col" className="py-3">Enterprise</th>
+                <th scope="col">Beta</th>
+                <th scope="col">Enterprise</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-line">
+            <tbody>
               {COMPARE.map(([f, a, b]) => (
-                <tr key={f} className="align-top text-md">
-                  <th scope="row" className="py-4 pr-4 font-normal text-ink">{f}</th>
-                  <td className="py-4 pr-4 text-ink-2">{a}</td>
-                  <td className="py-4 text-ink-2">{b}</td>
+                <tr key={f}>
+                  <th scope="row">{f}</th>
+                  <td>{a}</td>
+                  <td>{b}</td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
-      </Section>
+      </Band>
 
-      <Faq items={FAQ} after={<TextLink href="/contact">Book a demo</TextLink>} />
+      <FactCards id="faq" tone="day" heading="Questions buyers ask." items={FAQ.map((f) => ({ title: f.q, body: f.a }))} cols={2} />
 
-      <Closing headline="Start free today." lede="Free during beta. No card needed." />
-    </main>
+      <Finale heading="Start free today." />
+    </HomeMain>
   );
 }

@@ -24,8 +24,10 @@ import {
 import { Suspense } from "react";
 import { FacetLists, PublicResults, ResponsiveFilters, filterCount } from "@/components/discover/public";
 import { DiscoverSearchBox } from "@/components/discover/search-box";
+import { HomeMain } from "@/components/site/home-main";
 import { Chips, chipsOf, loadChips } from "@/components/site/sections/chips";
-import { Display, Label, Lede, measure } from "@/components/site/sections/ui";
+import { PageHead } from "@/components/site/sections/inner";
+import { column } from "@/components/site/sections/ui";
 import { SEARCH_TEMPLATES } from "@/lib/dashboard/search-templates";
 import { trustMetadata } from "@/components/site/trust";
 import { fetchDiscoverFacets } from "@/lib/discover-facets";
@@ -147,26 +149,19 @@ export default async function PublicDiscoverPage({
   };
 
   return (
-    <main className="font-sans text-ink">
-      {/* The site's hero (critique 22 Oct): centred, a full stop, Search drawn as the secondary button. */}
-      <section className="pb-10 pt-20 max-md:pb-6 max-md:pt-10">
-        <div className={cn(measure, "flex flex-col items-center gap-6 text-center")}>
-          <Label>Discover</Label>
-          <Display level={1} as="h1" className="max-w-[880px]">
-            Find a verified factory.
-          </Display>
-          <Lede className="mx-auto">Search by certification, product, or district. Every result is on the record.</Lede>
-          <div className="flex w-full max-w-[560px] flex-col items-center gap-2 text-left">
-            <DiscoverSearchBox basePath={BASE_PATH} profileBase="/suppliers" q={q} sort={sort} />
-            <p className="text-md text-ink-3">Try “knit dresses Gazipur” or “GOTS”</p>
-          </div>
+    <HomeMain className="font-sans antialiased">
+      {/* The site's head in home's type (25 Oct 2026), on the day ground: the search is the page's one way in. */}
+      <PageHead tone="day" label="Discover" title="Find a verified factory." lede="Search by certification, product, or district. Every result is on the record.">
+        <div className="flex w-full max-w-[560px] flex-col items-center gap-2 text-left">
+          <DiscoverSearchBox basePath={BASE_PATH} profileBase="/suppliers" q={q} sort={sort} />
+          <p className="font-book text-site-item text-ink-2">Try “knit dresses Gazipur” or “GOTS”</p>
         </div>
-      </section>
+      </PageHead>
 
       {/* Before anything is typed, the page is the common searches, not an empty field over the footer (critique 22 Oct). */}
       {hasSearchQuery ? (
-        <section className="pb-24 max-md:pb-14">
-          <div className={cn(measure, "flex flex-col gap-6")}>
+        <section data-mk-tone="day" aria-label="Results" className="pb-24 max-md:pb-14">
+          <div className={cn(column, "flex flex-col gap-6")}>
             <ResponsiveFilters basePath={BASE_PATH} {...filters} />
             <FacetLists facets={facets} />
             <PublicResults
@@ -184,18 +179,18 @@ export default async function PublicDiscoverPage({
           </div>
         </section>
       ) : (
-        <section aria-labelledby="discover-common" className="pb-24 max-md:pb-14">
-          <div className={cn(measure, "flex flex-col items-center gap-5")}>
-            <h2 id="discover-common" className="text-site-body font-medium text-ink-subtle">
+        <section data-mk-tone="day" aria-labelledby="discover-common" className="pb-24 max-md:pb-14">
+          <div className={cn(column, "flex flex-col items-center gap-5")}>
+            <h2 id="discover-common" className="font-display text-site-lead text-ink">
               Common searches
             </h2>
             <Suspense fallback={<Chips chips={chipsOf({}, SEARCH_TEMPLATES)} pending labelledBy="discover-common" />}>
               <CommonSearches />
             </Suspense>
-            <p className="max-w-[560px] text-center text-sm text-ink-subtle">Each opens in the app, where its filters run: sign in first, at no cost.</p>
+            <p className="max-w-[560px] text-center font-book text-site-item text-ink-2">Each opens in the app, where its filters run: sign in first, at no cost.</p>
           </div>
         </section>
       )}
-    </main>
+    </HomeMain>
   );
 }

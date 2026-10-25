@@ -1,15 +1,11 @@
-// The four product pages and the two solutions pages (Paper `30 Marketing · Product` and `Solutions`): one template,
-// because Paper draws them as one: a label, a one-line promise, one way in (the search on the search page, Start free
-// elsewhere), the product, then sections that each say one thing and show what proves it, and a close.
-// M4 (15 Oct 2026): every page moved into the home's frame with the demos as its proof (`components/site/product/*.tsx`,
-// which the routes draw); the words stay here. Since the 22 Oct critique no page shows a 3 Oct screenshot: each row's
-// picture is a demo the page chooses.
+// The words of the four product pages and the two solutions pages (Paper `30 Marketing · Product` and `Solutions`): a
+// label, a one-line promise, the rows that each say one thing, the close. The pages themselves are drawn in the home
+// page's design (`components/site/product/*.tsx`, 25 Oct 2026), each row's proof a recording of the real app.
 
 import type { Metadata } from "next";
-import type { ReactNode } from "react";
 
 /** A section of a page: `n` finds it in the page's code, `label` is its name above the headline (never its number: critique 22 Oct, S13). */
-export type Block = { n: string; label: string; headline: string; lede: string; extra?: ReactNode };
+export type Block = { n: string; label: string; headline: string; lede: string };
 export type Page = {
   group: "Product" | "Solutions";
   name: string;
@@ -23,14 +19,6 @@ export type Page = {
   outcome?: string;
   close: string;
 };
-
-const STATES: [string, string][] = [
-  ["Expired", "with the date it ended"],
-  ["Expires in N days", "with the date it ends"],
-  ["Valid until", "with the date"],
-  ["Listed as valid", "when the body publishes no date"],
-];
-
 
 export const PAGES: Record<string, Page> = {
   "product/search": {
@@ -58,35 +46,7 @@ export const PAGES: Record<string, Page> = {
     description: "Every fact on a Bangladesh garment supplier names its source and the date we read it. Certificates with dates, safety inspections as text, and both numbers when sources disagree.",
     blocks: [
       { n: "01", label: "Sources", headline: "Sources in words, not badges.", lede: "“From BGMEA · checked 24 Jul 2026.” When a fact has no source linked yet, we say so." },
-      {
-        n: "02",
-        label: "Certificates",
-        headline: "Four certificate states, each with a date.",
-        lede: "Expired comes first. We never call a certificate “active”.",
-        extra: (
-          <dl className="grid max-w-[720px] gap-x-10 gap-y-3 sm:grid-cols-2">
-            {STATES.map(([a, b]) => (
-              <div key={a} className="flex flex-col gap-0.5 border-t border-ink pt-2">
-                <dt className="text-base font-semibold text-ink">{a}</dt>
-                <dd className="text-md text-ink-2">{b}</dd>
-              </div>
-            ))}
-          </dl>
-        ),
-      },
-      {
-        n: "03",
-        label: "Sources disagree",
-        headline: "When sources disagree, you see both.",
-        lede: "BGMEA lists 4,200 employees for Mondol Fabrics. RSC counted 2,060 workers in 2 buildings. We show both, with their dates.",
-        extra: (
-          <div className="flex max-w-[560px] flex-col gap-1 rounded-lg border border-line bg-subtle p-4">
-            <p className="text-sm font-semibold text-ink">2 sources differ</p>
-            <p className="text-base text-ink-2">RSC counted 2,060 workers in 2 buildings. BGMEA has 4,200 employees, as declared by the factory.</p>
-            <p className="text-sm text-ink-3">Mondol Fabrics Ltd. · as read on 3 Oct 2026</p>
-          </div>
-        ),
-      },
+      { n: "02", label: "Certificates", headline: "Four certificate states, each with a date.", lede: "Expired comes first. We never call a certificate “active”." },
       { n: "04", label: "Safety", headline: "Safety inspections, as text.", lede: "RSC reports as figures with their date. Never a progress bar." },
       { n: "05", label: "Contacts", headline: "Contact details are locked.", lede: "You see what is on file. Send an RFQ and the supplier replies in SourceBD." },
     ],
