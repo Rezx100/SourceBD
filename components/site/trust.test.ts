@@ -34,7 +34,7 @@ const READ = parseFacts(
 const FACTS = parseFacts({ suppliers_indexed: 10268 }, null);
 const security = () => draw(createElement(T.Security));
 const method = (f = FACTS) => draw(createElement(T.Methodology, { facts: f, now: NOW }));
-const suppliers = (f = FACTS) => draw(createElement(T.ForSuppliers, { facts: f }));
+const suppliers = () => draw(createElement(T.ForSuppliers));
 const about = (f = FACTS) => draw(createElement(T.About, { facts: f }));
 
 describe("the security page", () => {
@@ -123,7 +123,7 @@ describe("the supplier page", () => {
   it("opens the supplier sign-up and promises nothing the product does not do", () => {
     const m = suppliers();
     assert.match(m, /href="\/signup\?role=supplier"/);
-    assert.match(text(m), /Editing your own products: in design, not in the product yet/);
+    assert.match(text(m), /Editing your own products is in design, not in the product yet\./);
     assert.doesNotMatch(text(m), /boost|rank higher than|promote your/i);
   });
 });
