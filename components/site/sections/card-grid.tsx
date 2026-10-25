@@ -29,11 +29,11 @@ export function SectionHead({ id, children, className }: { id: string; children:
 }
 
 /** A card's name and its line, under its picture. */
-export function CardWords({ title, body }: { title: string; body: string }) {
+export function CardWords({ title, body }: { title: ReactNode; body: ReactNode }) {
   return (
     <div className="mt-3 flex flex-col">
       <h3 className="font-display text-site-card text-ink">{title}</h3>
-      <p className="font-book text-site-card text-ink-2">{body}</p>
+      {body ? <p className="font-book text-site-card text-ink-2">{body}</p> : null}
     </div>
   );
 }

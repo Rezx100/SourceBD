@@ -277,9 +277,10 @@ describe("one site (M1, handoff-mercury-motion-sitewide.md §3)", () => {
     for (const { f, src } of sources) assert.doesNotMatch(src, /\b(?:text|leading|rounded)-\[/, f);
   });
 
-  it("has one footer, one FAQ and one focus ring", () => {
+  it("has one footer, no accordion and one focus ring", () => {
     assert.deepEqual(sources.filter((s) => /<footer\b/.test(s.src)).map((s) => s.f), ["sections/footer.tsx"]);
-    assert.deepEqual(sources.filter((s) => /<details\b/.test(s.src)).map((s) => s.f), ["sections/faq.tsx"]);
+    // Questions are home's cards since every page took its design (25 Oct 2026): every answer is on the page.
+    assert.deepEqual(sources.filter((s) => /<details\b/.test(s.src)).map((s) => s.f), []);
     const importers = readdirSync(join(process.cwd(), "components"), { recursive: true })
       .map(String)
       .filter((f) => /\.tsx?$/.test(f) && !f.endsWith(".test.ts"))

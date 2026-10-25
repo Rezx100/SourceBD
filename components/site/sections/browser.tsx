@@ -7,7 +7,7 @@
 // or a tap on a playing picture pauses it, and its pause button appears when the keyboard reaches it (WCAG 2.2.2).
 
 import { Pause, Play } from "@phosphor-icons/react";
-import { useEffect, useLayoutEffect, useRef, useState, type MouseEvent, type ReactNode, type RefObject } from "react";
+import { useEffect, useRef, useState, type MouseEvent, type RefObject } from "react";
 import { stillPreferred, useInView } from "@/components/site/motion";
 import { cn } from "@/lib/utils";
 import { ring } from "./ui";
@@ -60,38 +60,6 @@ export const LEDGER: Record<string, string> = {
   "still-locked": "record, dark, phone width: contact details locked",
 };
 
-/** The window's bar: three lights, the address in its field, a hairline under it. 1440 × 52 in the bar's own units. */
-function Bar({ url }: { url: string }) {
-  return (
-    <svg viewBox="0 0 1440 52" aria-hidden className="block w-full font-sans">
-      <rect width="1440" height="52" className="fill-sunken" />
-      <rect y="51" width="1440" height="1" className="fill-line" />
-      {[28, 50, 72].map((cx) => (
-        <circle key={cx} cx={cx} cy="26" r="6.5" className="fill-line-strong/40" />
-      ))}
-      <rect x="420" y="12" width="600" height="28" rx="8" className="fill-surface" />
-      <path d="M696 25.5v-2.6a4 4 0 0 1 8 0v2.6M694.5 25.5h11v7.5h-11z" className="fill-none stroke-ink-subtle" strokeWidth="1.5" strokeLinejoin="round" />
-      <text x="712" y="31" fontSize="14" className="fill-ink-muted">
-        {url}
-      </text>
-    </svg>
-  );
-}
-
-/**
- * A browser window: the bar, then 1440 × 848 of page. Light inside whatever the ground around it; a glass edge (a lit
- * top line and a faint close shadow), never a dark drop (founder's recording of 22 Oct 13:17) and no hairline round it
- * (his video 3). `children` fill the page area.
- */
-export function BrowserFrame({ url, children, className }: { url: string; children: ReactNode; className?: string }) {
-  return (
-    <div data-ground="day" className={cn("relative isolate overflow-hidden rounded-frame bg-surface shadow-glass", className)}>
-      <Bar url={url} />
-      <div className="relative aspect-[1440/848] overflow-hidden bg-canvas">{children}</div>
-    </div>
-  );
-}
-
 /** Plays `video` while `on`; reports how far through it is to `bar` (a transform, no re-render). */
 function usePlayback(video: RefObject<HTMLVideoElement | null>, on: boolean, bar?: RefObject<HTMLElement | null>) {
   useEffect(() => {
@@ -141,43 +109,14 @@ export function Video({ file, active = true, playing = true, eager = false, dela
     if (restart && video.current) video.current.currentTime = 0;
   }, [restart]);
   usePlayback(video, active && seen && playing && !still && !held, active ? bar : undefined);
-  const src = `/site/home/${file}`;
+  // A bare name is home's (`/site/home/<file>`); an inner page's pictures are its own folder's, by full path.
+  const src = file.startsWith("/") ? file : `/site/home/${file}`;
   return (
     <div ref={box} className={cn("absolute inset-0 transition-opacity duration-slow ease-out motion-reduce:transition-none", active ? "opacity-100" : "opacity-0", className)}>
       <video ref={video} aria-hidden tabIndex={-1} muted playsInline loop={!onEnded} preload={eager ? "auto" : "none"} poster={`${src}.webp`} onEnded={onEnded} className="size-full object-cover object-top">
         <source src={`${src}.webm`} type="video/webm" />
         <source src={`${src}.mp4`} type="video/mp4" />
       </video>
-    </div>
-  );
-}
-
-/** One of the tour's recordings of the real app (`screenFile`). */
-export function AppVideo({ name, ...rest }: { name: ScreenName } & Omit<Parameters<typeof Video>[0], "file">) {
-  return <Video file={screenFile(name)} {...rest} />;
-}
-
-/**
- * A page drawn at `width` and scaled to the window, so a coded demo sits in the browser at the app's own proportions.
- * Hidden until it is measured, so it never paints at the wrong size.
- */
-export function FitPage({ children, width = 1040 }: { children: ReactNode; width?: number }) {
-  const box = useRef<HTMLDivElement>(null);
-  const [k, setK] = useState(0);
-  useLayoutEffect(() => {
-    const el = box.current;
-    if (!el) return;
-    const fit = () => setK(el.clientWidth / width);
-    fit();
-    const ro = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(fit);
-    ro?.observe(el);
-    return () => ro?.disconnect();
-  }, [width]);
-  return (
-    <div ref={box} className="absolute inset-0">
-      <div className={cn("absolute left-0 top-0 origin-top-left", !k && "invisible")} style={{ width, height: (width * 848) / 1440, transform: `scale(${k})` }}>
-        {children}
-      </div>
     </div>
   );
 }
@@ -211,7 +150,8 @@ export const pauseOnClick = (toggle: () => void) => (e: MouseEvent) => {
 /**
  * A part of the real app composed in code from a real capture and played (`clip-<name>`, PROVENANCE.md): it fills its
  * parent, which is its card or its panel, edge to edge (founder's video 3: "full card, not like this size"). `says` is
- * the sentence a screen reader gets in its place.
+ * the sentence a screen reader gets in its place. `name` is home's clip (`clip-<name>`) or an inner page's by its full
+ * path (`/site/<page>/clip-<name>`).
  */
 export function Clip({ name, says, active = true, delay, onEnded, bar, className }: { name: string; says: string; active?: boolean; delay?: number; onEnded?: () => void; bar?: RefObject<HTMLElement | null>; className?: string }) {
   const [paused, setPaused] = useState(false);
@@ -219,7 +159,7 @@ export function Clip({ name, says, active = true, delay, onEnded, bar, className
   return (
     <figure className={cn("absolute inset-0 m-0 transition-opacity duration-slow ease-out motion-reduce:transition-none", active ? "opacity-100" : "pointer-events-none opacity-0", className)} onClick={pauseOnClick(toggle)}>
       <figcaption className="sr-only">{says}</figcaption>
-      <Video file={`clip-${name}`} active={active} playing={!paused} delay={delay} onEnded={onEnded} bar={bar} />
+      <Video file={name.startsWith("/") ? name : `clip-${name}`} active={active} playing={!paused} delay={delay} onEnded={onEnded} bar={bar} />
       {active ? <PauseButton paused={paused} onToggle={toggle} /> : null}
     </figure>
   );

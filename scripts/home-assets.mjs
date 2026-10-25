@@ -11,6 +11,30 @@ import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
 
+const ff = (...args) => execFileSync("ffmpeg", ["-v", "error", "-y", ...args], { stdio: "inherit" });
+const kb = (f) => `${Math.round(statSync(f).size / 1024)} KB`;
+
+// The inner pages' clips (25 Oct 2026, components/site/clips.ts): each card the grid kit composed from a walk through
+// the real app (`clip-<name>-master.mp4` and its first frame `clip-<name>-first.png`, E:\SourceBD-marketing\grid\rec\
+// rollout.py) ships to public/site/<page>/ at the master's size, silent, as H.264 and VP9, the first frame its poster.
+//   node scripts/home-assets.mjs --clips <masters folder> <page>
+if (process.argv[2] === "--clips") {
+  const [, , , MASTERS, PAGE] = process.argv;
+  if (!MASTERS || !PAGE || !existsSync(MASTERS)) throw new Error("usage: node scripts/home-assets.mjs --clips <masters folder> <page>");
+  const dir = join(import.meta.dirname, "..", "public", "site", PAGE);
+  mkdirSync(dir, { recursive: true });
+  for (const file of readdirSync(MASTERS).filter((f) => f.endsWith("-master.mp4"))) {
+    const name = file.replace(/-master\.mp4$/, "");
+    const src = join(MASTERS, file);
+    const base = join(dir, name);
+    ff("-i", src, "-an", "-vf", "format=yuv420p", "-c:v", "libx264", "-preset", "slow", "-crf", "22", "-profile:v", "high", "-movflags", "+faststart", `${base}.mp4`);
+    ff("-i", src, "-an", "-vf", "format=yuv420p", "-c:v", "libvpx-vp9", "-crf", "32", "-b:v", "0", "-row-mt", "1", "-deadline", "good", "-cpu-used", "2", `${base}.webm`);
+    ff("-i", join(MASTERS, `${name}-first.png`), "-c:v", "libwebp", "-quality", "84", `${base}.webp`);
+    console.log(PAGE, name, kb(`${base}.mp4`), kb(`${base}.webm`), kb(`${base}.webp`));
+  }
+  process.exit(0);
+}
+
 const [SRC, REC] = process.argv.slice(2);
 if (!SRC || (SRC !== "-" && !existsSync(SRC))) throw new Error("usage: node scripts/home-assets.mjs <stills folder | -> [<recordings folder>]");
 const OUT = join(import.meta.dirname, "..", "public", "site", "home");
@@ -19,18 +43,10 @@ mkdirSync(OUT, { recursive: true });
 /** Each photograph (`hf-<name>.png` in the source folder) and the widths it ships at. The hero is zoomed into, so it ships wider. */
 const STILLS = {
   hero: [1600, 2560, 3840],
-  swatches: [1600, 2560],
-  rail: [1600, 2560],
-  port: [1600, 2560],
-  dusk: [1600, 2560],
-  mill: [1600, 2560],
   // The hero's laptop and the desk round it (x 1122–2722, y 846–1746 of the 3840 plate) upscaled 2.56×, laid over the
   // plate while the opening zooms so the bezel stays sharp (founder's video 3, 22 Oct 2026: "the laptop edges get blurred").
   laptop: [2560, 4096],
 };
-
-const ff = (...args) => execFileSync("ffmpeg", ["-v", "error", "-y", ...args], { stdio: "inherit" });
-const kb = (f) => `${Math.round(statSync(f).size / 1024)} KB`;
 
 for (const [name, widths] of SRC === "-" ? [] : Object.entries(STILLS)) {
   const src = join(SRC, `hf-${name}.png`);

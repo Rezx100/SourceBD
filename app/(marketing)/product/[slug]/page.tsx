@@ -1,6 +1,6 @@
-// The four product pages (B9c): `/product/search|records|rfqs|compliance`, one template in `components/site/pages.tsx`,
-// except the pages rebuilt in the home's frame with the demos (M4, `components/site/product/*`), each drawn with what
-// it reads. Any other slug is a real 404.
+// The four product pages (B9c): `/product/search|records|rfqs|compliance`, their words in `components/site/pages.tsx`,
+// each drawn in the home page's design with recordings of the real app (`components/site/product/*`, 25 Oct 2026).
+// Any other slug is a real 404.
 
 import { notFound } from "next/navigation";
 import type { ReactNode } from "react";

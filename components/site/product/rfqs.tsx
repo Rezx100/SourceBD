@@ -1,49 +1,45 @@
-// /product/rfqs (M4, handoff-mercury-m4-onward.md §4.2): the words of `PAGES["product/rfqs"]`, pinned by
-// `pages.test.ts`, in the home page's frame. The hero plays the Ask demo on the cotton stage (three suppliers ticked,
-// one example RFQ sent, two example quotes back); the rows play the quotes at full size, a reply under the RFQ it
-// answers, and one RFQ reviewed before it goes with a sanctioned example refused (critique 22 Oct: no 3 Oct
-// screenshot). Then the other three products and the close on the night ground.
+// /product/rfqs in the home page's design (the founder, 25 Oct 2026): the words of `PAGES["product/rfqs"]`, the head on
+// the night ground with an RFQ recorded in the app's dark theme, home's grid of four on the warm ground (each a fresh
+// walk through the light app, `clips.ts`), and home's close.
 
-import { DemoQuotes, DemoReview, DemoRfq, DemoThread } from "@/components/site/demos";
-import { PageMain } from "@/components/site/motion";
+import { CLIPS } from "@/components/site/clips";
+import { HomeMain } from "@/components/site/home-main";
 import { PAGES } from "@/components/site/pages";
-import { Closing } from "@/components/site/sections/closing";
-import { CrossSell } from "@/components/site/sections/cross-sell";
-import { FeatureRow, HeroActions, HeroCentered } from "@/components/site/sections/ui";
+import { Clip } from "@/components/site/sections/browser";
+import { CardGrid, type GridCard } from "@/components/site/sections/card-grid";
+import { CloseActions, Finale } from "@/components/site/sections/close";
+import { FactCards, PageHead } from "@/components/site/sections/inner";
 
 export const RFQS_KEY = "product/rfqs";
 const P = PAGES[RFQS_KEY]!;
+const C = CLIPS.rfqs;
 const row = (n: string) => P.blocks.find((b) => b.n === n)!;
 
 export function RfqsPage() {
-  const [quotes, messages, many] = [row("01"), row("02"), row("03")];
+  const many = row("03");
+  const cards: GridCard[] = [
+    { title: many.headline, body: "Tick the suppliers you saved and write one request. Review every supplier before it goes.", clip: C.review.file, says: C.review.says },
+    { title: "Quotes line up against your target.", body: "Each quote shows how far it is above or under your target, and an MOQ above your quantity is flagged.", clip: C.quotes.file, says: C.quotes.says },
+    { title: "Replies in one inbox.", body: "Suppliers answer in SourceBD, their record beside the conversation.", clip: C.thread.file, says: C.thread.says },
+    { title: "Ask from any record.", body: "Contact details stay locked. Send an RFQ from the record and the supplier replies in Messages.", clip: C.contact.file, says: C.contact.says },
+  ];
   return (
-    <PageMain id={null} className="font-sans text-ink-strong antialiased">
-      <div data-tone="paper">
-        <HeroCentered
-          label={`${P.group} · ${P.name}`}
-          title={P.h1}
-          lede={P.lede}
-          stage={<DemoRfq stage="swatches" eager />}
-        >
-          <HeroActions center />
-        </HeroCentered>
-
-        <FeatureRow
-          label={quotes.label}
-          headline={quotes.headline}
-          lede={quotes.lede}
-          tone="subtle"
-          media={<DemoQuotes stage="rail" />}
-        />
-        <FeatureRow label={messages.label} headline={messages.headline} lede={messages.lede} flip media={<DemoThread stage="rail" />} />
-        <FeatureRow label={many.label} headline={many.headline} lede={many.lede} tone="subtle" media={<DemoReview stage="rail" />} />
-      </div>
-
-      <div data-tone="dark">
-        <CrossSell current={`/${RFQS_KEY}`} />
-        <Closing headline={P.close} lede="Free during beta. No card needed." />
-      </div>
-    </PageMain>
+    <HomeMain className="font-sans antialiased">
+      <PageHead label={`${P.group} · ${P.name}`} title={P.h1} lede={P.lede} picture={<Clip name={C.hero.file} says={C.hero.says} />}>
+        <CloseActions />
+      </PageHead>
+      <CardGrid id="rfqs-cards" tone="warm" heading="Ask fifty factories in the time it takes to ask one." cards={cards} />
+      <FactCards
+        id="rfqs-rules"
+        tone="day"
+        heading="Sent with care."
+        items={[
+          { title: "Up to 50 suppliers per RFQ", body: "One request, one review, one send." },
+          { title: "Screened before it goes", body: "A supplier on the UFLPA Entity List can’t receive an RFQ." },
+          { title: "Replies stay in SourceBD", body: "Contact details are locked; suppliers answer in one thread each." },
+        ]}
+      />
+      <Finale heading={P.close} />
+    </HomeMain>
   );
 }

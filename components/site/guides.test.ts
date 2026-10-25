@@ -27,7 +27,8 @@ describe("the compliance guides index", () => {
       assert.match(html, new RegExp(`href="/compliance/${p.slug}"`), p.slug);
       assert.match(text(html), new RegExp(p.shortName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")), p.slug);
     }
-    assert.equal((html.match(/Read the guide/g) ?? []).length, 5);
+    // Home's guide tiles (25 Oct 2026): each law's mark and its name, the whole tile the link.
+    assert.equal([...html.matchAll(/<a [^>]*>/g)].filter((m) => /href="\/compliance\/[a-z-]+"/.test(m[0]) && /class="group flex h-full/.test(m[0])).length, 5);
     assert.match(text(html), /5 guides · not legal advice · all last reviewed 1 Jun 2026/);
     assert.match(text(html), new RegExp(DISCLAIMER.slice(0, 40)));
   });

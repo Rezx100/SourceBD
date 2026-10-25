@@ -1,6 +1,6 @@
-// The two solutions pages (B9c): `/solutions/sourcing` and `/solutions/compliance`, rebuilt in the home's frame
-// with a pinned tour of three product demos (M4, `components/site/product/solutions.tsx`); a page in `PAGES` not
-// rebuilt yet falls back to the template, as the product route does. Any other slug is a real 404.
+// The two solutions pages (B9c): `/solutions/sourcing` and `/solutions/compliance`, drawn in the home page's design
+// with the product pages' recordings of the real app (`components/site/product/solutions.tsx`, 25 Oct 2026). Any
+// other slug is a real 404.
 
 import { notFound } from "next/navigation";
 import type { ReactNode } from "react";
