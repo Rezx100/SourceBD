@@ -43,8 +43,9 @@ const draw = (el: ReactElement) => plain(renderToStaticMarkup(createElement(AppR
 const text = (m: string) => m.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ");
 const visit = async (sp: Record<string, string | string[]> = {}) => draw(await Page({ searchParams: Promise.resolve(sp) }));
 
-// What the page's old kit drew with, and what must never be hand-typed again.
-const OLD_KIT = /text-ink-(?:primary|secondary|tertiary)|bg-bg-l\d|brand-forest|sem-(?:red|green|amber)|neutral-\d|font-display|proto-card|btn-proto|r9r4|surface-l\d|hairline|rounded-input|rounded-pill|#[0-9a-fA-F]{6}\b/;
+// What the page's old kit drew with, and what must never be hand-typed again. (`font-display` is home's display weight since the
+// home page's design reached every page, 25 Oct 2026, so it is no longer the old kit's.)
+const OLD_KIT = /text-ink-(?:primary|secondary|tertiary)|bg-bg-l\d|brand-forest|sem-(?:red|green|amber)|neutral-\d|proto-card|btn-proto|r9r4|surface-l\d|hairline|rounded-input|rounded-pill|#[0-9a-fA-F]{6}\b/;
 
 const row = (n: number, over: Partial<DiscoverRow> = {}): DiscoverRow => ({
   id: `0f1e2d3c-0000-4000-8000-00000000000${n}`,
