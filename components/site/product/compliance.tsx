@@ -1,24 +1,23 @@
-// /product/compliance (M4, handoff-mercury-m4-onward.md §4.2): the words of `PAGES["product/compliance"]`, pinned by
-// `pages.test.ts`, in the home page's frame. The hero's screenshot is now the Watch demo on the cotton stage (the
-// saved suppliers checked against the UFLPA Entity List, the certificates grouped by when they end); the four
-// moments follow as on the home; the needs-attention row plays the expiry vignette, the UFLPA row the checks, the lists
-// table reads its figures and dates from the site's live facts, and the statement row draws the draft with its claims
-// to confirm (critique 22 Oct: no 3 Oct screenshot); then the other three products and the close on the night ground.
-// No sanctions row: the page's words hold none.
+// /product/compliance in the home page's design (the founder, 25 Oct 2026): the words of `PAGES["product/compliance"]`,
+// the head on the night ground with the expiry watch recorded in the app's dark theme, home's grid of four on the warm
+// ground (each a fresh walk through the light app, `clips.ts`), the lists we check with their entries and last full read
+// from the site's live facts (`listCells`, the methodology table's words: the page prints no date of its own, critique
+// 22 Oct, S12), home's guide tiles and home's close.
 
-import { DemoCompliance, DemoStatement, VignetteExpiry } from "@/components/site/demos";
-import { TIERS } from "@/components/site/sources";
-import { PageMain } from "@/components/site/motion";
+import { CLIPS } from "@/components/site/clips";
+import { HomeMain } from "@/components/site/home-main";
 import { PAGES } from "@/components/site/pages";
-import { Closing } from "@/components/site/sections/closing";
-import { CrossSell } from "@/components/site/sections/cross-sell";
-import { FeatureRow, HeroActions, HeroCentered, Section } from "@/components/site/sections/ui";
+import { Clip } from "@/components/site/sections/browser";
+import { CardGrid, type GridCard } from "@/components/site/sections/card-grid";
+import { CloseActions, Finale, Guides } from "@/components/site/sections/close";
+import { Band, PageHead, tabular } from "@/components/site/sections/inner";
+import { TIERS } from "@/components/site/sources";
 import { listCells, listsRead } from "@/components/site/trust";
 import type { SiteFacts } from "@/lib/site-facts";
-import { VignetteGrid } from "@/components/site/sections/vignettes";
 
 export const COMPLIANCE_KEY = "product/compliance";
 const P = PAGES[COMPLIANCE_KEY]!;
+const C = CLIPS.compliance;
 const row = (n: string) => P.blocks.find((b) => b.n === n)!;
 /** The page's names for the six lists (longer than the methodology table's), each with its source code in the live facts. */
 const LIST_NAMES: Record<string, string> = {
@@ -31,40 +30,36 @@ const LIST_NAMES: Record<string, string> = {
 };
 const LISTS = (TIERS.find((t) => t.key === "tier5_regulatory")?.sources ?? []).map((s) => ({ code: s.code, name: LIST_NAMES[s.code] ?? s.name, by: s.full }));
 
-/**
- * The lists we screen against, who keeps them and, from the site's live facts, each one's entries and the day of its
- * last full read, in the methodology table's words (`listCells`): the page prints no date of its own (critique
- * 22 Oct, S12). When the lists were not read, only the names and keepers are drawn.
- */
+/** The lists we screen against, who keeps them and, when they were read, each one's entries and the day of its last full read. */
 function ListsTable({ facts, now }: { facts: SiteFacts; now: number }) {
   const read = listsRead(facts);
   return (
-    <div tabIndex={0} role="region" aria-label="The lists we check, scrolls sideways" className="overflow-x-auto outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent">
-      <table className="w-full min-w-[640px] border-collapse text-left">
+    <div tabIndex={0} role="region" aria-label="The lists we check, scrolls sideways" className={tabular}>
+      <table>
         <caption className="sr-only">The lists we check, who keeps them{read ? ", how many entries and when we last read them" : ""}</caption>
         <thead>
-          <tr className="border-b border-ink text-sm text-ink-3">
-            <th scope="col" className="py-2 pr-4 font-medium">List</th>
-            <th scope="col" className="py-2 pr-4 font-medium">Kept by</th>
+          <tr>
+            <th scope="col">List</th>
+            <th scope="col">Kept by</th>
             {read ? (
               <>
-                <th scope="col" className="py-2 pr-4 text-right font-medium">Entries</th>
-                <th scope="col" className="py-2 font-medium">Last read</th>
+                <th scope="col" className="text-right">Entries</th>
+                <th scope="col">Last read</th>
               </>
             ) : null}
           </tr>
         </thead>
-        <tbody className="divide-y divide-line">
+        <tbody>
           {LISTS.map((l) => {
             const cells = read ? listCells(facts.sources?.find((s) => s.code === l.code) ?? null, now) : null;
             return (
-              <tr key={l.code} className="align-top text-md">
-                <th scope="row" className="py-3 pr-4 font-semibold text-ink">{l.name}</th>
-                <td className="py-3 pr-4 text-ink-2">{l.by}</td>
+              <tr key={l.code}>
+                <th scope="row">{l.name}</th>
+                <td>{l.by}</td>
                 {cells ? (
                   <>
-                    <td className="py-3 pr-4 text-right tabular-nums text-ink">{cells.entries}</td>
-                    <td className="py-3 text-ink-2">{cells.read}</td>
+                    <td className="text-right tabular-nums text-ink">{cells.entries}</td>
+                    <td>{cells.read}</td>
                   </>
                 ) : null}
               </tr>
@@ -77,39 +72,24 @@ function ListsTable({ facts, now }: { facts: SiteFacts; now: number }) {
 }
 
 export function CompliancePage({ facts, now = Date.now() }: { facts: SiteFacts; now?: number }) {
-  const [attention, uflpa, lists, statement] = [row("01"), row("02"), row(""), row("03")];
+  const [uflpa, lists, statement] = [row("02"), row(""), row("03")];
+  const cards: GridCard[] = [
+    { title: uflpa.headline, body: uflpa.lede, clip: C.uflpa.file, says: C.uflpa.says },
+    { title: "Sanctions lists, with the day we read them.", body: "Every supplier against the US, EU and UK lists, each with the day we read it. A supplier on one is marked everywhere.", clip: C.sanctions.file, says: C.sanctions.says },
+    { title: statement.headline, body: statement.lede, clip: C.statement.file, says: C.statement.says },
+    { title: "The checks on every record.", body: "Open any supplier and its checks are together: safety, certificates and sanctions, each one a click deeper.", clip: C.checks.file, says: C.checks.says },
+  ];
   return (
-    <PageMain id={null} className="font-sans text-ink-strong antialiased">
-      <div data-tone="paper">
-        <HeroCentered
-          label={`${P.group} · ${P.name}`}
-          title={P.h1}
-          lede={P.lede}
-          stage={<DemoCompliance stage="swatches" eager />}
-        >
-          <HeroActions center />
-        </HeroCentered>
-
-        <VignetteGrid />
-
-        <FeatureRow
-          label={attention.label}
-          headline={attention.headline}
-          lede={attention.lede}
-          tone="subtle"
-          media={<VignetteExpiry stage="rail" />}
-        />
-        <FeatureRow label={uflpa.label} headline={uflpa.headline} lede={uflpa.lede} flip media={<DemoCompliance view="uflpa" stage="rail" />} />
-        <Section label={lists.label} headline={lists.headline} lede={listsRead(facts) ? lists.lede : "The lists we screen against, and who keeps them. The product shows the day each list was last read."} tone="subtle">
-          <ListsTable facts={facts} now={now} />
-        </Section>
-        <FeatureRow label={statement.label} headline={statement.headline} lede={statement.lede} media={<DemoStatement stage="rail" />} />
-      </div>
-
-      <div data-tone="dark">
-        <CrossSell current={`/${COMPLIANCE_KEY}`} />
-        <Closing headline={P.close} lede="Free during beta. No card needed." />
-      </div>
-    </PageMain>
+    <HomeMain className="font-sans antialiased">
+      <PageHead label={`${P.group} · ${P.name}`} title={P.h1} lede={P.lede} picture={<Clip name={C.hero.file} says={C.hero.says} />}>
+        <CloseActions />
+      </PageHead>
+      <CardGrid id="compliance-cards" tone="warm" heading="Your saved suppliers, checked for you." cards={cards} />
+      <Band id="compliance-lists" tone="day" heading={lists.headline} lede={listsRead(facts) ? lists.lede : "The lists we screen against, and who keeps them. The product shows the day each list was last read."}>
+        <ListsTable facts={facts} now={now} />
+      </Band>
+      <Guides />
+      <Finale heading={P.close} />
+    </HomeMain>
   );
 }

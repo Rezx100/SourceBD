@@ -1214,6 +1214,12 @@ const CASES = [
     expect: { status: 200, bodyIncludes: "Every fact, with its receipt." },
   },
   {
+    // Every marketing page in the home page's design (25 Oct 2026): the head plays a recording of the real app.
+    name: "site: /product/search plays the real app in its head",
+    path: "/product/search",
+    expect: { status: 200, bodyIncludes: 'poster="/site/search/clip-hero.webp"' },
+  },
+  {
     name: "site: /product/compliance in the home's frame is 200",
     path: "/product/compliance",
     expect: { status: 200, bodyIncludes: "Know before a certificate expires." },
