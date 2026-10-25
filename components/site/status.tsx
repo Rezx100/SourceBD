@@ -3,9 +3,10 @@
 // file", and how old a date is said in words (not only by a colour). No score, no uptime percentage.
 
 import Link from "next/link";
-import { Display, inkLink, Label, Lede, measure } from "@/components/site/sections/ui";
+import { HomeMain } from "@/components/site/home-main";
+import { Band, FactCards, PageHead, tabular } from "@/components/site/sections/inner";
+import { inkLink } from "@/components/site/sections/ui";
 import { readDay, withCommas } from "@/lib/site-facts";
-import { cn } from "@/lib/utils";
 
 export type StatusDoc = {
   published_suppliers: number;
@@ -41,103 +42,105 @@ function When({ ts, now }: { ts: string | null; now: number }) {
   return (
     <>
       {day}
-      {old ? <span className="font-medium text-ink"> · {old}</span> : null}
+      {old ? <span className="font-display text-ink"> · {old}</span> : null}
     </>
   );
 }
 
 export function StatusView({ doc, error, now = Date.now() }: { doc: StatusDoc | null; error: string | null; now?: number }) {
   return (
-    <main className="font-sans text-ink">
-      <section className="pb-14 pt-10 md:pb-section md:pt-24">
-        <div className={cn(measure, "flex flex-col gap-10")}>
-          <div className="flex flex-col gap-4">
-            <Label>Status</Label>
-            <Display level={2} as="h1">
-              System status
-            </Display>
-            <Lede>When we last read each source. Built live on each visit{doc ? `, as of ${readDay(doc.generated_at)}` : ""}. Per-source dates are on the <Link href="/methodology" prefetch={false} className={inkLink}>Data and methodology</Link> page.</Lede>
-          </div>
+    <HomeMain className="font-sans antialiased">
+      <PageHead
+        tone="day"
+        label="Status"
+        title="System status"
+        lede={
+          <>
+            When we last read each source. Built live on each visit{doc ? `, as of ${readDay(doc.generated_at)}` : ""}. Per-source dates are on the{" "}
+            <Link href="/methodology" prefetch={false} className={inkLink}>
+              Data and methodology
+            </Link>{" "}
+            page.
+          </>
+        }
+      />
 
-          {error || !doc ? (
-            <div role="alert" className="max-w-[720px] rounded-lg border border-line bg-subtle p-5">
-              <p className="text-md font-semibold text-ink">We could not load the status just now.</p>
-              <p className="mt-1 text-md text-ink-2">
-                If this keeps happening, write to{" "}
-                <a href="mailto:support@sourcebd.net" className={inkLink}>
-                  support@sourcebd.net
-                </a>
-                .
-              </p>
+      {error || !doc ? (
+        <Band id="status-down" tone="day" heading="We could not load the status just now.">
+          <p role="alert" className="font-book text-site-card text-ink-2">
+            If this keeps happening, write to{" "}
+            <a href="mailto:support@sourcebd.net" className={inkLink}>
+              support@sourcebd.net
+            </a>
+            .
+          </p>
+        </Band>
+      ) : (
+        <>
+          <FactCards
+            id="status-figures"
+            tone="day"
+            heading="Where the record stands"
+            items={[
+              { figure: withCommas(doc.published_suppliers), title: "published suppliers", body: null },
+              { figure: readDay(doc.last_source_refresh) ?? "No date on file", title: "latest register read", body: null },
+            ]}
+            cols={2}
+          />
+
+          <Band id="status-runs" tone="day" heading="What runs, and when it last ran">
+            <div className={tabular}>
+              <table>
+                <caption className="sr-only">What runs and when it last ran</caption>
+                <thead>
+                  <tr>
+                    <th scope="col">What runs</th>
+                    <th scope="col">Last run</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {ROWS.map((r) => (
+                    <tr key={r.key}>
+                      <th scope="row">{r.label}</th>
+                      <td>
+                        <When ts={doc[r.key]} now={now} />
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
-          ) : (
-            <>
-              <dl className="grid gap-8 sm:grid-cols-2">
-                <div className="flex flex-col-reverse gap-1 border-t border-ink pt-3">
-                  <dt className="text-md text-ink-2">published suppliers</dt>
-                  <dd className="text-3xl font-semibold tabular-nums tracking-tight text-ink">{withCommas(doc.published_suppliers)}</dd>
-                </div>
-                <div className="flex flex-col-reverse gap-1 border-t border-ink pt-3">
-                  <dt className="text-md text-ink-2">latest register read</dt>
-                  <dd className="text-3xl font-semibold tabular-nums tracking-tight text-ink">{readDay(doc.last_source_refresh) ?? "No date on file"}</dd>
-                </div>
-              </dl>
+          </Band>
 
-              <div className="overflow-x-auto">
-                <table className="w-full min-w-[560px] border-collapse text-left">
-                  <caption className="sr-only">What runs and when it last ran</caption>
+          {doc.etl_recent.length > 0 ? (
+            <Band id="status-recent" tone="day" heading="Recent pipeline runs" lede="The latest finished run for each job." className="md:pb-24">
+              <div className={tabular}>
+                <table>
+                  <caption className="sr-only">The latest finished run of each job</caption>
                   <thead>
-                    <tr className="border-b border-ink text-sm text-ink-3">
-                      <th scope="col" className="py-2 pr-4 font-medium">What runs</th>
-                      <th scope="col" className="py-2 font-medium">Last run</th>
+                    <tr>
+                      <th scope="col">Job</th>
+                      <th scope="col">Result</th>
+                      <th scope="col">Finished</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-line">
-                    {ROWS.map((r) => (
-                      <tr key={r.key} className="align-top text-md">
-                        <th scope="row" className="py-3 pr-4 font-normal text-ink">{r.label}</th>
-                        <td className="py-3 text-ink-2">
-                          <When ts={doc[r.key]} now={now} />
+                  <tbody>
+                    {doc.etl_recent.map((row) => (
+                      <tr key={row.scraper_code}>
+                        <th scope="row" className="font-mono">{row.scraper_code}</th>
+                        <td>{row.status}</td>
+                        <td>
+                          <When ts={row.finished_at} now={now} />
                         </td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
               </div>
-
-              {doc.etl_recent.length > 0 ? (
-                <div className="flex flex-col gap-3">
-                  <h2 className="text-xl font-semibold tracking-tight text-ink">Recent pipeline runs</h2>
-                  <p className="text-md text-ink-2">The latest finished run for each job.</p>
-                  <div className="overflow-x-auto">
-                    <table className="w-full min-w-[560px] border-collapse text-left">
-                      <caption className="sr-only">The latest finished run of each job</caption>
-                      <thead>
-                        <tr className="border-b border-ink text-sm text-ink-3">
-                          <th scope="col" className="py-2 pr-4 font-medium">Job</th>
-                          <th scope="col" className="py-2 pr-4 font-medium">Result</th>
-                          <th scope="col" className="py-2 font-medium">Finished</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-line">
-                        {doc.etl_recent.map((row) => (
-                          <tr key={row.scraper_code} className="align-top text-md">
-                            <th scope="row" className="py-3 pr-4 font-mono text-base font-normal text-ink">{row.scraper_code}</th>
-                            <td className="py-3 pr-4 text-ink-2">{row.status}</td>
-                            <td className="py-3 text-ink-2">
-                              <When ts={row.finished_at} now={now} />
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              ) : null}
-            </>
-          )}
-        </div>
-      </section>
-    </main>
+            </Band>
+          ) : null}
+        </>
+      )}
+    </HomeMain>
   );
 }
