@@ -1,54 +1,32 @@
-// The two solutions pages (M4, handoff-mercury-m4-onward.md §4.2): the words of `PAGES["solutions/*"]`, pinned by
-// `pages.test.ts`, in the home page's frame. Each hero plays the demo of what the team does first (the Ask: three
-// picked from a search, one RFQ; the Watch: the saved suppliers checked), then a pinned tour of three product demos for
-// that team on the night ground, then its rows, each with its demo (critique 22 Oct: no 3 Oct screenshot), three
-// products chosen for the team, and the close, whose line is the team's outcome.
+// The two solutions pages in the home page's design (the founder, 25 Oct 2026): the words of `PAGES["solutions/*"]`,
+// the head on the night ground with the team's first job recorded in the app's dark theme, home's grid of four on the
+// warm ground, each card one of the team's jobs played by the product page's own clip (`clips.ts`, none twice on a
+// page), and home's close with the team's outcome. The compliance teams' page keeps home's guide tiles.
 
-import type { ReactNode } from "react";
-import { DemoCompliance, DemoFilters, DemoQuotes, DemoRecord, DemoRfq, DemoStatement } from "@/components/site/demos";
-import { PageMain } from "@/components/site/motion";
+import { CLIPS, type PageClip } from "@/components/site/clips";
+import { HomeMain } from "@/components/site/home-main";
 import { PAGES, type Page } from "@/components/site/pages";
-import { Closing } from "@/components/site/sections/closing";
-import { CrossSell } from "@/components/site/sections/cross-sell";
-import { FeatureRow, HeroActions, HeroCentered, Section } from "@/components/site/sections/ui";
-import { ComplianceTour, SourcingTour } from "./solutions-tours";
+import { Clip } from "@/components/site/sections/browser";
+import { CardGrid } from "@/components/site/sections/card-grid";
+import { CloseActions, Finale, Guides } from "@/components/site/sections/close";
+import { PageHead } from "@/components/site/sections/inner";
 
 export const SOURCING_KEY = "solutions/sourcing";
 export const COMPLIANCE_TEAMS_KEY = "solutions/compliance";
 
-/** One solutions page: the template's shape with the tour after the hero and the chosen three products before the close; `hero` and `media` (by row `n`) are its demos. */
-function SolutionsPage({ p, hero, media, tour, products }: { p: Page; hero: ReactNode; media: Record<string, ReactNode>; tour: ReactNode; products: string[] }) {
+/** One solutions page: its head's clip, and each row (by `n`) with the clip that shows it; a fourth card closes the grid where the page has three rows. */
+function SolutionsPage({ p, slug, hero, media, extra, guides = false }: { p: Page; slug: string; hero: PageClip; media: Record<string, PageClip>; extra?: { title: string; body: string; clip: PageClip }; guides?: boolean }) {
+  const cards = p.blocks.filter((b) => media[b.n]).map((b) => ({ title: b.headline, body: b.lede, clip: media[b.n]!.file, says: media[b.n]!.says }));
+  if (extra) cards.push({ title: extra.title, body: extra.body, clip: extra.clip.file, says: extra.clip.says });
   return (
-    <PageMain id={null} className="font-sans text-ink-strong antialiased">
-      <div data-tone="paper">
-        <HeroCentered label={`${p.group} · ${p.name}`} title={p.h1} lede={p.lede} stage={hero}>
-          <HeroActions center />
-        </HeroCentered>
-      </div>
-
-      {tour}
-
-      <div data-tone="paper">
-        {p.blocks.map((b, i) => {
-          const tone = i % 2 === 0 ? "subtle" : "paper";
-          return media[b.n] ? (
-            <FeatureRow key={b.headline} label={b.label} headline={b.headline} lede={b.lede} flip={i % 2 === 1} tone={tone} media={media[b.n]}>
-              {b.extra}
-            </FeatureRow>
-          ) : (
-            <Section key={b.headline} label={b.label} headline={b.headline} lede={b.lede} tone={tone}>
-              {b.extra}
-            </Section>
-          );
-        })}
-      </div>
-
-      <div data-tone="dark">
-        <CrossSell only={products} />
-        {/* The outcome is the close's own line (critique 22 Oct: a kicker over one line, on a page that already closes). */}
-        <Closing headline={p.close} lede={`${p.outcome ? `${p.outcome} ` : ""}Free during beta. No card needed.`} />
-      </div>
-    </PageMain>
+    <HomeMain className="font-sans antialiased">
+      <PageHead label={`${p.group} · ${p.name}`} title={p.h1} lede={p.lede} picture={<Clip name={hero.file} says={hero.says} />}>
+        <CloseActions />
+      </PageHead>
+      <CardGrid id={`${slug}-cards`} tone="warm" heading={p.outcome ?? p.h1} cards={cards} />
+      {guides ? <Guides /> : null}
+      <Finale heading={p.close} />
+    </HomeMain>
   );
 }
 
@@ -56,10 +34,10 @@ export function SolutionsSourcingPage() {
   return (
     <SolutionsPage
       p={PAGES[SOURCING_KEY]!}
-      hero={<DemoRfq stage="swatches" eager />}
-      media={{ "01": <DemoFilters stage="rail" />, "02": <DemoRecord stage="rail" />, "03": <DemoQuotes stage="rail" /> }}
-      tour={<SourcingTour />}
-      products={["/product/search", "/product/records", "/product/rfqs"]}
+      slug="sourcing"
+      hero={CLIPS.search.hero}
+      media={{ "01": CLIPS.search.district, "02": CLIPS.records.certificates, "03": CLIPS.rfqs.review }}
+      extra={{ title: "Keep every reply in one place.", body: "Suppliers answer in SourceBD, their record beside the conversation.", clip: CLIPS.rfqs.thread }}
     />
   );
 }
@@ -68,10 +46,10 @@ export function SolutionsCompliancePage() {
   return (
     <SolutionsPage
       p={PAGES[COMPLIANCE_TEAMS_KEY]!}
-      hero={<DemoCompliance stage="swatches" eager />}
-      media={{ "01": <DemoRecord stage="rail" />, "02": <DemoCompliance view="uflpa" stage="rail" />, "03": <DemoCompliance view="expiry" stage="rail" />, "04": <DemoStatement stage="rail" /> }}
-      tour={<ComplianceTour />}
-      products={["/product/records", "/product/compliance", "/product/search"]}
+      slug="compliance"
+      hero={CLIPS.compliance.hero}
+      media={{ "01": CLIPS.records.sources, "02": CLIPS.compliance.uflpa, "03": CLIPS.compliance.checks, "04": CLIPS.compliance.statement }}
+      guides
     />
   );
 }
