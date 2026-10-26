@@ -45,7 +45,7 @@ describe("the line on a phone (Paper page 36, export-line)", () => {
     // In the drawer a narrow window gets, the bar sticks to the drawer's scroll.
     assert.match(phone(sheet(), "pane"), /<div data-line-actions="" class="bottom-0 sticky">/);
     // No customs record on the model: the line says nothing about customs.
-    assert.doesNotMatch(text(out), /Customs records|Supplier's exports|split by HS code/);
+    assert.doesNotMatch(text(out), /Export shipment records|Customs records|Supplier's exports|split by HS code/);
   });
 
   it("lists only the line's own receipts: the record's facts and the ones nothing is on file for stay off the phone (founder, 12 Oct 2026)", () => {

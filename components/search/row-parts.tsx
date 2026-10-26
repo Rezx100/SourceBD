@@ -71,10 +71,10 @@ export function ShipsTo({ to, label, className }: { to: readonly string[]; /** T
 /** A customs record is on file that the reader's plan does not include: said so, with no figure and no market. */
 export function ExportedLocked({ className }: { className?: string }) {
   return (
-    <span title="Customs records are on the Growth and Enterprise plans" className={cn("inline-flex items-center gap-1 whitespace-nowrap text-xs text-ink-3", className)}>
+    <span title="Export shipment records are on the Growth and Enterprise plans" className={cn("inline-flex items-center gap-1 whitespace-nowrap text-xs text-ink-3", className)}>
       <Lock size={14} weight="thin" className="shrink-0" aria-hidden />
       On Growth
-      <span className="sr-only">: customs records are on the Growth and Enterprise plans</span>
+      <span className="sr-only">: export shipment records are on the Growth and Enterprise plans</span>
     </span>
   );
 }

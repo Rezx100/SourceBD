@@ -336,8 +336,8 @@ describe("/app/suppliers/[slug] — the full record page", () => {
     const desk = (s: string) => s.replace(/<div data-record-phone=""[\s\S]*?(?=<div data-record-actions="")/, "").replace(/<[^>]*>/g, " ").replace(/\s+/g, " ");
     given({ profile: PROFILE, hscodes: HS });
     const refused = desk(html(await outcome(open)));
-    assert.doesNotMatch(refused, /Export value|Typical shipment|Where it goes|Customs records,|US\$|Volza|not checked/i, "a reader the database refused still sees customs words");
-    assert.match(refused, /Exports We have no customs records for this supplier yet That says nothing about whether it exports; it only means we have no receipt to show\./);
+    assert.doesNotMatch(refused, /Export value|Typical shipment|Where it goes|Export shipment records,|US\$|Volza|not checked/i, "a reader the database refused still sees customs words");
+    assert.match(refused, /Exports We have no export shipment records for this supplier yet That says nothing about whether it exports; it only means we have no receipt to show\./);
     // The EPB export lines are Products' now, where "what does it make" is answered once.
     assert.match(refused, /Products What it ships \d+ Product codes on its EPB exporter page\./, "the record lost the EPB export lines");
     assert.ok(rpcCalls.some((c) => c.fn === "supplier_volza_exports" && c.args?.p_slug === "hamza-clothing"), "the page never asked for the customs read");
@@ -350,7 +350,7 @@ describe("/app/suppliers/[slug] — the full record page", () => {
     given({ profile: PROFILE, hscodes: HS, rpcs: { supplier_group_exports: { data: group, error: null } } });
     const grouped = html(await outcome(open));
     const groupText = desk(grouped).replace(/&#x27;/g, "'");
-    assert.match(groupText, /Exports We have no customs records for this supplier yet .* Team Group's export records These belong to its sister companies, not to this one\. .* Mars Stitch Ltd\. 990 shipments · US\$21\.4m · 31 buyers · Sep 2024 – Aug 2026/);
+    assert.match(groupText, /Exports We have no export shipment records for this supplier yet .* Team Group's export records These belong to its sister companies, not to this one\. .* Mars Stitch Ltd\. 990 shipments · US\$21\.4m · 31 buyers · Sep 2024 – Aug 2026/);
     assert.equal(groupText.split("Team Group's export records").length, 2, "the group's records are said once, under Exports");
     assert.match(grouped, /href="\/app\/suppliers\/mars-stitch"/);
 
@@ -373,13 +373,13 @@ describe("/app/suppliers/[slug] — the full record page", () => {
     const text = desk(html(await outcome(open)));
     assert.ok(!rpcCalls.some((c) => c.fn === "supplier_group_exports"), "the group's records were read beside the supplier's own");
     // The grid: each figure worked out from the stored record. No market is known for this reader, so the fourth names the biggest.
-    assert.match(text, /Exports Markets and shipments Export value, 2 years US\$21\.7m Typical shipment US\$53,000 6% under 1,000 pieces Buyers 43 9 shipments each Biggest market EU 72% of exports · 236 shipments Customs records, Sep 2024 – Aug 2026 · read 10 Oct(?: 2026)?/);
+    assert.match(text, /Exports Markets and shipments Export value, 2 years US\$21\.7m Typical shipment US\$53,000 6% under 1,000 pieces Buyers 43 9 shipments each Biggest market EU 72% of exports · 236 shipments Export shipment records, Sep 2024 – Aug 2026 · read 10 Oct(?: 2026)?/);
     assert.doesNotMatch(text, /latest (shipment )?on record/i, "the biggest shipment's date passed off as the latest");
     assert.doesNotMatch(text, /Bigger than \d+% of exporters/, "a rank was printed before it could be read");
     // The Exports section says what the figure is, then where it goes; it does not repeat the grid.
     assert.match(text, /Exports US\$21\.7m free on board across 406 shipments, every product line together\. Where it goes Share of export value, by market Market Share of value Value Shipments Buyers European Union 72% US\$15\.6m 236 10 United States 23% US\$4\.97m 100 11 United Kingdom 0% US\$52k 5 4 Rest of the world 5% US\$1\.13m 65 Not split out/);
     // Gone: the band, the fact rows, a price before its check. The provider is named on /legal/data-sources only (founder, 11 Oct 2026).
-    assert.doesNotMatch(text, /Customs exports Shipment records|Shipping rhythm|Product range|Biggest shipment|Small orders|Where it ships|per pcs|a piece|1\.71|7\.05/);
+    assert.doesNotMatch(text, /Export shipments Shipment records|Customs exports Shipment records|Shipping rhythm|Product range|Biggest shipment|Small orders|Where it ships|per pcs|a piece|1\.71|7\.05/);
     assert.doesNotMatch(text, /Volza/i, "the profile names the data provider");
     // The reader's market is read once, beside the figures it is drawn on.
     assert.equal(rpcCalls.filter((c) => c.fn === "onboarding_get_buyer").length, 1);
@@ -411,7 +411,7 @@ describe("/app/suppliers/[slug] — the full record page", () => {
     // 0140 says the stored shipment is the latest: the footnote dates it, and never calls it "last shipped".
     given({ profile: PROFILE, hscodes: HS, rpcs: { supplier_volza_exports: { data: row({ record_sort: "date", top_record: { ...top, shipment_date: "2026-08-29T00:00:00" } }), error: null } } });
     const latest = desk(html(await outcome(open)));
-    assert.match(latest, /Customs records, Sep 2024 – Aug 2026 · latest on record 29 Aug(?: 2026)? · read 10 Oct(?: 2026)?(?! ·)/);
+    assert.match(latest, /Export shipment records, Sep 2024 – Aug 2026 · latest on record 29 Aug(?: 2026)? · read 10 Oct(?: 2026)?(?! ·)/);
     assert.doesNotMatch(latest, /last shipped/i);
 
     // The capacity is one figure in pieces a month, with no note under it (founder, 13 Oct 2026).
@@ -420,9 +420,9 @@ describe("/app/suppliers/[slug] — the full record page", () => {
     // No "From ..." line under a key fact either (founder, 13 Oct 2026).
     assert.match(capacity, /Capacity 25,000,000 pcs\/month (?!From|·)/);
     // Who imported sits beside who disclosed, one tile each: the name people use, the customs record's own name small.
-    assert.match(capacity, /Buyers \d+ .*Haddad Apparel Group Customs records as The Haddad Apparel Group Ltd .*TJX UK Customs records .*\d+ of \d+ shown\. Customs name the importer, often an agent rather than the brand\./);
+    assert.match(capacity, /Buyers \d+ .*Haddad Apparel Group Shipment records as The Haddad Apparel Group Ltd .*TJX UK Shipment records .*\d+ of \d+ shown\. Shipment records name the importer, often an agent rather than the brand\./);
     given({ profile: PROFILE, hscodes: HS });
-    assert.doesNotMatch(html(await outcome(overview)), /look inconsistent|Exports suggest|Customs records/, "customs data reached a reader without it on the Overview");
+    assert.doesNotMatch(html(await outcome(overview)), /look inconsistent|Exports suggest|Export shipment records|Customs records/, "customs data reached a reader without it on the Overview");
   });
 
   it("Recent shipments draws what supplier_shipment_reveal_state says: nothing, the plans line, the offer, used up, or the table (0141, K1–K7)", async () => {
@@ -462,7 +462,7 @@ describe("/app/suppliers/[slug] — the full record page", () => {
     const t = words(shown);
     assert.match(t, /Latest 2 shipments Fetched 11 Oct 2026 · shipment records/);
     assert.match(t, /Date Shipment Value 31 Aug 2026 31 Aug 2026 Men's basic t shirt \(men's t-shirt\) 6109\.10 Action Service Distributie B V · Netherlands US\$109,209 14,818 kg/);
-    assert.match(t, /Action Service Distributie B V US\$109,209 As declared to customs\. The buyer is often an agent/, "an unknown destination is printed, or a missing weight is");
+    assert.match(t, /Action Service Distributie B V US\$109,209 As filed on the shipment record\. The buyer is often an agent/, "an unknown destination is printed, or a missing weight is");
     assert.doesNotMatch(t, /About \d|\d shipments ·|per pcs|See the latest|Volza/i);
     // 0146: a checked price prints the quantity and the price; one order filed as three shipments is one row, in
     // the heading still three shipments, with the buyer's city beside the buyer.
@@ -495,7 +495,7 @@ describe("/app/suppliers/[slug] — the full record page", () => {
     given({ profile: PROFILE, hscodes: HS });
     const none = html(await outcome(open));
     assert.match(phone(none), /data-phone-empty="customs"/, "the phone's Exports tab says nothing where it has no customs record");
-    assert.match(words(none), /We have no customs records for this supplier yet That says nothing about whether it exports; it only means we have no receipt to show\./);
+    assert.match(words(none), /We have no export shipment records for this supplier yet That says nothing about whether it exports; it only means we have no receipt to show\./);
     // Null cannot tell "never looked up" from "no match", so neither is claimed, and no coverage count is invented.
     assert.doesNotMatch(words(none), /looked it up|found no shipments|Checked so far|With records|not checked/i);
     assert.match(words(none), /What it ships/, "the EPB export lines went with the customs records");
@@ -503,7 +503,7 @@ describe("/app/suppliers/[slug] — the full record page", () => {
 
     // A record is on file but the reader's plan does not include it: never "no customs records".
     given({ profile: PROFILE, hscodes: HS, rpcs: { supplier_shipment_reveal_state: { data: { state: "upgrade" }, error: null } } });
-    assert.doesNotMatch(phone(html(await outcome(open))), /data-phone-empty="customs"|no customs records/);
+    assert.doesNotMatch(phone(html(await outcome(open))), /data-phone-empty="customs"|no export shipment records|no customs records/);
 
     // With the record: the supplier's own totals and its markets. Nothing is split by HS code.
     const volza = { shipments: 406, fob_usd: 21698439.68, buyers: 43, window_start: "2024-09-01", window_end: "2026-08-31", volza_name: "Hamza Clothing Ltd.", fetched_at: "2026-10-10T21:33:30+00:00", top_shipments: [], markets: { EU: { shipments: 236, fob_usd: 15553268.46, buyers: 10, top: null } } };
@@ -605,13 +605,13 @@ describe("/app/suppliers/[slug]/lines/[hs] — the line page", () => {
     given({ profile: PROFILE, hscodes: HS, rpcs: { supplier_volza_exports: { data: volza, error: null } } });
     const held = words(html(await open()));
     assert.ok(rpcCalls.some((c) => c.fn === "supplier_volza_exports" && c.args?.p_slug === "aboni-knitwear"), "the line never asked for the customs read");
-    assert.match(held, /Supplier's exports Sep 2024 – Aug 2026 US\$21\.7m 406 shipments · 43 buyers · 16 countries Every line together: customs records are not split by HS code\. The shipments below are the ones coded 6105\./);
+    assert.match(held, /Supplier's exports Sep 2024 – Aug 2026 US\$21\.7m 406 shipments · 43 buyers · 16 countries Every line together: shipment records are not split by HS code\. The shipments below are the ones coded 6105\./);
     // Only the stored shipment whose own code is this heading is listed under it: the EU's is a 6109.
     assert.match(held, /Shipments coded 6105 Top one per market The Haddad Apparel Group Ltd Mens polo shirt to United States 6105\.10 · 24 Mar 2026 US\$607,668/);
     assert.doesNotMatch(held, /6109\.10|a piece|Volza/i);
     // A reader the database refused sees no customs words on the line.
     given({ profile: PROFILE, hscodes: HS });
-    assert.doesNotMatch(words(html(await open())), /Customs records|Supplier's exports|not split by HS code|Shipments coded/);
+    assert.doesNotMatch(words(html(await open())), /Export shipment records|Customs records|Supplier's exports|not split by HS code|Shipments coded/);
   });
 
   for (const bad of ["abcd", "61", "61059", "%", "6105a", ""]) {
@@ -1657,18 +1657,18 @@ describe("cycle 4: the boundaries cycle 4 found open", () => {
 
     // Anyone else: a lock, and no figure or market even if one rode along in the answer.
     const free = await open({ volza_reader_entitled: { data: false, error: null }, discover_export_cells: cells(76578613.86, ["EU", "US"]) });
-    assert.match(said(free), /On Growth : customs records are on the Growth and Enterprise plans/);
+    assert.match(said(free), /On Growth : export shipment records are on the Growth and Enterprise plans/);
     assert.doesNotMatch(free, /US\$76|76578613|Ships to/, "a reader the database does not entitle saw a customs figure in the results");
 
     // The read found none for this supplier: a dash that says so. A market code the app does not know is dropped.
-    assert.match(await open({ volza_reader_entitled: yes, discover_export_cells: { data: [], error: null } }), /title="No customs records on file"/);
+    assert.match(await open({ volza_reader_entitled: yes, discover_export_cells: { data: [], error: null } }), /title="No shipment records on file"/);
     assert.match(said(await open({ volza_reader_entitled: yes, discover_export_cells: cells(1200000, ["EU", "ZZ"]) })), /US\$1\.2m /);
 
     // 0147 not applied, or the read failed: the row claims nothing about customs records.
     for (const answer of [{ data: null, error: { code: "PGRST202", message: "Could not find the function" } }, { data: "nonsense", error: null }]) {
       const unread = await open({ volza_reader_entitled: yes, discover_export_cells: answer });
       assert.match(unread, /title="Not read just now"/);
-      assert.doesNotMatch(unread, /No customs records on file|On Growth/);
+      assert.doesNotMatch(unread, /No shipment records on file|On Growth/);
     }
   });
 
@@ -2356,7 +2356,7 @@ describe("/app/discover — customs exports in the search (0142, spec-volza-reve
     assert.equal(call.args?.p_ships_to, "United Kingdom");
     assert.equal(call.args?.p_exports_min, 10_000_000);
     assert.ok(!rpcCalls.some((c) => c.fn === "discover_suppliers"), "the exports view also ran the ordinary search");
-    assert.match(out, /47 suppliers with customs exports/);
+    assert.match(out, /47 suppliers with export shipments/);
     assert.match(out, /US\$21,000 a shipment/);
     assert.match(out, /4,652 shipments/);
     assert.match(out, />Average shipment</, "the column's head names the sort");
@@ -2373,7 +2373,7 @@ describe("/app/discover — customs exports in the search (0142, spec-volza-reve
   it("a reader who is not entitled gets the ordinary search: no exports read, no figures, no Exports menu", async () => {
     const out = await run({ exports: "1", sort: "export_value" }, false);
     assert.ok(!rpcCalls.some((c) => c.fn === "discover_customs_exports"), "an unentitled reader's search read the customs view");
-    assert.doesNotMatch(out, /with customs exports|a shipment|US\$97\.6m|4,652 shipments/);
+    assert.doesNotMatch(out, /with export shipments|a shipment|US\$97\.6m|4,652 shipments/);
     assert.doesNotMatch(out, /aria-label="Exports"/, "the Exports menu was offered to a reader who may not see it");
     assert.doesNotMatch(out, /Sort: export value/, "the sort button named an exports sort the list is not in");
   });

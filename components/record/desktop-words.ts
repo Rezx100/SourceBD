@@ -145,12 +145,12 @@ export function exportTiles(v: VolzaExports, { rank = null, market = null }: { r
   return tiles;
 }
 
-/** "Customs records, Sep 2024 – Aug 2026 · latest on record 30 Aug · read 11 Oct". Never "last shipped"; the window's end already says how far the records reach. */
+/** "Export shipment records, Sep 2024 – Aug 2026 · latest on record 30 Aug · read 11 Oct". Never "last shipped"; the window's end already says how far the records reach. */
 export function customsFootLine(v: VolzaExports, today: Date): string {
   const stored = v.top_record ?? v.top_shipments[0] ?? null;
   const latest = v.record_sort === "date" ? shortDay(stored?.shipment_date?.slice(0, 10), today) : null;
   const read = shortDay(v.fetched_at, today);
-  return [`Customs records, ${customsWindow(v)}`, latest ? `latest on record ${latest}` : null, read ? `read ${read}` : null].filter(Boolean).join(" · ");
+  return [`Export shipment records, ${customsWindow(v)}`, latest ? `latest on record ${latest}` : null, read ? `read ${read}` : null].filter(Boolean).join(" · ");
 }
 
 /** The one line that opens the Exports section: what the figure is, and of what. */

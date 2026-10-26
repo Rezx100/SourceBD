@@ -105,7 +105,7 @@ export type DiscoverState = {
    * records at all.
    */
   sanctioned: boolean;
-  /** "Has customs exports" (`exports=1`). Read only for an entitled reader; see `exportsView`. */
+  /** "Has export shipments" (`exports=1`). Read only for an entitled reader; see `exportsView`. */
   exports: boolean;
   /** Export value floor in US$ millions (`exports_min`). */
   exportsMin: ExportMin | null;
@@ -679,7 +679,7 @@ export function queryTitle(state: DiscoverState): string {
   const chips = discoverChips(state);
   // The exports view is not a chip (it has its own menu), but a saved or recent search is named by it.
   if (state.exports || state.exportsMin != null || state.ships != null || isExportSort(state.sort)) {
-    return ["Has customs exports", ...chips.filter((c) => c.key !== "sanctioned").map((c) => c.label)].join(" · ");
+    return ["Has export shipments", ...chips.filter((c) => c.key !== "sanctioned").map((c) => c.label)].join(" · ");
   }
   if (chips.length === 0) return "All published suppliers";
   // The sanctioned exclusion is a chip like any other, but on its own it

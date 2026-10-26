@@ -68,15 +68,15 @@ export const HEAD_START: readonly GridCard[] = [
   },
   {
     title: "See who they already make for",
-    body: "Every record names the brands a factory ships to, from the brands' own supplier lists and from customs records.",
+    body: "Every record names the brands a factory ships to, from the brands' own supplier lists and from export shipment records.",
     clip: "buyers",
-    says: "Aboni Knitwear's buyers: ASOS, H&M and NEXT from the brands' own supplier lists, Inditex, NEW Yorker, Outerstuff, Style Revolution and Tesco from customs records.",
+    says: "Aboni Knitwear's buyers: ASOS, H&M and NEXT from the brands' own supplier lists, Inditex, NEW Yorker, Outerstuff, Style Revolution and Tesco from export shipment records.",
   },
   {
     title: "Know where their goods go",
-    body: "Customs records by market, then the latest shipments, each with its date, its goods, its buyer and its value.",
+    body: "Export shipment records by market, then the latest shipments, each with its date, its goods, its buyer and its value.",
     clip: "shipments",
-    says: "Aboni Knitwear's exports by market, 62% of their value to the European Union, then its latest customs shipments, each with its date, goods, buyer and value.",
+    says: "Aboni Knitwear's exports by market, 62% of their value to the European Union, then its latest shipments, each with its date, goods, buyer and value.",
   },
   {
     title: "Every certificate, with its dates",
@@ -108,8 +108,8 @@ export const SEASONED: readonly GridCard[] = [
   },
   {
     title: "Every source, in trust order",
-    body: "The government register first, then RSC, the industry bodies, the certifiers, the brands' own lists and customs records.",
+    body: "The government register first, then RSC, the industry bodies, the certifiers, the brands' own lists and export shipment records.",
     clip: "sources",
-    says: "Aboni Knitwear's eleven sources in trust order: EPB; RSC; BGAPMEA, BGMEA and BKMEA; GOTS, OEKO-TEX and WRAP; ASOS, H&M and NEXT's lists; Bangladesh customs exports.",
+    says: "Aboni Knitwear's eleven sources in trust order: EPB; RSC; BGAPMEA, BGMEA and BKMEA; GOTS, OEKO-TEX and WRAP; ASOS, H&M and NEXT's lists; Bangladesh export shipments.",
   },
 ];

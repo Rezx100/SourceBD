@@ -10,8 +10,9 @@ export const dynamic = "force-static";
 
 // 6 Oct 2026: section 8, the open data behind the home page's map (spec-home-film §6.2). 7 Oct 2026: the map
 // became a city drawn from the same counts, on the same district lines and rivers. 11 Oct 2026: section 9,
-// customs shipment records via Volza (named here only, never on the profile: founder, 11 Oct).
-const LAST_UPDATED = "2026-10-11";
+// customs shipment records via Volza (named here only, never on the profile: founder, 11 Oct). 26 Oct 2026:
+// "export shipment records" everywhere a buyer reads it; Volza declines to name its source in writing.
+const LAST_UPDATED = "2026-10-26";
 
 const SITE_URL =
   process.env.NEXT_PUBLIC_SITE_URL ?? "https://sourcebd.net";
@@ -154,10 +155,10 @@ export default function DataSourcesPage() {
         </p>
 
         <h2>
-          9. Customs shipment records
+          9. Export shipment records
         </h2>
         <p>
-          The &ldquo;Customs exports&rdquo; section on a supplier
+          The &ldquo;Export shipments&rdquo; section on a supplier
           profile summarises that company&apos;s garment export shipments (HS
           chapters 61 and 62): the
           number of shipments, their FOB value, the number of buyers, the
