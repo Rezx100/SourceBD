@@ -359,7 +359,7 @@ function Buyers({ model, today, level }: SectionProps) {
                 <span className="text-base font-medium text-ink [overflow-wrap:anywhere]">{b.name}</span>
                 <span className={cn("flex items-center gap-[5px] text-xs text-ink-3", NUM)}>
                   {b.listed ? <Storefront size={14} weight="thin" className="shrink-0" aria-hidden /> : <Package size={14} weight="thin" className="shrink-0" aria-hidden />}
-                  {b.listed ? `Supplier list${b.customs ? " · customs records" : b.read ? ` · read ${b.read}` : ""}` : "Customs records"}
+                  {b.listed ? `Supplier list${b.customs ? " · shipment records" : b.read ? ` · read ${b.read}` : ""}` : "Shipment records"}
                 </span>
                 {/* The customs record's own name, small: the short name above is ours, not customs'. */}
                 {b.filed ? <span className="text-[11px]/[14px] text-ink-3 [overflow-wrap:anywhere]">as {b.filed}</span> : null}
@@ -375,7 +375,7 @@ function Buyers({ model, today, level }: SectionProps) {
         {fromCustoms > 0 ? (
           <p className={cn("px-3 text-xs text-ink-3", NUM)}>
             {v && v.buyers !== null && v.buyers > fromCustoms ? `${fromCustoms} of ${v.buyers.toLocaleString("en-GB")} shown. ` : ""}
-            Customs name the importer, often an agent rather than the brand.
+            Shipment records name the importer, often an agent rather than the brand.
           </p>
         ) : null}
       </div>
@@ -983,11 +983,11 @@ export function SourcesSection({ model, today, level }: SectionProps) {
               </section>
             ))}
             {v ? (
-              <section aria-label="Customs records" className={SOURCE_LINE}>
-                <Sub className={SOURCE_KIND}>Customs records</Sub>
+              <section aria-label="Export shipment records" className={SOURCE_LINE}>
+                <Sub className={SOURCE_KIND}>Export shipment records</Sub>
                 <p className={cn("flex min-w-0 flex-1 flex-wrap items-center gap-2", NUM)}>
                   <Letters size="sm">CU</Letters>
-                  <span className="text-base font-medium text-ink">Bangladesh customs exports, {customsWindow(v)}</span>
+                  <span className="text-base font-medium text-ink">Bangladesh export shipments, {customsWindow(v)}</span>
                   {behind !== null ? <span className="whitespace-nowrap text-xs font-medium text-caution">ends {behind} days ago</span> : null}
                 </p>
               </section>

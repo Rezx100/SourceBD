@@ -313,7 +313,7 @@ export function uflpaLine(model: Pick<SupplierSheetModel, "sanctioned" | "sancti
  * not that the supplier does not export.
  */
 export const NO_CUSTOMS = {
-  title: "We have no customs records for this supplier yet",
+  title: "We have no export shipment records for this supplier yet",
   body: "That says nothing about whether it exports; it only means we have no receipt to show.",
   epbTitle: "Registered as an exporter with EPB",
   epbBody: "Ask for its export history in your RFQ.",

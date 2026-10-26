@@ -159,7 +159,7 @@ function Table({ reveal, level: H }: { reveal: ShipmentReveal; level: "h2" | "h3
         </table>
       </div>
       <p className="text-xs text-ink-3">
-        As declared to customs. The buyer is often an agent; quantity is worked out from value and price.
+        As filed on the shipment record. The buyer is often an agent; quantity is worked out from value and price.
       </p>
     </div>
   );

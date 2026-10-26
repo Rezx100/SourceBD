@@ -276,7 +276,7 @@ function PhoneLine({ model, page, today, facts }: { model: ProductSheetModel; pa
         ) : null}
 
         {v ? (
-          <section aria-label="Customs records" className={cn("flex flex-col", P_NUM)}>
+          <section aria-label="Export shipment records" className={cn("flex flex-col", P_NUM)}>
             {head("Supplier's exports", customsWindow(v))}
             <div className={cn(P_CARD, "gap-1 px-4 pb-3 pt-3.5")}>
               <p className="text-xl font-medium tracking-tighter text-ink">{v.fob_usd !== null ? formatUsdShort(v.fob_usd) : `${v.shipments.toLocaleString("en-GB")} shipments`}</p>
@@ -290,7 +290,7 @@ function PhoneLine({ model, page, today, facts }: { model: ProductSheetModel; pa
                   .join(" · ")}
               </p>
               <p data-line-customs-note="" className="pt-1.5 text-xs text-ink-3">
-                Every line together: customs records are not split by HS code.{shipped.length ? ` The shipments below are the ones coded ${model.hs}.` : ""}
+                Every line together: shipment records are not split by HS code.{shipped.length ? ` The shipments below are the ones coded ${model.hs}.` : ""}
               </p>
             </div>
 
@@ -320,7 +320,7 @@ function PhoneLine({ model, page, today, facts }: { model: ProductSheetModel; pa
         {v ? (
           <p className="flex flex-wrap items-center gap-1.5 pt-4 text-xs text-ink-3">
             <FileText size={14} weight="thin" className="shrink-0" aria-hidden />
-            Customs records · read {shortDay(v.fetched_at, today) ?? "date unknown"}
+            Export shipment records · read {shortDay(v.fetched_at, today) ?? "date unknown"}
             {behind !== null ? (
               <span className="flex items-center gap-1 font-medium text-caution">
                 <Clock size={12} weight="thin" className="shrink-0 text-caution-icon" aria-hidden />

@@ -124,7 +124,7 @@ describe("the record on a phone (Paper page 35, the supplier drawer)", () => {
   it("says there are no customs records in words the read supports, and only when it has none to show", () => {
     const none = phone(model(), { mode: "page", tab: "exports" });
     assert.match(none, /data-phone-empty="customs"/);
-    assert.match(text(none), /We have no customs records for this supplier yet That says nothing about whether it exports; it only means we have no receipt to show\./);
+    assert.match(text(none), /We have no export shipment records for this supplier yet That says nothing about whether it exports; it only means we have no receipt to show\./);
     // The read cannot tell "never looked up" from "no match": neither is claimed, and no count is invented.
     assert.doesNotMatch(text(none), /looked it up|found no shipments|Checked so far|not checked/i);
     assert.match(text(none), /What it ships/, "the EPB export lines went with the customs records");
@@ -174,19 +174,19 @@ describe("the record on a phone (Paper page 35, the supplier drawer)", () => {
     assert.match(out, /The records end \d+ days ago/, "the footnote still says how far behind the records are");
     // Founder, 12 Oct 2026: the brands' lists and the customs buyers are one section. The name people use is the
     // row; the customs record's own name is small beside its source, so the short one is not read as the record's.
-    assert.match(out, /Buyers 4 ASOS Supplier list · read 30 Jul 2026 H&M Supplier list · read 26 Jun 2026 NEXT Supplier list · read 18 May 2026 Hugo Boss Customs records as Hugo Boss Ticino S A Customs records name the importer: often an agent or a buying house, not the brand\. 1 of 43 shown\./);
+    assert.match(out, /Buyers 4 ASOS Supplier list · read 30 Jul 2026 H&M Supplier list · read 26 Jun 2026 NEXT Supplier list · read 18 May 2026 Hugo Boss Shipment records as Hugo Boss Ticino S A Shipment records name the importer: often an agent or a buying house, not the brand\. 1 of 43 shown\./);
     const html = phone(scoped, { mode: "page" });
-    assert.match(html, /<span class="text-md\/\[22px\] font-medium text-ink">Hugo Boss<\/span><span class="[^"]*text-xs text-ink-3[^"]*"><span>Customs records as Hugo Boss Ticino S A<\/span>/);
+    assert.match(html, /<span class="text-md\/\[22px\] font-medium text-ink">Hugo Boss<\/span><span class="[^"]*text-xs text-ink-3[^"]*"><span>Shipment records as Hugo Boss Ticino S A<\/span>/);
     assert.equal((html.match(/data-phone-buyers=""/g) ?? []).length, 1, "one list of buyers on the record");
     assert.doesNotMatch(out, /Memberships and brand lists|As named on customs records/);
     assert.match(out, /Memberships EPB BD04293/);
     assert.doesNotMatch(out, /Buyers in shipment records/, "the buyers are said twice on one page");
     // A brand whose list names the supplier and whose company is on its customs records is one row, first.
     const both = text(phone({ ...scoped, volza: { ...scoped.volza!, top_record: { ...scoped.volza!.top_record!, buyer_name: "H & M HENNES & MAURITZ GBC AB" } } }, { mode: "page" }));
-    assert.match(both, /Buyers 3 H&M Supplier list · customs records as H & M Hennes & Mauritz GBC AB ASOS Supplier list/);
+    assert.match(both, /Buyers 3 H&M Supplier list · shipment records as H & M Hennes & Mauritz GBC AB ASOS Supplier list/);
     // With no customs record to read, the brands' lists alone, and no word about customs.
     // Memberships come before Buyers (Paper page 35, 13 Oct 2026), each register's own mark in its disc.
-    assert.match(text(phone(model(), { mode: "page" })), /Memberships EPB BD04293 · read 14 Aug .* Buyers 3 ASOS Supplier list · read 30 Jul 2026 H&M .* NEXT Supplier list · read 18 May 2026 We have no customs/);
+    assert.match(text(phone(model(), { mode: "page" })), /Memberships EPB BD04293 · read 14 Aug .* Buyers 3 ASOS Supplier list · read 30 Jul 2026 H&M .* NEXT Supplier list · read 18 May 2026 We have no export shipment records/);
     // The desktop says them once too, as tiles (Paper page 37): the old Key facts row is gone.
     assert.match(text(view(scoped, { mode: "page" })), /Buyers 4 /);
     assert.doesNotMatch(text(view(scoped, { mode: "page" })), /Buyers in shipment records/);
@@ -441,9 +441,9 @@ describe("the export grid works its figures out from the customs record", () => 
   it("draws the grid, the market table and the customs buyers only when the model holds customs figures", () => {
     for (const mode of ["page", "pane"] as const) {
       const free = text(view(model(), { mode }));
-      assert.doesNotMatch(free, /Export value|Typical shipment|Where it goes|Markets and shipments|Customs records|US\$|All exports/, `${mode}: a reader with no customs figures sees one`);
+      assert.doesNotMatch(free, /Export value|Typical shipment|Where it goes|Markets and shipments|Export shipment records|Customs records|US\$|All exports/, `${mode}: a reader with no customs figures sees one`);
       const paid = text(view(model(aboniInput(), { volza: V, market: "United Kingdom" }), { mode }));
-      assert.match(paid, /Exports Markets and shipments Export value, 2 years US\$76\.6m Typical shipment US\$27,000 43% under 1,000 pieces Buyers 254 30 in the UK · 11 shipments each Ships to the UK US\$7\.2m 9% of exports · 347 shipments Customs records, Sep 2024 – Aug 2026 · latest on record 30 Aug · read 11 Sep /, mode);
+      assert.match(paid, /Exports Markets and shipments Export value, 2 years US\$76\.6m Typical shipment US\$27,000 43% under 1,000 pieces Buyers 254 30 in the UK · 11 shipments each Ships to the UK US\$7\.2m 9% of exports · 347 shipments Export shipment records, Sep 2024 – Aug 2026 · latest on record 30 Aug · read 11 Sep /, mode);
       assert.match(paid, /Exports US\$76\.6m free on board across 2,830 shipments, every product line together\. Where it goes Share of export value, by market Market Share of value Value Shipments Buyers European Union 56% US\$43m 1,018 85 /, mode);
       // Never "last shipped", and never a price a piece (the stored one is not checked).
       assert.doesNotMatch(paid, /last shipped|a piece|per piece|4\.2\b/i, mode);

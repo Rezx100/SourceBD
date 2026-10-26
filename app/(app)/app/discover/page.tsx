@@ -162,7 +162,7 @@ export default async function BuyerDiscoverPage({
   const exportHref = `/api/v1/discover/export?${serializeDiscoverState(state).toString()}`;
   const title = resultsTitle(state.q, error ? null : total, exportsOn);
   // The Volza licence keeps customs figures out of every download, and a CSV of this search without them would be another list.
-  const downloadOff = exportsOn ? "Customs figures are not in downloads" : undefined;
+  const downloadOff = exportsOn ? "Export shipment figures are not in downloads" : undefined;
   const filtersHref = withParams("filters=1");
   const saveHref = withParams("save=1");
   // Every results control (page, page size, sort, a filter) keeps the open record and its tab:

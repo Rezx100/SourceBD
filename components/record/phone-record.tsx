@@ -123,7 +123,7 @@ function CustomsFoot({ model, today, className }: { model: SupplierSheetModel; t
     <div className={cn("flex flex-col gap-1", className)}>
       <p className="flex items-center gap-1.5 text-xs text-ink-3">
         <FileText size={14} weight="thin" className="shrink-0" aria-hidden />
-        Customs records, {customsWindow(v)} · read {shortDay(v.fetched_at, today) ?? "date unknown"}
+        Export shipment records, {customsWindow(v)} · read {shortDay(v.fetched_at, today) ?? "date unknown"}
       </p>
       {behind !== null ? (
         <p className="flex items-center gap-1.5 text-xs font-medium text-caution">
@@ -219,7 +219,7 @@ function Overview({ model, today, sectionHref, level }: PanelProps) {
             {buyers.map((b) => {
               const s = b.listed ? readOf(b.name) : null;
               // The name people know is the row; the customs record's own name is small beside its source, so the short one is never read as the record's.
-              const customs = b.customs ? `${b.listed ? "customs" : "Customs"} records${b.filed ? ` as ${b.filed}` : ""}` : null;
+              const customs = b.customs ? `${b.listed ? "shipment" : "Shipment"} records${b.filed ? ` as ${b.filed}` : ""}` : null;
               return (
                 <Listed key={b.name} lead={<Disc icon={b.listed ? Storefront : Package} />} title={b.name} href={s?.mark.href ?? null} opens={b.name}>
                   <span>{[b.listed ? "Supplier list" : null, customs, !b.customs && s?.readDate ? `read ${s.readDate}` : null].filter(Boolean).join(" · ")}</span>
@@ -229,7 +229,7 @@ function Overview({ model, today, sectionHref, level }: PanelProps) {
           </ul>
           {fromCustoms > 0 ? (
             <p className="pt-2 text-xs text-ink-3">
-              Customs records name the importer: often an agent or a buying house, not the brand.
+              Shipment records name the importer: often an agent or a buying house, not the brand.
               {v && v.buyers !== null && v.buyers > fromCustoms ? ` ${fromCustoms} of ${v.buyers.toLocaleString("en-GB")} shown.` : ""}
             </p>
           ) : null}
@@ -419,7 +419,7 @@ function Exports({ model, today, level }: PanelProps) {
   }
   return (
     <div className={cn("flex flex-col pb-8", NUM)}>
-      <section aria-label="Customs exports" className="flex flex-col px-5 pt-6">
+      <section aria-label="Export shipments" className="flex flex-col px-5 pt-6">
         <p className="text-sm text-ink-3">
           {v.fob_usd !== null ? "Export value" : "Shipments"}, {customsWindow(v)}
         </p>
@@ -884,12 +884,12 @@ function Sources({ model, today, level: H }: PanelProps) {
         </section>
       ))}
       {v ? (
-        <section aria-label="Customs records" className="flex flex-col pt-3">
-          <p className="text-sm font-medium text-ink-3">Customs records</p>
+        <section aria-label="Export shipment records" className="flex flex-col pt-3">
+          <p className="text-sm font-medium text-ink-3">Export shipment records</p>
           <ul>
             <SourceLine
               lead={<Letters>CU</Letters>}
-              title="Bangladesh customs exports"
+              title="Bangladesh export shipments"
               sub={
                 <>
                   {customsWindow(v)}

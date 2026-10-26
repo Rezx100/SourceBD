@@ -374,16 +374,16 @@ describe("the results table", () => {
     const noValue = plain(h(ResultsTable, { rows: [row({ exported: { value: null, to: ["EU"] } })], sort: { key: "workers", dir: "desc" }, sortHrefs }));
     assert.match(words(noValue), /Value not on file Ships to the EU ships to EU /);
     // Free: the row says a record exists, and nothing of what it holds or where it goes (founder, 13 Oct 2026).
-    const locked = /<td class="[^"]*">(<span title="Customs records are on the Growth and Enterprise plans"[\s\S]*?)<\/td>/.exec(out)?.[1] ?? "";
-    assert.match(words(locked), /^ ?On Growth : customs records are on the Growth and Enterprise plans ?$/);
-    assert.doesNotMatch(locked, /US\$|\bEU\b|\bUK\b|shipment|[Ss]hips to/);
+    const locked = /<td class="[^"]*">(<span title="Export shipment records are on the Growth and Enterprise plans"[\s\S]*?)<\/td>/.exec(out)?.[1] ?? "";
+    assert.match(words(locked), /^ ?On Growth : export shipment records are on the Growth and Enterprise plans ?$/);
+    assert.doesNotMatch(locked, /US\$|\bEU\b|\bUK\b|shipment(?! records)|[Ss]hips to/);
     // No market under a dash either.
     assert.equal((out.match(/>ships to</g) ?? []).length, 1, "one row on the page has markets");
-    assert.match(out, /<span class="text-sm text-ink-3" title="No customs records on file"><span aria-hidden="true">–<\/span>/);
+    assert.match(out, /<span class="text-sm text-ink-3" title="No shipment records on file"><span aria-hidden="true">–<\/span>/);
     // A row that was never read says only that: before 0147, or when its read fails, "none on file" would be a claim.
     const unread = plain(h(ResultsTable, { rows: [row({ exported: undefined })], sort: { key: "workers", dir: "desc" }, sortHrefs }));
     assert.match(unread, /title="Not read just now"/);
-    assert.doesNotMatch(unread, /No customs records on file/);
+    assert.doesNotMatch(unread, /No shipment records on file/);
     // With an exports filter or sort on, the column is the figure the list is sorted by, as before.
     const view = plain(h(ResultsTable, { rows: [row({ exports: { key: "US$55,700 a shipment", detail: "406 shipments", shipments: "406 shipments" } })], exportsHead: "Average shipment", sort: { key: "avg_shipment", dir: "desc" }, sortHrefs }));
     assert.match(view, />Average shipment</);
@@ -414,7 +414,7 @@ describe("the results table", () => {
     assert.match(out, /<span title="Dhaka" class="[^"]*">Dhaka<\/span>/, "a one-word place is itself");
     assert.match(two, /<th [^>]*class="[^"]*w-\[160px\][^"]*"[^>]*><div[^>]*>Location</);
     // Exports 180 for "ships to" and four codes; the table's floor is what fits beside the rail at xl (1280 − 64 − 48), where the region stops scrolling: a higher floor would spill past it.
-    assert.match(two, /<th [^>]*class="[^"]*w-\[180px\][^"]*"[^>]*title="From customs/);
+    assert.match(two, /<th [^>]*class="[^"]*w-\[180px\][^"]*"[^>]*title="From export shipment records/);
     assert.match(two, /<table class="[^"]*min-w-\[1160px\]/);
     assert.match(two, /<div role="region" [^>]*class="[^"]*overflow-x-auto xl:overflow-visible"/);
   });
@@ -611,7 +611,7 @@ describe("the bar over the results", () => {
     assert.ok(!words.includes("anctioned"));
     const bar = (st: typeof state, entitled = false) => plain(h(PhoneToolbar, { state: st, entitled, count: "4,645 suppliers", hrefFor: discoverHref, filtersHref: "#" }));
     const exportsOn = bar({ ...state, exports: true, ships: "uk" as const }, true);
-    assert.ok(!exportsOn.includes("Has customs exports") && !exportsOn.includes("Remove the customs exports filter"));
+    assert.ok(!exportsOn.includes("Has export shipments") && !exportsOn.includes("Remove the customs exports filter"));
     assert.equal(hrefOf(exportsOn, "Ships to UK"), "/app/discover?q=knit", "Ships to UK, pressed again, leaves the customs view whole");
     assert.match(phone, /h-\[52px\]/);
     // Filters is a 36-tall pill that says how many are on (the query is one, as the count on it always was).
@@ -658,7 +658,7 @@ describe("the narrow list and the phone's rows", () => {
     assert.doesNotMatch(out.replace(/aria-label="[^"]*"/g, ""), /Factory|\d+ sources|Expire[sd]|data-lit=/);
     // The export value and where it ships sit on the right of the first two levels; a locked one is said, with no figure.
     assert.match(sm!, /SM Sourcing Knit T-shirts, Polo shirts \+7 US\$76\.6m exported, 2 years Ships to the EU, the US, the UK and Canada ships to EU US UK CA Place: Dhaka/);
-    assert.match(zaheen!, /On Growth : customs records are on the Growth and Enterprise plans/);
+    assert.match(zaheen!, /On Growth : export shipment records are on the Growth and Enterprise plans/);
     assert.doesNotMatch(zaheen!, /US\$|exported, 2 years/);
     assert.match(out, /aria-current="true"[^>]*href="\/app\/discover\?q=knit&record=aboni-knitwear"|href="\/app\/discover\?q=knit&record=aboni-knitwear"[^>]*aria-current="true"/);
     // The open row is sunken behind an ink bar (board 08).
@@ -1109,7 +1109,7 @@ describe("the pane list is a ledger too (critique of 8 Oct 2026, round 3, item 2
 describe("the help layer in the results (critique of 8 Oct 2026, round 3, item 5)", () => {
   it("the column heads say what their figures are: the exports value, the worst certificate, the source count", () => {
     const out = plain(h(SelectionProvider, { pageIds: ["x"] }, h(ResultsTable, { rows: [row({ supplierId: "x" })], sort: { key: "sources", dir: "desc" }, sortHrefs })));
-    assert.match(out, /<th [^>]*title="From customs records of the last two years on file: the export value and the markets it ships to\. The record's Exports tab has the shipments"/);
+    assert.match(out, /<th [^>]*title="From export shipment records of the last two years on file: the export value and the markets it ships to\. The record's Exports tab has the shipments"/);
     assert.match(out, /<th [^>]*title="The certificate schemes it holds today; their dates are on the record's Certificates tab"/);
     assert.match(out, /<th [^>]*title="Registers and certifiers that hold this company"/);
   });
