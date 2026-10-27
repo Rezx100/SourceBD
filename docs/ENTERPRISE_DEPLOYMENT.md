@@ -94,15 +94,17 @@ Deploy scope must match **intended** production change — not "everything dirty
 
 1. The `development` → `main` PR auto-merges when its checks are green (`gh pr merge --auto --merge`:
    a merge commit, never a squash, so `main` and `development` do not drift apart).
-2. CI on `main` builds the web and etl images next to its checks and pushes them to GitHub's
-   registry: one private package, `ghcr.io/rezx100/sourcebd-web`, tagged `<sha>` for web and
-   `etl-<sha>` for etl. Keep that package Private. Once every check is green, its last job
-   calls **Deploy Production**. It waits in the `production`
+2. CI on the release PR builds the web and etl images next to its checks and pushes them to
+   GitHub's registry: one private package, `ghcr.io/rezx100/sourcebd-web`, tagged by source tree
+   (`scripts/ci-image-tags.sh`). Keep that package Private. When every check passes it adds an
+   `ok-tree-…` tag. On `main`, if the merge commit's tree carries that tag, **Deploy Production**
+   is called at once; otherwise CI on `main` runs its checks (and builds the images if missing)
+   and calls it once they are green. It waits in the `production`
    environment until the founder approves the run (GitHub → Actions → the waiting run → Review
    deployments → Approve). A manual run (Run workflow with a tag, `main`, or SHA) waits the same way.
 3. Workflow SSHs to VPS, checks out the pinned SHA, runs `ops/deploy_vps.sh --ref=<sha> --require-git`.
    The script pulls the CI images when their NEXT_PUBLIC_ fingerprint matches the VPS `.env`, and
-   builds on the VPS otherwise (a manual run of an older ref, or the image job skipped).
+   builds on the VPS otherwise (a ref whose tree CI never built, or the image job skipped).
 4. Confirm smoke checks (workflow hits `/api/health`; operator runs extended checklist below).
 
 ### Secondary: Manual VPS deploy (after git push)
