@@ -119,7 +119,9 @@ jobs:
           # runs the suite rather than guessing.
           if [ -z "$BASE" ] || [ "$BASE" = 0000000000000000000000000000000000000000 ] || ! git fetch -q --depth=1 origin "$BASE"; then
             echo "run=true" >> "$GITHUB_OUTPUT"
-          elif git diff --name-only "$BASE" HEAD | grep -qE "$SLOW_PATHS"; then
+          # No grep -q: it exits on the first match, git diff then dies of
+          # SIGPIPE on a long list, and pipefail turns that into a skip.
+          elif git diff --name-only "$BASE" HEAD | grep -E "$SLOW_PATHS" > /dev/null; then
             echo "run=true" >> "$GITHUB_OUTPUT"
           else
             echo "run=false" >> "$GITHUB_OUTPUT"
