@@ -238,8 +238,9 @@ export function Opening({ suppliers, items = TOUR }: { suppliers: number | null;
       if (laptop.current) {
         const [lx, ly] = cam(LAPTOP.x, LAPTOP.y);
         const l = laptop.current.style;
-        l.left = `${lx}px`;
-        l.top = `${ly}px`;
+        // Moved by a transform, as the app is: a box moved by `left`/`top` every frame is a layout shift every frame
+        // (0.6 over the push, measured 28 Oct 2026). Its size stays laid out, so it is still drawn at 1:1.
+        l.transform = `translate(${lx}px, ${ly}px)`;
         l.width = `${z * LAPTOP.w * sw}px`;
         l.height = `${z * LAPTOP.h * sh}px`;
         l.visibility = rest || gone >= 1 ? "hidden" : "visible";

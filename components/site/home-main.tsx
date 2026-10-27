@@ -3,7 +3,8 @@
 // The home page's `<main>` since the founder's walkthrough of 23 Oct 2026 (mercury.com's page, to be matched exactly):
 // the whole page stands on one ground at a time, night, warm or day (`homeGrounds`, lib/design/tokens.ts), and fades to
 // the next as a section of another tone reaches the middle of the window, the bar and every word fading with it
-// (mercury.com's, measured: the switch at the middle, half a second). Each section says its tone (`data-mk-tone`).
+// (mercury.com's switch at the middle; a fifth of a second, not its half, since 28 Oct 2026: the founder saw the page go
+// grey mid-fade). Each section says its tone (`data-mk-tone`).
 // Round the middle is a band a sixth of the window deep (the founder's recording of 24 Oct 2026: the page flickered
 // dark, light, dark as a section's edge was scrolled to and fro across the line): the ground changes only once the
 // edge has crossed the whole band, so it turns at 42% of the window going down and back at 58% going up, and a hand

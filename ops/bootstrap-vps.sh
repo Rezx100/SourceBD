@@ -51,8 +51,19 @@ sed -i 's/^#\?PasswordAuthentication.*/PasswordAuthentication no/' /etc/ssh/sshd
 sed -i 's/^#\?PermitRootLogin.*/PermitRootLogin prohibit-password/' /etc/ssh/sshd_config
 systemctl reload ssh || systemctl reload sshd || true
 
-log "UFW firewall (allow 22/tcp only)"
+log "Caddy (reverse proxy in front of the web container; config is ops/Caddyfile)"
+# Caddy's own repo: Ubuntu 24.04 ships 2.6, which rejects ops/Caddyfile's `persist_config` (Portland, 28 Oct 2026).
+if [ ! -f /etc/apt/sources.list.d/caddy-stable.list ]; then
+  curl -1sLf https://dl.cloudsmith.io/public/caddy/stable/gpg.key | gpg --dearmor -o /usr/share/keyrings/caddy-stable-archive-keyring.gpg
+  curl -1sLf https://dl.cloudsmith.io/public/caddy/stable/debian.deb.txt > /etc/apt/sources.list.d/caddy-stable.list
+  apt-get update -y
+fi
+apt-get install -y --no-install-recommends caddy
+
+log "UFW firewall (SSH, and 80/443 for Cloudflare -> Caddy)"
 ufw allow OpenSSH
+ufw allow 80/tcp
+ufw allow 443/tcp
 ufw --force enable
 
 log "Enable unattended security upgrades"

@@ -184,6 +184,8 @@ const config: Config = {
       // theme itself sets every one, so in a dark page the nav, the hero and the close share the dark set's green.
       const darkSet = { ...colorVars(dark), ...paneMaterial.dark, "color-scheme": "dark" };
       const night = Object.fromEntries(Object.entries(darkSet).filter(([name]) => !NIGHT_INHERITS.includes(name)));
+      // The home page mid-fade: the grounds fade linearly over the span, the words change in its middle fifth.
+      const switching = `color ${motion.toneMs * 0.2}ms ${motion.toneMs * 0.4}ms, fill ${motion.toneMs * 0.2}ms ${motion.toneMs * 0.4}ms, background-color ${motion.toneMs}ms linear, border-color ${motion.toneMs}ms linear`;
       addBase({
         // `--mk-ground-*`: the marketing site's two grounds, fixed in either scene; the night is the dark set's ground,
         // our design system's (founder, 23 Oct 2026; `homeGrounds.night`).
@@ -212,14 +214,18 @@ const config: Config = {
             ];
           }),
         ),
-        "[data-mk-page] body": { "background-color": "rgb(var(--mk-ground))", transition: `background-color ${motion.toneMs}ms ${transitionTimingFunction.out}` },
+        // Linear, as every ground below fades: its middle is the fade's middle, where the words change.
+        "[data-mk-page] body": { "background-color": "rgb(var(--mk-ground))", transition: `background-color ${motion.toneMs}ms linear` },
         // Zero specificity: an element with a transition of its own keeps it. Only where the tone shows: the page's
         // frame, the bar and the main (the footer and the cookie banner keep their own sets). The grounds fade over the
         // whole span; while they do (`data-mk-switching`, set by `HomeMain` for the fade's length) the words change in
         // its middle fifth, light on the ground while it is still dark and dark once it is light, so they never fade
         // into a grey ground (the founder's recording of 24 Oct 2026). A hover outside a fade is not held back.
-        ":where([data-mk-page] body > div, [data-mk-page] header *, [data-mk-page] main *)": { transition: `color ${motion.toneMs}ms, background-color ${motion.toneMs}ms, border-color ${motion.toneMs}ms, fill ${motion.toneMs}ms` },
-        ":where([data-mk-switching] body > div, [data-mk-switching] header *, [data-mk-switching] main *)": { transition: `color ${motion.toneMs * 0.2}ms ${motion.toneMs * 0.4}ms, fill ${motion.toneMs * 0.2}ms ${motion.toneMs * 0.4}ms, background-color ${motion.toneMs}ms, border-color ${motion.toneMs}ms` },
+        ":where([data-mk-page] body > div, [data-mk-page] header *, [data-mk-page] main *)": { transition: `color ${motion.toneMs}ms, background-color ${motion.toneMs}ms linear, border-color ${motion.toneMs}ms linear, fill ${motion.toneMs}ms` },
+        ":where([data-mk-switching] body > div, [data-mk-switching] header *, [data-mk-switching] main *)": { transition: switching },
+        // The bar and its links have transitions of their own (components/site/nav.tsx); during a fade they take the
+        // page's, or the bar's ground lags the page's and its words flip on a grey bar (measured 28 Oct 2026).
+        "[data-mk-switching] header, [data-mk-switching] header :is(a, button)": { transition: switching },
       });
     }),
   ],
