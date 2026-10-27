@@ -229,6 +229,12 @@ describe("the home page", () => {
     assert.ok(motion.toneMs <= 200, `toneMs ${motion.toneMs}`);
   });
 
+  it("the opening's scene moves its layers by transform, never left/top, so scrolling it is no layout shift (0.6 measured, 28 Oct 2026)", () => {
+    const src = readFileSync(join(process.cwd(), "components/site/sections/opening.tsx"), "utf8");
+    assert.match(src, /l\.transform = `translate\(\$\{lx\}px, \$\{ly\}px\)`/);
+    assert.doesNotMatch(src, /\.(left|top) = `/);
+  });
+
   it("the brands are their own logos in one colour, each labelled by name, and only brands on the record (founder, 24 Oct 2026)", () => {
     const strip = /<section data-mk-tone="night" aria-labelledby="home-brands"[\s\S]*?<\/section>/.exec(page())![0];
     assert.doesNotMatch(strip, /<img|<svg/, "a mask in the ground's ink, never the brand's colours");

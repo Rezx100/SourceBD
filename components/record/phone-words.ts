@@ -204,7 +204,7 @@ export function lookCards(model: SupplierSheetModel, today: Date): LookCard[] {
       tab: "safety",
       tag: behind.length > 1 ? `Safety · ${behind.length} of ${cards.length} buildings` : many ? `Safety · ${worst.name}` : "Safety · RSC",
       title: behind.length > 1 ? `${countWord(behind.length)} buildings are behind on repairs` : many ? "One building is behind on repairs" : "Behind schedule on safety repairs",
-      progress: worst.progress !== null ? { label: behind.length > 1 ? `Worst: ${worst.name}` : "Issues fixed", pct: worst.progress } : null,
+      progress: worst.progress !== null ? { label: behind.length > 1 ? `Furthest behind: ${worst.name}` : "Issues fixed", pct: worst.progress } : null,
       figure: null,
       body: worst.training ? `Worker safety ${worst.training}.` : null,
       foot: worst.readDate ? `Read ${worst.readDate}` : null,

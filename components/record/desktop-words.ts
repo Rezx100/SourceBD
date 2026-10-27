@@ -198,8 +198,8 @@ export function checkRows(model: SupplierSheetModel, today: Date): { rows: Check
         tone: "caution",
         tag: c.tag,
         title: c.title,
-        // "Worst: Unit 2. Worker safety training yet to start.": the bar's own label is the building it is of.
-        body: [c.progress && /^Worst: /.test(c.progress.label) ? `${c.progress.label}.` : null, c.body].filter(Boolean).join(" ") || null,
+        // "Furthest behind: Unit 2. Worker safety training yet to start.": the bar's own label is the building it is of.
+        body: [c.progress && /^Furthest behind: /.test(c.progress.label) ? `${c.progress.label}.` : null, c.body].filter(Boolean).join(" ") || null,
         figure: c.progress ? { pct: c.progress.pct, words: "of issues fixed" } : c.figure,
         foot: c.foot,
         footCaution: c.footCaution,

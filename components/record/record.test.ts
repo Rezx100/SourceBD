@@ -242,6 +242,10 @@ describe("the record on a phone (Paper page 35, the supplier drawer)", () => {
     // Three buildings or more are rows with a bare percentage: what it measures is said over them.
     const many = text(phone(model(buildingBrandListsInput()), { mode: "page" }));
     assert.match(many, /3 buildings in the RSC programme Safety issues fixed, furthest behind first\. 2 behind\. /);
+    // The desktop's Safety card names the building furthest behind in the same words.
+    const desk = checkRows(model(buildingBrandListsInput()), TODAY).rows.map((r) => r.body ?? "").join(" ");
+    assert.match(desk, /Furthest behind: /);
+    assert.doesNotMatch(desk, /worst/i);
     assert.doesNotMatch(out, /Safety issues fixed, (furthest|least)/, "two buildings are full cards: each says it beside its own figure");
   });
 
