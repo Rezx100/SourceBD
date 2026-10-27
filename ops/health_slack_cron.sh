@@ -8,7 +8,7 @@ set -u
 APP_DIR="${SOURCEBD_APP_DIR:-/opt/sourcebd}"
 STATE_FILE="${APP_DIR}/.deploy/uptime_state"
 HEALTH_URL="${SOURCEBD_HEALTH_URL:-http://127.0.0.1:3000/api/health}"
-PUBLIC_URL="${SOURCEBD_PUBLIC_HEALTH_URL:-http://109.104.153.228/api/health}"
+PUBLIC_URL="${SOURCEBD_PUBLIC_HEALTH_URL:-http://127.0.0.1/api/health}"
 
 cd "$APP_DIR" || exit 0
 

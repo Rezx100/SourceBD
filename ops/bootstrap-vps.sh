@@ -51,8 +51,13 @@ sed -i 's/^#\?PasswordAuthentication.*/PasswordAuthentication no/' /etc/ssh/sshd
 sed -i 's/^#\?PermitRootLogin.*/PermitRootLogin prohibit-password/' /etc/ssh/sshd_config
 systemctl reload ssh || systemctl reload sshd || true
 
-log "UFW firewall (allow 22/tcp only)"
+log "Caddy (reverse proxy in front of the web container; config is ops/Caddyfile)"
+apt-get install -y --no-install-recommends caddy
+
+log "UFW firewall (SSH, and 80/443 for Cloudflare -> Caddy)"
 ufw allow OpenSSH
+ufw allow 80/tcp
+ufw allow 443/tcp
 ufw --force enable
 
 log "Enable unattended security upgrades"
