@@ -1,8 +1,11 @@
 name: CI
 
 on:
+  # No push run on development: the PR run already tested that code, and the
+  # release PR into main tests development again before anything deploys.
+  # main keeps its push run because Deploy Production waits on it.
   push:
-    branches: [main, development]
+    branches: [main]
   pull_request:
     branches: [main, development]
 
@@ -91,6 +94,13 @@ jobs:
     # published multi-string address fixture (lib/dedup-addresses-fixture),
     # about 25 minutes of CPU on its own, which left unit-tests at the edge of
     # its timeout. Node 22 for the same glob reason as unit-tests.
+    #
+    # It runs only when the change touches what those suites read: the
+    # address-matching code and its fixture, a *.slow-test.ts file, or the
+    # test toolchain. Everything else (a page, a component, copy) passes this
+    # job in seconds. A new slow suite adds its source files to SLOW_PATHS.
+    # The skip is per step, not per job, so the job still reports green and
+    # can stay in the required checks (docs/ENTERPRISE_DEPLOYMENT.md lists it).
     runs-on: ubuntu-latest
     timeout-minutes: 40
 
@@ -98,21 +108,45 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Did the change touch the slow suites?
+        id: scope
+        env:
+          # PR: the base it merges into. Push to main: the previous tip of main.
+          BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
+          SLOW_PATHS: '^(lib/(dedup-addresses|bd-place-lexicon)|lib/fixtures/v-supplier-addresses|test-stubs/|tsconfig\.npm-test\.json$|package\.json$|pnpm-lock\.yaml$|\.github/workflows/ci\.yml$)|\.slow-test\.tsx?$'
+        run: |
+          # Anything we cannot diff (a new branch, a base that will not fetch)
+          # runs the suite rather than guessing.
+          if [ -z "$BASE" ] || [ "$BASE" = 0000000000000000000000000000000000000000 ] || ! git fetch -q --depth=1 origin "$BASE"; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          # No grep -q: it exits on the first match, git diff then dies of
+          # SIGPIPE on a long list, and pipefail turns that into a skip.
+          elif git diff --name-only "$BASE" HEAD | grep -E "$SLOW_PATHS" > /dev/null; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "run=false" >> "$GITHUB_OUTPUT"
+            echo "Nothing the slow suites read changed since $BASE; skipping them."
+          fi
+
       - name: Setup pnpm
+        if: steps.scope.outputs.run == 'true'
         uses: pnpm/action-setup@v4
         with:
           version: 9
 
       - name: Setup Node.js
+        if: steps.scope.outputs.run == 'true'
         uses: actions/setup-node@v4
         with:
           node-version: "22"
           cache: pnpm
 
       - name: Install dependencies
+        if: steps.scope.outputs.run == 'true'
         run: pnpm install --frozen-lockfile
 
       - name: Slow unit tests
+        if: steps.scope.outputs.run == 'true'
         run: pnpm test:slow
 
   http-boundary:
