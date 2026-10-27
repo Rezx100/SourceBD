@@ -57,13 +57,15 @@ jobs:
         id: pin
         env:
           DEPLOY_REF: ${{ inputs.ref }}
+          PUBLIC_ENV: ${{ vars.PROD_PUBLIC_BUILD_ENV }}
         run: |
           git fetch --tags origin "${DEPLOY_REF}"
           EXPECT="$(git rev-parse "FETCH_HEAD^{commit}")"
-          owner="$(printf '%s' "$GITHUB_REPOSITORY_OWNER" | tr '[:upper:]' '[:lower:]')"
           echo "sha=${EXPECT}" >> "$GITHUB_OUTPUT"
-          echo "web=ghcr.io/${owner}/sourcebd-web:${EXPECT}" >> "$GITHUB_OUTPUT"
-          echo "etl=ghcr.io/${owner}/sourcebd-web:etl-${EXPECT}" >> "$GITHUB_OUTPUT"
+          # Images are tagged by source tree, so a manual deploy of any ref
+          # whose tree CI has built (a rollback, say) also pulls instead of
+          # building. No such image: the server builds, as before.
+          bash scripts/ci-image-tags.sh "$(git rev-parse "${EXPECT}^{tree}")" | grep -E '^(web|etl)=' >> "$GITHUB_OUTPUT"
           echo "Expected production commit ${EXPECT}"
 
       - name: Deploy to VPS via SSH
