@@ -63,7 +63,7 @@ jobs:
           owner="$(printf '%s' "$GITHUB_REPOSITORY_OWNER" | tr '[:upper:]' '[:lower:]')"
           echo "sha=${EXPECT}" >> "$GITHUB_OUTPUT"
           echo "web=ghcr.io/${owner}/sourcebd-web:${EXPECT}" >> "$GITHUB_OUTPUT"
-          echo "etl=ghcr.io/${owner}/sourcebd-etl:${EXPECT}" >> "$GITHUB_OUTPUT"
+          echo "etl=ghcr.io/${owner}/sourcebd-web:etl-${EXPECT}" >> "$GITHUB_OUTPUT"
           echo "Expected production commit ${EXPECT}"
 
       - name: Deploy to VPS via SSH

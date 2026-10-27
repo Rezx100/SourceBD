@@ -318,15 +318,26 @@ jobs:
           # Same recipe as the server's check in its deploy script.
           fp="$(grep -E '^NEXT_PUBLIC_' .env.production.local | LC_ALL=C sort | sha256sum | cut -d' ' -f1)"
           owner="$(printf '%s' "$GITHUB_REPOSITORY_OWNER" | tr '[:upper:]' '[:lower:]')"
+          # Both images live in the one sourcebd-web package, which is private.
+          # A new package created from Actions came out Public (27 Oct 2026),
+          # so a second package would need someone to lock it by hand.
           web="ghcr.io/$owner/sourcebd-web:$GITHUB_SHA"
-          etl="ghcr.io/$owner/sourcebd-etl:$GITHUB_SHA"
+          etl="ghcr.io/$owner/sourcebd-web:etl-$GITHUB_SHA"
           printf '%s' "$GH_TOKEN" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
-          docker build -f Dockerfile.web --label "sourcebd.public-env-sha=$fp" -t "$web" . &
+          # --provenance=false: one plain image per tag. The default adds an
+          # attestation index, and GHCR answered "denied" partway through
+          # pushing it (run 40569834467), leaving only the attestation behind.
+          docker build --provenance=false -f Dockerfile.web --label "sourcebd.public-env-sha=$fp" -t "$web" . &
           web_pid=$!
-          docker build -t "$etl" .
+          docker build --provenance=false -t "$etl" .
           wait "$web_pid"
-          docker push --quiet "$web"
-          docker push --quiet "$etl"
+          for img in "$web" "$etl"; do
+            for try in 1 2 3; do
+              docker push --quiet "$img" && break
+              [ "$try" -eq 3 ] && exit 1
+              sleep 10
+            done
+          done
 
   deploy:
     # Main only, once every check above is green. The image job may have
