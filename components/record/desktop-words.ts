@@ -348,11 +348,11 @@ export function safetyLines(model: SupplierSheetModel, today: Date): SafetyLine[
   });
 }
 
-/** "2 buildings in the RSC programme. 2 behind schedule. Worst first." */
+/** "2 buildings in the RSC programme. 2 behind schedule. Furthest behind first." */
 export function safetyLead(lines: readonly SafetyLine[]): string | null {
   if (lines.length < 2) return null;
   const behind = lines.filter((l) => l.behind).length;
-  return `${lines.length} buildings in the RSC programme.${behind ? ` ${behind} behind schedule.` : ""} Worst first.`;
+  return `${lines.length} buildings in the RSC programme.${behind ? ` ${behind} behind schedule.` : ""} Furthest behind first.`;
 }
 
 /* ---------------------------------------------------------------- overview */

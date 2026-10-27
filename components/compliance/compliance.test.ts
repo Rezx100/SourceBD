@@ -634,6 +634,9 @@ describe("the phone (Paper page 36)", () => {
     assert.match(text(out), /6 saved suppliers against the US forced-labour list/);
     assert.match(text(out), /Read 1 Oct\. Entries added since are not checked\./);
     assert.match(text(out), /Suppliers 6 A to Z/);
+    // The order is said as the fact, never "worst" (founder, 13 Oct 2026; the home page's still shows this screen).
+    assert.match(text(out), /Most serious first/);
+    assert.doesNotMatch(text(out), /worst/i);
     assert.match(text(out), /2 more, all no link found/);
     assert.match(text(out), /UFLPA Entity List, US DHS · 253 entries · read 1 Oct/);
     assert.equal(out.match(/href="\/app\/suppliers\/slug-\d"/g)?.length, 12, "every supplier once on a phone and once from 768");

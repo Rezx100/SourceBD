@@ -10,6 +10,7 @@ import { describe, it } from "node:test";
 import { AppRouterContext } from "next/dist/shared/lib/app-router-context.shared-runtime";
 import { createElement, type ReactElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
+import { motion } from "@/lib/design/tokens";
 import { NO_FACTS, parseFacts, type SiteFacts } from "@/lib/site-facts";
 
 // eslint-disable-next-line @typescript-eslint/no-require-imports -- loaded after the test build exists.
@@ -220,7 +221,12 @@ describe("the home page", () => {
     assert.equal(steadyTone(at(500), 1000, null), "night", "on load with no tone yet, the one at the band's top");
     assert.equal(steadyTone([{ top: -2000, tone: "night" as const }, { top: 410, tone: "warm" as const }, { top: 500, tone: "day" as const }], 1000, "night"), "warm", "two edges in the band and neither line night: no stale ground");
     const css = readFileSync(join(process.cwd(), "tailwind.config.ts"), "utf8");
-    assert.match(css, /\[data-mk-switching\] main \*\)": \{ transition: `color \$\{motion\.toneMs \* 0\.2\}ms \$\{motion\.toneMs \* 0\.4\}ms/, "during a fade the words change in its middle fifth, never on a hover");
+    assert.match(css, /const switching = `color \$\{motion\.toneMs \* 0\.2\}ms \$\{motion\.toneMs \* 0\.4\}ms, fill [^`]*background-color \$\{motion\.toneMs\}ms linear/, "during a fade the words change in its middle fifth, the middle of a linear ground");
+    assert.match(css, /\[data-mk-switching\] main \*\)": \{ transition: switching \}/, "never on a hover");
+    assert.match(css, /"\[data-mk-switching\] header, \[data-mk-switching\] header :is\(a, button\)": \{ transition: switching \}/, "the bar fades with the page, not on its own timing");
+    assert.match(css, /"\[data-mk-page\] body": \{[^}]*transition: `background-color \$\{motion\.toneMs\}ms linear`/, "the ground's middle is the fade's middle");
+    // The founder saw the page go grey mid-fade at 500 ms (28 Oct 2026): the fade stays a blink.
+    assert.ok(motion.toneMs <= 200, `toneMs ${motion.toneMs}`);
   });
 
   it("the brands are their own logos in one colour, each labelled by name, and only brands on the record (founder, 24 Oct 2026)", () => {

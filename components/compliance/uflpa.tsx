@@ -185,7 +185,7 @@ export function UflpaPhone({ uflpa: u, read, today }: { uflpa: UflpaPayload | nu
           <UflpaEmpty />
         ) : (
           <>
-            <PhoneSectionHead title="Result" aside="Worst first" />
+            <PhoneSectionHead title="Result" aside="Most serious first" />
             <dl className="flex flex-col divide-y divide-line overflow-clip rounded-[10px] border border-line">
               {uflpaCounts(u).map((c) => {
                 const G = COUNT_ICON[c.status];
@@ -201,7 +201,7 @@ export function UflpaPhone({ uflpa: u, read, today }: { uflpa: UflpaPayload | nu
                 );
               })}
             </dl>
-            <PhoneSectionHead title="Suppliers" count={u.rows.length} aside={u.hits + u.flags > 0 ? "Worst first" : "A to Z"} />
+            <PhoneSectionHead title="Suppliers" count={u.rows.length} aside={u.hits + u.flags > 0 ? "Most serious first" : "A to Z"} />
             <div className="flex flex-col divide-y divide-line overflow-clip rounded-[10px] border border-line">
               {shown.map((r) => (
                 <PhoneRow key={r.supplier_id} r={r} />

@@ -640,7 +640,7 @@ export const motion = {
   swapBlurPx: 4,
   featureMs: 6500, // a feature list's item before the next opens (the home's showcase)
   marqueeMs: 60000, // the brands strip, one copy of its list
-  toneMs: 500, // the home page fading from one ground to the next (mercury.com's, measured 23 Oct 2026)
+  toneMs: 200, // the home page fading from one ground to the next: a blink, so the grey between night and day is never seen (founder, 28 Oct 2026; mercury.com's 500 washed the words out)
   cursorMs: 600,
   clickMs: 200,
   typeMs: 45,
