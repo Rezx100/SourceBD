@@ -94,10 +94,14 @@ Deploy scope must match **intended** production change — not "everything dirty
 
 1. The `development` → `main` PR auto-merges when its checks are green (`gh pr merge --auto --merge`:
    a merge commit, never a squash, so `main` and `development` do not drift apart).
-2. A green CI run on `main` starts **Deploy Production** automatically. It waits in the `production`
+2. CI on `main` builds the web and etl images next to its checks and pushes them to GitHub's
+   registry (`ghcr.io/rezx100/sourcebd-web|etl:<sha>`). Once every check is green, its last job
+   calls **Deploy Production**. It waits in the `production`
    environment until the founder approves the run (GitHub → Actions → the waiting run → Review
    deployments → Approve). A manual run (Run workflow with a tag, `main`, or SHA) waits the same way.
 3. Workflow SSHs to VPS, checks out the pinned SHA, runs `ops/deploy_vps.sh --ref=<sha> --require-git`.
+   The script pulls the CI images when their NEXT_PUBLIC_ fingerprint matches the VPS `.env`, and
+   builds on the VPS otherwise (a manual run of an older ref, or the image job skipped).
 4. Confirm smoke checks (workflow hits `/api/health`; operator runs extended checklist below).
 
 ### Secondary: Manual VPS deploy (after git push)
@@ -280,6 +284,12 @@ Configure in repo → Settings → Secrets and variables → Actions:
 | `VPS_APP_DIR` | `/opt/sourcebd` | Optional (defaults in workflow) |
 
 **Do not** store runtime `.env` in GitHub Secrets for the web container — VPS `.env` stays on server.
+
+One repository **variable** (Settings → Secrets and variables → Actions → Variables), not a secret:
+`PROD_PUBLIC_BUILD_ENV`, the `NEXT_PUBLIC_*` lines of the VPS `.env`, copied verbatim. These are
+public values the browser bundle carries anyway; CI refuses any other line. When the VPS `.env`
+changes a `NEXT_PUBLIC_*` value, update the variable too, or deploys quietly fall back to building
+on the VPS (slower, still correct).
 
 The GitHub Environment **`production`** has the founder as required reviewer; every deploy run waits for that approval.
 

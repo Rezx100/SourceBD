@@ -11,7 +11,9 @@ on:
 
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  # A newer push to a PR replaces the old run. A run on main is never
+  # cancelled: it carries the deploy, which may be waiting for approval.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   verify:
@@ -270,3 +272,76 @@ jobs:
 
       - name: pytest
         run: python -m pytest -q etl/tests
+
+  image:
+    # Main only. Builds the web and etl images here, alongside the checks
+    # above, so the server pulls them instead of spending ~6 minutes building
+    # after the approval click. The browser bundle bakes in the NEXT_PUBLIC_*
+    # settings, so the repository variable PROD_PUBLIC_BUILD_ENV holds those
+    # lines copied from the server's .env: public values only (browsers see
+    # them anyway), and the job refuses any other line. No secret reaches
+    # GitHub; the server's .env stays the runtime source, as the runbook says.
+    # The pre-rendered pages (discover, sitemap, the static marketing pages)
+    # read only these public keys at build time.
+    #
+    # The image carries a fingerprint of those lines. The server compares it
+    # with its own .env and builds locally on any difference, so a stale copy
+    # here can slow a deploy down but never ship the wrong settings. Without
+    # the variable this job skips, and the server builds as it always has.
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build and push to GitHub's registry
+        env:
+          PUBLIC_ENV: ${{ vars.PROD_PUBLIC_BUILD_ENV }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if [ -z "$PUBLIC_ENV" ]; then
+            echo "::warning::PROD_PUBLIC_BUILD_ENV is not set; the server will build the images itself."
+            exit 0
+          fi
+          # .env.production.local: read by next build, and (unlike .env and
+          # .env.production) never copied into the standalone output.
+          printf '%s\n' "$PUBLIC_ENV" | sed 's/\r$//' > .env.production.local
+          if grep -vE '^(NEXT_PUBLIC_[A-Z0-9_]+=|#|[[:space:]]*$)' .env.production.local > /dev/null; then
+            echo "::error::PROD_PUBLIC_BUILD_ENV may hold only NEXT_PUBLIC_ lines; it is a plain, readable variable."
+            exit 1
+          fi
+          # Same recipe as the server's check in its deploy script.
+          fp="$(grep -E '^NEXT_PUBLIC_' .env.production.local | LC_ALL=C sort | sha256sum | cut -d' ' -f1)"
+          owner="$(printf '%s' "$GITHUB_REPOSITORY_OWNER" | tr '[:upper:]' '[:lower:]')"
+          web="ghcr.io/$owner/sourcebd-web:$GITHUB_SHA"
+          etl="ghcr.io/$owner/sourcebd-etl:$GITHUB_SHA"
+          printf '%s' "$GH_TOKEN" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
+          docker build -f Dockerfile.web --label "sourcebd.public-env-sha=$fp" -t "$web" . &
+          web_pid=$!
+          docker build -t "$etl" .
+          wait "$web_pid"
+          docker push --quiet "$web"
+          docker push --quiet "$etl"
+
+  deploy:
+    # Main only, once every check above is green. The image job may have
+    # skipped or failed; the server then builds the images itself, so a
+    # registry problem slows a deploy down but never blocks it.
+    needs: [verify, unit-tests, unit-tests-slow, http-boundary, migrations, python-tests, image]
+    if: >-
+      !cancelled() && github.event_name == 'push' && github.ref == 'refs/heads/main' &&
+      needs.verify.result == 'success' && needs.unit-tests.result == 'success' &&
+      needs.unit-tests-slow.result == 'success' && needs.http-boundary.result == 'success' &&
+      needs.migrations.result == 'success' && needs.python-tests.result == 'success'
+    permissions:
+      contents: read
+      packages: read
+    uses: ./.github/workflows/deploy-production.yml
+    with:
+      ref: ${{ github.sha }}
+    secrets: inherit

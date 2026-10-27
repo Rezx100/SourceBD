@@ -158,6 +158,35 @@ main() {
 		step "Skipping migrations (default)"
 	fi
 
+	# CI on main builds both images next to its checks and pushes them to
+	# GitHub's registry, tagged with the commit. Pulling them takes seconds
+	# where building here took ~6 minutes. Anything short of both pulls
+	# succeeding (no WEB_IMAGE/ETL_IMAGE, a manual deploy of an older ref, the
+	# image job skipped) falls through to the builds below, as before.
+	#
+	# The web image bakes in the NEXT_PUBLIC_* lines CI was given. It is used
+	# only when its fingerprint matches this server's .env, computed by the
+	# same recipe as the image job in .github/workflows/ci.yml.
+	PULLED=0
+	if [ -n "${WEB_IMAGE:-}" ] && [ -n "${ETL_IMAGE:-}" ] && [ -n "${GITHUB_TOKEN:-}" ]; then
+		step "Pulling images built by CI"
+		want_fp="$(grep -E '^NEXT_PUBLIC_' .env | sed 's/\r$//' | LC_ALL=C sort | sha256sum | cut -d' ' -f1)"
+		if printf '%s' "$GITHUB_TOKEN" | docker login ghcr.io -u x-access-token --password-stdin >/dev/null && docker pull --quiet "$WEB_IMAGE" && docker pull --quiet "$ETL_IMAGE"; then
+			got_fp="$(docker image inspect -f '{{ index .Config.Labels "sourcebd.public-env-sha" }}' "$WEB_IMAGE" 2>/dev/null || true)"
+		fi
+		if [ -n "${got_fp:-}" ] && [ "$got_fp" = "$want_fp" ]; then
+			docker tag "$WEB_IMAGE" sourcebd-web:latest
+			docker tag "$ETL_IMAGE" sourcebd-etl:latest
+			PULLED=1
+			echo "  ✓ $WEB_IMAGE"
+			echo "  ✓ $ETL_IMAGE"
+		else
+			warn "CI images missing, or built with NEXT_PUBLIC_ settings that differ from this .env; building on this server instead"
+		fi
+		docker logout ghcr.io >/dev/null 2>&1 || true
+	fi
+
+	if [ "$PULLED" -eq 0 ]; then
 	step "Building web image (Dockerfile.web)"
 	# Single build via `docker compose build` — a prior version of this script
 	# also ran a standalone `docker build` first, building the same image twice
@@ -183,6 +212,7 @@ main() {
 	# profiles that had just been split apart. Web and etl are one commit and
 	# must be built as one.
 	docker compose -f "$COMPOSE_FILE" build etl
+	fi
 
 	step "Restarting web container only (etl volumes untouched)"
 	# `--no-build`: the image was just built explicitly above. Without this

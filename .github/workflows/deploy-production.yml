@@ -1,13 +1,14 @@
 name: Deploy Production
 
 on:
-  # Runs after CI has passed on main, never in parallel with it: a squash that
-  # goes red on main (checks are non-strict, so two green PRs can still
-  # conflict) must not reach the approval step at all.
-  workflow_run:
-    workflows: [CI]
-    types: [completed]
-    branches: [main]
+  # Called by CI on main as its last job, once every check is green, so the
+  # images CI built next to the checks are ready by the time this runs.
+  workflow_call:
+    inputs:
+      ref:
+        description: Commit to deploy
+        required: true
+        type: string
   workflow_dispatch:
     inputs:
       ref:
@@ -16,22 +17,24 @@ on:
         default: main
         type: string
 
-# One deploy at a time, never cancelled mid-way: a second green CI on main
-# queues behind the first instead of racing it on the VPS.
-concurrency:
-  group: deploy-production
-  cancel-in-progress: false
-
-# Every run, push or manual, waits in the GitHub "production" environment for
+# Every run, called or manual, waits in the GitHub "production" environment for
 # the founder's approval. That click is the single human gate in the workflow.
 jobs:
   deploy:
-    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
     timeout-minutes: 30
     environment: production
+    # One deploy at a time, never cancelled mid-way: a second green CI on main
+    # queues behind the first instead of racing it on the VPS.
+    concurrency:
+      group: deploy-production
+      cancel-in-progress: false
     permissions:
       contents: read
+      # Lets the server pull this commit's images from GitHub's registry with
+      # the job token. If they are not there (a manual deploy of an older ref,
+      # or the image job skipped), the server builds them as before.
+      packages: read
 
     steps:
       - name: Validate deploy target
@@ -53,12 +56,14 @@ jobs:
       - name: Resolve expected production commit
         id: pin
         env:
-          # After CI on main: the commit CI just passed. Manual: the ref typed in.
-          DEPLOY_REF: ${{ github.event.inputs.ref || github.event.workflow_run.head_sha }}
+          DEPLOY_REF: ${{ inputs.ref }}
         run: |
           git fetch --tags origin "${DEPLOY_REF}"
           EXPECT="$(git rev-parse "FETCH_HEAD^{commit}")"
+          owner="$(printf '%s' "$GITHUB_REPOSITORY_OWNER" | tr '[:upper:]' '[:lower:]')"
           echo "sha=${EXPECT}" >> "$GITHUB_OUTPUT"
+          echo "web=ghcr.io/${owner}/sourcebd-web:${EXPECT}" >> "$GITHUB_OUTPUT"
+          echo "etl=ghcr.io/${owner}/sourcebd-etl:${EXPECT}" >> "$GITHUB_OUTPUT"
           echo "Expected production commit ${EXPECT}"
 
       - name: Deploy to VPS via SSH
@@ -67,11 +72,13 @@ jobs:
           DEPLOY_REF: ${{ steps.pin.outputs.sha }}
           APP_DIR: ${{ secrets.VPS_APP_DIR }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          WEB_IMAGE: ${{ steps.pin.outputs.web }}
+          ETL_IMAGE: ${{ steps.pin.outputs.etl }}
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_PRIVATE_KEY }}
-          envs: DEPLOY_REF,APP_DIR,GITHUB_TOKEN
+          envs: DEPLOY_REF,APP_DIR,GITHUB_TOKEN,WEB_IMAGE,ETL_IMAGE
           script_stop: true
           command_timeout: 25m
           script_path: ops/gha_vps_deploy.sh
