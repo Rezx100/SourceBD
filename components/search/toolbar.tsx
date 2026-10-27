@@ -86,7 +86,7 @@ export function ExportsMenu({ state, hrefFor }: { state: DiscoverState; hrefFor:
       <MenuItem href={on ? hrefFor(withoutExports(state)) : set({})}>
         <span className="flex items-center gap-2">
           {tick(on, "On")}
-          Has customs exports
+          Has export shipments
         </span>
       </MenuItem>
       <MenuSeparator />
@@ -201,7 +201,7 @@ export function SortMenu({ state, hrefFor, className, compact = false, entitled 
 
 /** What the search is, in words: the query and how many suppliers it finds. */
 export function resultsTitle(q: string, total: number | null, exports = false): string {
-  const n = total === null ? null : `${formatCount(total)} ${total === 1 ? "supplier" : "suppliers"}${exports ? " with customs exports" : ""}`;
+  const n = total === null ? null : `${formatCount(total)} ${total === 1 ? "supplier" : "suppliers"}${exports ? " with export shipments" : ""}`;
   return [q, n].filter(Boolean).join(" · ") || "Suppliers";
 }
 

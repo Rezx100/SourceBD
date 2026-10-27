@@ -37,7 +37,7 @@ import { ExportedLocked, HeldMarks, Products, ShipsTo } from "./row-parts";
 import { SELECT_ALL_ID, useSelection } from "./selection";
 
 /** What the exports column's figure is, said on its head. */
-export const EXPORTED_TITLE = "From customs records of the last two years on file: the export value and the markets it ships to. The record's Exports tab has the shipments";
+export const EXPORTED_TITLE = "From export shipment records of the last two years on file: the export value and the markets it ships to. The record's Exports tab has the shipments";
 
 /**
  * The visible base name, with the whole name for a screen reader when they differ: the row has no
@@ -208,7 +208,7 @@ export function ResultsTable({
                       <ShipsTo to={r.exported.to} label="ships to" className="mt-0.5 flex" />
                     </>
                   ) : r.exported === null ? (
-                    <Unpublished>No customs records on file</Unpublished>
+                    <Unpublished>No shipment records on file</Unpublished>
                   ) : (
                     // Never read (or the read failed): the dash says that, never that there are none.
                     <Unpublished>{ABSENT.unread}</Unpublished>

@@ -60,8 +60,8 @@ describe("the exports view in the URL", () => {
   });
 
   it("names a saved or recent exports search by the view, not as every supplier", () => {
-    assert.equal(queryTitle({ ...EMPTY_STATE, exports: true }), "Has customs exports");
-    assert.equal(queryTitle({ ...EMPTY_STATE, sort: "buyers", type: ["factory"] }), "Has customs exports · Factory");
+    assert.equal(queryTitle({ ...EMPTY_STATE, exports: true }), "Has export shipments");
+    assert.equal(queryTitle({ ...EMPTY_STATE, sort: "buyers", type: ["factory"] }), "Has export shipments · Factory");
   });
 
   it("switching it off clears every exports parameter and an exports sort", () => {

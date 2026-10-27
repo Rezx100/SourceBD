@@ -530,9 +530,9 @@ export function ExportsBand({ model, href, revealHref, level: H = "h3" }: { mode
   if (!v) return null;
   const band = customsBand(v);
   return (
-    <section aria-label="Customs exports" className="flex flex-col gap-3 rounded-lg border border-line bg-surface p-4 [font-variant-numeric:tabular-nums]">
+    <section aria-label="Export shipments" className="flex flex-col gap-3 rounded-lg border border-line bg-surface p-4 [font-variant-numeric:tabular-nums]">
       <header className="flex flex-col gap-0.5 sm:flex-row sm:items-baseline sm:justify-between sm:gap-3">
-        <H className="text-sm font-semibold text-ink">Customs exports</H>
+        <H className="text-sm font-semibold text-ink">Export shipments</H>
         <p className="text-xs text-ink-3">Shipment records · {band.window}</p>
       </header>
       {band.shipsTo ? (
@@ -576,8 +576,8 @@ export function ExportsPanel({ model, level: H = "h3" }: { model: SupplierSheetM
   return (
     <div className="flex flex-col gap-6">
       {v ? (
-        <section aria-label="Customs exports, in detail" className="flex flex-col">
-          <H className="pb-1.5 text-base font-semibold text-ink">Customs exports</H>
+        <section aria-label="Export shipments, in detail" className="flex flex-col">
+          <H className="pb-1.5 text-base font-semibold text-ink">Export shipments</H>
           <FactList>
             {rows.map((r) => (
               <FactRow key={r.label} label={r.label} values={[{ value: r.value, source: r.note ?? undefined }]} />
@@ -594,7 +594,7 @@ export function ExportsPanel({ model, level: H = "h3" }: { model: SupplierSheetM
             </>
           ) : null}
           <p className="pt-2 text-xs text-ink-3">
-            {customsSource(v)}. Buyer names are as written on the customs record: often a shipping arm or an agent, not the brand.
+            {customsSource(v)}. Buyer names are as written on the shipment record: often a shipping arm or an agent, not the brand.
           </p>
         </section>
       ) : null}
