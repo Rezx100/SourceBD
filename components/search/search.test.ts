@@ -1172,4 +1172,12 @@ describe("the minors, round 3 (critique of 8 Oct 2026, round 3, item 7)", () => 
     }
     assert.match(plain(h(PaneRows, { rows, currentSlug: null })), /href="[^"]*record=/);
   });
+
+  it("the record's read starts before the page waits on the entitlement or the search", () => {
+    const page = src("app", "(app)", "app", "discover", "page.tsx");
+    const start = page.indexOf("loadRecordSheet(supabase, recordSlug");
+    assert.ok(start > 0, "the page no longer starts the record's read itself");
+    assert.ok(start < page.indexOf("await entitledRead"), "the record's read starts after the entitlement check again");
+    assert.ok(start < page.indexOf("readSearch("), "the record's read starts after the search again");
+  });
 });
