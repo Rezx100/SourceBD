@@ -233,6 +233,23 @@ main() {
 	done
 	echo "  ✓ web container healthy"
 
+	step "Trimming old images and build leftovers"
+	# Every deploy tags the outgoing image rollback-<sha>, and nothing removed
+	# them: by 27 Oct 2026 there were 146 (~40 GB) plus 25 GB of build cache,
+	# and the disk was 86% full (ops/plans/vps-health-2026-10-28.md). Keep the
+	# newest 5 rollback tags, drop CI image tags other than this deploy's,
+	# untagged layers, and build cache older than a week (a fallback build on
+	# this server still starts warm). Runs only after the new container is
+	# healthy, and never fails the deploy: inside `{ } ||` a failing step does
+	# not stop the script, and the last line prints the disk use either way.
+	{
+		docker images --format '{{.CreatedAt}}\t{{.Repository}}:{{.Tag}}' sourcebd-web | grep ':rollback-' | sort -r | tail -n +6 | cut -f2 | xargs -r docker rmi >/dev/null
+		docker images --format '{{.Repository}}:{{.Tag}}' | grep '^ghcr\.io/' | grep -vxF -e "${WEB_IMAGE:-none}" -e "${ETL_IMAGE:-none}" | xargs -r docker rmi >/dev/null
+		docker image prune -f >/dev/null
+		docker builder prune -f --filter until=168h >/dev/null
+		df -h / | tail -1
+	} || warn "Image trim did not finish; the deploy itself is fine"
+
 	if [ "$CADDYFILE_CHANGED" -eq 1 ] && command -v caddy >/dev/null 2>&1; then
 		step "Restarting Caddy (ops/Caddyfile changed)"
 		caddy validate --config /etc/caddy/Caddyfile >/dev/null
