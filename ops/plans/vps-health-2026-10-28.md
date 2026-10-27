@@ -36,3 +36,16 @@ script and update this file in place; do not write a second measurement.
 - Security (founder runs): delete or `chmod 600` the backup `.env` today; apply
   security updates and reboot in a quiet hour; enable ufw allowing 22, 80, 443;
   enable fail2ban for SSH.
+
+## Done on 27 Oct 2026, 20:15-20:21 UTC (founder ran it)
+
+- Disk 86% to 38% full (64 GB to 29 GB used, 47 GB free): 141 rollback images removed
+  (newest 5 kept), untagged images and build cache older than a week pruned.
+- Journal capped at 500 MB (`/etc/systemd/journald.conf.d/size.conf`); now 528 MB.
+- The two June folders and the stray `reset`, `deploy`, `apply` files moved to
+  `/root/old-2026-06` (mode 700); the world-readable `.env` copy is no longer reachable.
+- ufw active: deny incoming by default, allow 22, 80, 443. fail2ban running for SSH
+  (banned its first address within minutes). Site healthy from outside afterwards.
+- Every deploy now trims to the newest 5 rollback images and week-old build cache
+  (PR 625), from the second deploy after it lands.
+- Still open: 153 security updates and a possible reboot, at a quiet hour.
