@@ -15,12 +15,12 @@
 
 import { Buildings, MapPin, Storefront, UsersThree } from "@phosphor-icons/react";
 import type { Icon } from "@phosphor-icons/react";
-import Link from "next/link";
 import { LinkPending, SanctionTag } from "@/components/patterns";
 import { Checkbox } from "@/components/kit";
 import { splitQualifier } from "@/lib/dashboard/facts";
 import { cn } from "@/lib/utils";
 import { onRowKey } from "./keys";
+import { PaneLink } from "./pane-link";
 import type { ResultRow } from "./model";
 import { ExportedLocked, HeldMarks, Products, ShipsTo } from "./row-parts";
 import { useSelection } from "./selection";
@@ -69,9 +69,8 @@ export function PaneRows({ rows, currentSlug }: { rows: readonly ResultRow[]; cu
                     Narrow: one column, the exports on a line of their own before the marks. One drawing, placed by the list's width. */}
                 <div className="grid min-w-0 flex-1 grid-cols-[minmax(0,1fr)_auto] gap-x-3 gap-y-[3px] [@container_(max-width:459px)]:grid-cols-1 [@container_(max-width:459px)]:gap-y-1">
                   {/* The name's link covers the row (`after:inset-0`), so a click anywhere opens the record; the tick and the menu sit above it. */}
-                  <Link
+                  <PaneLink
                     href={r.paneHref}
-                    prefetch={false}
                     scroll={false}
                     data-open="record"
                     aria-current={open ? "true" : undefined}
@@ -93,7 +92,7 @@ export function PaneRows({ rows, currentSlug }: { rows: readonly ResultRow[]; cu
                         {qualifier}
                       </span>
                     ) : null}
-                  </Link>
+                  </PaneLink>
                   {r.products ? <Products products={r.products} className="col-start-1 row-start-2 [@container_(max-width:459px)]:flex-wrap [@container_(max-width:459px)]:overflow-visible" /> : null}
                   {r.exported ? (
                     <span className="col-start-2 row-span-2 row-start-1 flex flex-col items-end gap-[3px] tabular-nums [@container_(max-width:459px)]:col-start-1 [@container_(max-width:459px)]:row-span-1 [@container_(max-width:459px)]:row-start-4 [@container_(max-width:459px)]:flex-row [@container_(max-width:459px)]:flex-wrap [@container_(max-width:459px)]:items-center [@container_(max-width:459px)]:gap-x-2">

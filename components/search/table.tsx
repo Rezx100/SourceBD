@@ -32,6 +32,7 @@ import { splitQualifier } from "@/lib/dashboard/facts";
 import { rowSaveMessage } from "@/lib/dashboard/selection";
 import { cn } from "@/lib/utils";
 import { onRowKey } from "./keys";
+import { PaneLink } from "./pane-link";
 import type { ResultRow } from "./model";
 import { ExportedLocked, HeldMarks, Products, ShipsTo } from "./row-parts";
 import { SELECT_ALL_ID, useSelection } from "./selection";
@@ -156,10 +157,10 @@ export function ResultsTable({
                 />
                 {/* `max-w-0`: the column keeps the header's width and the name is cut inside it, instead of the cell growing to the name. */}
                 <Td className="max-w-0">
-                  <Link href={r.paneHref} prefetch={false} scroll={false} data-open="record" data-name="" title={r.name} className={cn(rowLinkClass, oneLine, "text-[15px]/[20px] font-semibold")}>
+                  <PaneLink href={r.paneHref} scroll={false} data-open="record" data-name="" title={r.name} className={cn(rowLinkClass, oneLine, "text-[15px]/[20px] font-semibold")}>
                     <WholeName name={r.name} base={base} />
                     <LinkPending className="ml-1.5 inline-block align-[-2px]" />
-                  </Link>
+                  </PaneLink>
                   {qualifier ? (
                     <span data-name="" title={qualifier} className={cn(oneLine, "text-xs text-ink-3")}>
                       {qualifier}
@@ -246,10 +247,10 @@ function RowEnd({ r }: { r: ResultRow }) {
   return (
     <span className="flex items-center justify-center gap-1">
       {r.supplierId ? <RecordSave supplierId={r.supplierId} saved={r.saved} appearance="icon" size={32} kind="quiet" data-action="save" className={rowControl} /> : null}
-      <Link href={r.paneHref} prefetch={false} scroll={false} aria-label={`Open ${r.name} beside the results`} title="Open beside the results" className={cn(buttonClass({ kind: "quiet", size: "icon-32" }), rowControl)}>
+      <PaneLink href={r.paneHref} scroll={false} aria-label={`Open ${r.name} beside the results`} title="Open beside the results" className={cn(buttonClass({ kind: "quiet", size: "icon-32" }), rowControl)}>
         {/* The glyph's panel sits on the left; the pane opens on the right, so it is mirrored. */}
         <SidebarSimple size={20} className="shrink-0 -scale-x-100" aria-hidden />
-      </Link>
+      </PaneLink>
       {r.rfqHref ? <Link href={r.rfqHref} prefetch={false} scroll={false} data-action="rfq" tabIndex={-1} aria-hidden className="hidden" /> : null}
     </span>
   );
