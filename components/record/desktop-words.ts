@@ -198,8 +198,8 @@ export function checkRows(model: SupplierSheetModel, today: Date): { rows: Check
         tone: "caution",
         tag: c.tag,
         title: c.title,
-        // "Worst: Unit 2. Worker safety training yet to start.": the bar's own label is the building it is of.
-        body: [c.progress && /^Worst: /.test(c.progress.label) ? `${c.progress.label}.` : null, c.body].filter(Boolean).join(" ") || null,
+        // "Furthest behind: Unit 2. Worker safety training yet to start.": the bar's own label is the building it is of.
+        body: [c.progress && /^Furthest behind: /.test(c.progress.label) ? `${c.progress.label}.` : null, c.body].filter(Boolean).join(" ") || null,
         figure: c.progress ? { pct: c.progress.pct, words: "of issues fixed" } : c.figure,
         foot: c.foot,
         footCaution: c.footCaution,
@@ -348,11 +348,11 @@ export function safetyLines(model: SupplierSheetModel, today: Date): SafetyLine[
   });
 }
 
-/** "2 buildings in the RSC programme. 2 behind schedule. Worst first." */
+/** "2 buildings in the RSC programme. 2 behind schedule. Furthest behind first." */
 export function safetyLead(lines: readonly SafetyLine[]): string | null {
   if (lines.length < 2) return null;
   const behind = lines.filter((l) => l.behind).length;
-  return `${lines.length} buildings in the RSC programme.${behind ? ` ${behind} behind schedule.` : ""} Worst first.`;
+  return `${lines.length} buildings in the RSC programme.${behind ? ` ${behind} behind schedule.` : ""} Furthest behind first.`;
 }
 
 /* ---------------------------------------------------------------- overview */

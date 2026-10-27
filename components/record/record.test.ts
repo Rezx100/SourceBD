@@ -19,7 +19,7 @@ import { GLOSSARY, define } from "@/lib/dashboard/glossary";
 import { tierWords } from "@/lib/dashboard/source-tiers";
 import { mailHref, siteHref, telHref } from "@/components/record/contact-card";
 import { RecordView } from "@/components/record/record-view";
-import { SECTIONS, certTable, checkRows, exportTiles, headStatuses, memberTiles, sectionCount } from "@/components/record/desktop-words";
+import { SECTIONS, certTable, checkRows, exportTiles, headStatuses, memberTiles, safetyLead, sectionCount } from "@/components/record/desktop-words";
 import { marketOfCountry } from "@/lib/dashboard/facts";
 import { TABS, certRows, keyFacts, needsLook, parseSite, parseTab, recordSubline, rscListedWords, rscOwnListed, sameName, sectionInView, siteCards, siteSummary, staleWords, summaryCells, tabCount } from "@/components/record/words";
 
@@ -235,11 +235,17 @@ describe("the record on a phone (Paper page 35, the supplier drawer)", () => {
     assert.ok((reports.match(/<a /g) ?? []).length > 1 && !/rounded-full|bg-sunken pl/.test(reports));
     assert.equal((reports.match(/before:-inset-y-\[7px\]/g) ?? []).length, (reports.match(/<a /g) ?? []).length);
     assert.doesNotMatch(text(phone(model(), { mode: "page" })) + text(phone(model(buildingBrandListsInput()), { mode: "page" })), /worst/i);
+    // The desktop's Safety line says the fact too (the home page's safety clip is this line).
+    assert.equal(safetyLead([{ behind: true }, { behind: false }] as unknown as Parameters<typeof safetyLead>[0]), "2 buildings in the RSC programme. 1 behind schedule. Furthest behind first.");
     // A late read of a sanctions list says how late.
     assert.match(out, /European Union 12 Sep · 6 days ago/);
     // Three buildings or more are rows with a bare percentage: what it measures is said over them.
     const many = text(phone(model(buildingBrandListsInput()), { mode: "page" }));
     assert.match(many, /3 buildings in the RSC programme Safety issues fixed, furthest behind first\. 2 behind\. /);
+    // The desktop's Safety card names the building furthest behind in the same words.
+    const desk = checkRows(model(buildingBrandListsInput()), TODAY).rows.map((r) => r.body ?? "").join(" ");
+    assert.match(desk, /Furthest behind: /);
+    assert.doesNotMatch(desk, /worst/i);
     assert.doesNotMatch(out, /Safety issues fixed, (furthest|least)/, "two buildings are full cards: each says it beside its own figure");
   });
 
