@@ -95,7 +95,8 @@ Deploy scope must match **intended** production change — not "everything dirty
 1. The `development` → `main` PR auto-merges when its checks are green (`gh pr merge --auto --merge`:
    a merge commit, never a squash, so `main` and `development` do not drift apart).
 2. CI on `main` builds the web and etl images next to its checks and pushes them to GitHub's
-   registry (`ghcr.io/rezx100/sourcebd-web|etl:<sha>`). Once every check is green, its last job
+   registry: one private package, `ghcr.io/rezx100/sourcebd-web`, tagged `<sha>` for web and
+   `etl-<sha>` for etl. Keep that package Private. Once every check is green, its last job
    calls **Deploy Production**. It waits in the `production`
    environment until the founder approves the run (GitHub → Actions → the waiting run → Review
    deployments → Approve). A manual run (Run workflow with a tag, `main`, or SHA) waits the same way.
