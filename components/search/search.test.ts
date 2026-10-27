@@ -1161,4 +1161,15 @@ describe("the minors, round 3 (critique of 8 Oct 2026, round 3, item 7)", () => 
     assert.match(composer, /help=\{shipBy \? undefined : "For example 15 Nov 2026"\}/);
     assert.doesNotMatch(src("components", "saved", "list.tsx"), /font-normal/);
   });
+
+  it("a row's link to the pane reads the record in full on hover or press, so switching and reopening are instant", () => {
+    // A plain navigation is cached under the path alone (`?record=a` and `?record=b` overwrite each other); a full prefetch keeps the search in its key.
+    assert.match(src("components", "search", "pane-link.tsx"), /\{ kind: "full" \}/);
+    for (const f of ["table.tsx", "pane-rows.tsx"]) {
+      const s = src("components", "search", f);
+      assert.doesNotMatch(s, /<Link\s+href=\{r\.paneHref\}/, `${f}: a row opens the pane with a plain Link again`);
+      assert.match(s, /<PaneLink\s+href=\{r\.paneHref\}/, f);
+    }
+    assert.match(plain(h(PaneRows, { rows, currentSlug: null })), /href="[^"]*record=/);
+  });
 });
