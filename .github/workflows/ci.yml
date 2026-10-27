@@ -44,14 +44,9 @@ jobs:
       - name: Lint
         run: pnpm lint
 
-      - name: Build
-        run: pnpm build
-        env:
-          # Placeholder public vars only — no real secrets in CI
-          NEXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
-          NEXT_PUBLIC_SUPABASE_ANON_KEY: placeholder-anon-key
-          NEXT_PUBLIC_APP_URL: https://sourcebd.net
-          NEXT_PUBLIC_SITE_URL: https://sourcebd.net
+      # No `pnpm build` here: http-boundary runs the same full `next build`
+      # (against its Supabase stub) and fails the run on any build error, so
+      # a second build only made this job the slowest one (27 Oct 2026).
 
   unit-tests:
     # The node --test suite (tsc -p tsconfig.npm-test.json, then every
@@ -288,7 +283,14 @@ jobs:
     # with its own .env and builds locally on any difference, so a stale copy
     # here can slow a deploy down but never ship the wrong settings. Without
     # the variable this job skips, and the server builds as it always has.
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    #
+    # It runs on the release PR (development into main) as well as on main,
+    # and tags by source tree (scripts/ci-image-tags.sh). The merge commit
+    # main gets has the tree the release PR tested, so on main the images are
+    # already there and this job finishes in seconds.
+    if: >-
+      (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
+      (github.event_name == 'pull_request' && github.base_ref == 'main')
     runs-on: ubuntu-latest
     timeout-minutes: 20
     permissions:
@@ -315,26 +317,124 @@ jobs:
             echo "::error::PROD_PUBLIC_BUILD_ENV may hold only NEXT_PUBLIC_ lines; it is a plain, readable variable."
             exit 1
           fi
-          # Same recipe as the server's check in its deploy script.
-          fp="$(grep -E '^NEXT_PUBLIC_' .env.production.local | LC_ALL=C sort | sha256sum | cut -d' ' -f1)"
-          owner="$(printf '%s' "$GITHUB_REPOSITORY_OWNER" | tr '[:upper:]' '[:lower:]')"
-          web="ghcr.io/$owner/sourcebd-web:$GITHUB_SHA"
-          etl="ghcr.io/$owner/sourcebd-etl:$GITHUB_SHA"
+          # Both images live in the one sourcebd-web package, which is private.
+          # A new package created from Actions came out Public (27 Oct 2026),
+          # so a second package would need someone to lock it by hand.
+          eval "$(bash scripts/ci-image-tags.sh "$(git rev-parse 'HEAD^{tree}')")"
           printf '%s' "$GH_TOKEN" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
-          docker build -f Dockerfile.web --label "sourcebd.public-env-sha=$fp" -t "$web" . &
+          if docker manifest inspect "$web" > /dev/null 2>&1 && docker manifest inspect "$etl" > /dev/null 2>&1; then
+            echo "This tree is already built: $web"
+            exit 0
+          fi
+          # --provenance=false: one plain image per tag. The default adds an
+          # attestation index, and GHCR answered "denied" partway through
+          # pushing it (run 40569834467), leaving only the attestation behind.
+          docker build --provenance=false -f Dockerfile.web --label "sourcebd.public-env-sha=$fp" -t "$web" . &
           web_pid=$!
-          docker build -t "$etl" .
+          docker build --provenance=false -t "$etl" .
           wait "$web_pid"
-          docker push --quiet "$web"
-          docker push --quiet "$etl"
+          for img in "$web" "$etl"; do
+            for try in 1 2 3; do
+              docker push --quiet "$img" && break
+              [ "$try" -eq 3 ] && exit 1
+              sleep 10
+            done
+          done
+
+  release-ok:
+    # Release PR only. When every check passed and the images are pushed, it
+    # adds the ok-tree tag: a record that this exact tree is tested and built.
+    # A later push to the PR is a new tree and needs its own record.
+    needs: [verify, unit-tests, unit-tests-slow, http-boundary, migrations, python-tests, image]
+    if: github.event_name == 'pull_request' && github.base_ref == 'main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Mark this tree tested and built
+        env:
+          PUBLIC_ENV: ${{ vars.PROD_PUBLIC_BUILD_ENV }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          eval "$(bash scripts/ci-image-tags.sh "$(git rev-parse 'HEAD^{tree}')")"
+          printf '%s' "$GH_TOKEN" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
+          if ! docker manifest inspect "$web" > /dev/null 2>&1 || ! docker manifest inspect "$etl" > /dev/null 2>&1; then
+            echo "::warning::No images for this tree; main will run its checks before deploying."
+            exit 0
+          fi
+          docker buildx imagetools create -t "$ok" "$web"
+          echo "Marked $ok"
+
+  fast-gate:
+    # Main only. If the release PR marked this tree (release-ok), main's
+    # code is exactly what was tested and built, so the deploy goes straight
+    # to the approval step instead of waiting ~5 minutes for the checks to
+    # run again. The checks still run on main alongside, as a record.
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      packages: read
+    outputs:
+      fast: ${{ steps.check.outputs.fast }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Was this tree tested and built on the release PR?
+        id: check
+        env:
+          PUBLIC_ENV: ${{ vars.PROD_PUBLIC_BUILD_ENV }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          eval "$(bash scripts/ci-image-tags.sh "$(git rev-parse 'HEAD^{tree}')")"
+          printf '%s' "$GH_TOKEN" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
+          # Auto-merge waits only for the required checks, so the release PR
+          # can merge a minute or two before its image and release-ok jobs
+          # finish. Wait up to 5 minutes for the record: about as long as
+          # main's own checks take, so the slow path loses nothing by it.
+          fast=false
+          if [ -n "$PUBLIC_ENV" ]; then
+            for try in $(seq 1 20); do
+              if docker manifest inspect "$ok" > /dev/null 2>&1; then fast=true; break; fi
+              sleep 15
+            done
+          fi
+          echo "fast=$fast" >> "$GITHUB_OUTPUT"
+          if [ "$fast" = true ]; then
+            echo "Release PR tested and built this tree ($ok); deploying without waiting for the checks."
+          else
+            echo "No release-PR record for this tree; the deploy waits for main's checks."
+          fi
+
+  deploy-fast:
+    needs: [fast-gate]
+    if: needs.fast-gate.outputs.fast == 'true'
+    permissions:
+      contents: read
+      packages: read
+    uses: ./.github/workflows/deploy-production.yml
+    with:
+      ref: ${{ github.sha }}
+    secrets: inherit
 
   deploy:
-    # Main only, once every check above is green. The image job may have
-    # skipped or failed; the server then builds the images itself, so a
-    # registry problem slows a deploy down but never blocks it.
-    needs: [verify, unit-tests, unit-tests-slow, http-boundary, migrations, python-tests, image]
+    # Main only, when the fast path does not apply, once every check above is
+    # green. The image job may have skipped or failed; the server then builds
+    # the images itself, so a registry problem slows a deploy down but never
+    # blocks it.
+    needs: [fast-gate, verify, unit-tests, unit-tests-slow, http-boundary, migrations, python-tests, image]
     if: >-
       !cancelled() && github.event_name == 'push' && github.ref == 'refs/heads/main' &&
+      needs.fast-gate.outputs.fast != 'true' &&
       needs.verify.result == 'success' && needs.unit-tests.result == 'success' &&
       needs.unit-tests-slow.result == 'success' && needs.http-boundary.result == 'success' &&
       needs.migrations.result == 'success' && needs.python-tests.result == 'success'

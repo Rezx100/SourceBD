@@ -220,6 +220,55 @@ def test_deploy_vps_waits_for_public_health_before_returning() -> None:
     assert not any(ln.startswith("warn ") for ln in code)
 
 
+def test_deploy_vps_trims_old_images_keeping_newest_five(tmp_path: Path) -> None:
+    """146 rollback images (~40 GB) filled the disk to 86% by 27 Oct 2026."""
+    text = (ROOT / "ops/deploy_vps.sh").read_text(encoding="utf-8")
+    assert text.index("web container healthy") < text.index("Trimming old images") < text.index("Public health check")
+    block = text.split('step "Trimming old images and build leftovers"', 1)[1]
+    block = block[: block.index("} || warn") + len("} || warn") ] + ' "trim failed"'
+
+    fake = tmp_path / "bin"
+    fake.mkdir()
+    (fake / "docker").write_text(
+        "#!/usr/bin/env bash\n"
+        'case "$1" in\n'
+        '  images) if [ "${@: -1}" = sourcebd-web ]; then printf \'%s\\n\' "$ROLLBACKS"; else printf \'%s\\n\' "$TAGS"; fi ;;\n'
+        '  rmi) shift; printf \'%s\\n\' "$@" >> "$LOG" ;;\n'
+        '  *) printf \'%s\\n\' "$*" >> "$LOG.other" ;;\n'
+        "esac\n",
+        encoding="utf-8",
+    )
+    (fake / "docker").chmod(0o755)
+    days = [5, 1, 8, 3, 7, 2, 6, 4]  # out of order on purpose
+    rollbacks = "\n".join(f"2026-10-0{d} 10:00:00 +0000 UTC\tsourcebd-web:rollback-d{d}" for d in days)
+    web = "ghcr.io/rezx100/sourcebd-web:tree-new-abc"
+    etl = "ghcr.io/rezx100/sourcebd-web:etl-tree-new"
+    tags = "\n".join([web, etl, "ghcr.io/rezx100/sourcebd-web:tree-old-def", "sourcebd-web:latest"])
+    log = tmp_path / "rmi.log"
+    env = {
+        **os.environ,
+        "PATH": f"{fake}{os.pathsep}{os.environ['PATH']}",
+        "ROLLBACKS": rollbacks,
+        "TAGS": tags,
+        "LOG": str(log),
+        "WEB_IMAGE": web,
+        "ETL_IMAGE": etl,
+    }
+    script = 'set -Eeuo pipefail\nwarn() { echo "WARN $*"; }\n' + block
+    subprocess.run(["bash", "-c", script], check=True, capture_output=True, text=True, env=env)
+
+    removed = log.read_text(encoding="utf-8").split()
+    assert sorted(removed) == [
+        "ghcr.io/rezx100/sourcebd-web:tree-old-def",
+        "sourcebd-web:rollback-d1",
+        "sourcebd-web:rollback-d2",
+        "sourcebd-web:rollback-d3",
+    ]
+    other = (tmp_path / "rmi.log.other").read_text(encoding="utf-8")
+    assert "image prune -f" in other
+    assert "builder prune -f --filter until=168h" in other
+
+
 def _isolate_git_env() -> dict[str, str]:
     env = os.environ.copy()
     env["GIT_CONFIG_GLOBAL"] = "/dev/null"
