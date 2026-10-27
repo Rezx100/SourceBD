@@ -103,6 +103,26 @@ export default async function BuyerDiscoverPage({
   // A phone opens the record as a page and comes back to this search.
   const pageHref = (slug: string) => `/app/suppliers/${encodeURIComponent(slug)}?back=${encodeURIComponent(closeHref)}`;
 
+  // The record starts reading now, beside the entitlement check and the search, not after them
+  // (28 Oct 2026, the gateway's log of one open: it waited ~150 ms on `volza_reader_entitled`). Without
+  // the row's id its workers, saved and RFQ reads wait for the profile, in the same wave as the map's pins.
+  const recordRead =
+    recordSlug && !lineCode && !composerOpen && !filtersOpen
+      ? loadRecordSheet(supabase, recordSlug, today, {
+          // Every section is on the page at once (the tabs scroll to them), so the map's pins are always read.
+          pins: true,
+          closeHref,
+          fullHref: `/app/suppliers/${recordSlug}`,
+          allLines,
+          allLinesHref: allLines ? null : withParams(`record=${encodeURIComponent(recordSlug)}&tab=products&lines=all`),
+          lineHref: (hs) => withParams(`${recordParams}&line=${hs}`),
+          rfqHref,
+          supplierId: null,
+        })
+      : null;
+  // Read inside the pane's boundary; a page that fails before drawing it must not leave the rejection unhandled.
+  recordRead?.catch(() => {});
+
   // Customs exports (spec-volza-reveal section 4): only a reader entitled to Volza figures gets the
   // Exports menu, its sorts and the figures. That view is read with the reader's own session, never
   // through the shared cache; for anyone else its parameters change nothing.
@@ -308,6 +328,7 @@ export default async function BuyerDiscoverPage({
       <DiscoverRecord
         supabase={supabase}
         slug={recordSlug}
+        recordRead={recordRead}
         supplierId={rows.find((r) => r.slug === recordSlug)?.id ?? null}
         lineCode={lineCode}
         allLines={allLines}
@@ -318,7 +339,6 @@ export default async function BuyerDiscoverPage({
         tab={tab}
         tabHref={tabHref}
         recordHref={recordHref}
-        rfqHref={rfqHref}
         lineRfqHref={lineRfqHref}
       />
     </Suspense>
@@ -352,6 +372,7 @@ async function Await<T>({ value, children }: { value: Promise<T>; children: (v: 
 async function DiscoverRecord({
   supabase,
   slug,
+  recordRead,
   supplierId,
   lineCode,
   allLines,
@@ -362,12 +383,13 @@ async function DiscoverRecord({
   tab,
   tabHref,
   recordHref,
-  rfqHref,
   lineRfqHref,
 }: {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- the Supabase server client, as loadRecordSheet takes it.
   supabase: any;
   slug: string;
+  /** The record's read, started by the page before its own awaits; null for a line. */
+  recordRead: ReturnType<typeof loadRecordSheet> | null;
   /** The record's id when a row of these results carries it. */
   supplierId: string | null;
   lineCode: string | null;
@@ -379,7 +401,6 @@ async function DiscoverRecord({
   tab: TabId;
   tabHref: (tab: TabId) => string;
   recordHref: (slug: string) => string;
-  rfqHref: (id: string) => string;
   lineRfqHref: (id: string, hs: string) => string;
 }) {
   const safe = async <T,>(p: Promise<T | null>): Promise<{ value: T | null; slow: boolean }> => {
@@ -405,19 +426,7 @@ async function DiscoverRecord({
     if (read.value?.found) redirect(withParams(recordParams));
     slow = read.slow;
   } else {
-    const read = await safe(
-      loadRecordSheet(supabase, slug, today, {
-        // Every section is on the page at once (the tabs scroll to them), so the map's pins are always read.
-        pins: true,
-        closeHref,
-        fullHref: `/app/suppliers/${slug}`,
-        allLines,
-        allLinesHref: allLines ? null : withParams(`record=${encodeURIComponent(slug)}&tab=products&lines=all`),
-        lineHref: (hs) => withParams(`${recordParams}&line=${hs}`),
-        rfqHref,
-        supplierId,
-      }),
-    );
+    const read = await safe(recordRead ?? Promise.resolve(null));
     const record = read.value;
     if (record) {
       // Says whether the company's contact details were on the record (0145: Growth, Enterprise, admins); the database function writes the reveal itself.
