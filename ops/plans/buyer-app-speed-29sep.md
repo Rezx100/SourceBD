@@ -98,7 +98,28 @@ side (done in PR 1, above). Not taken:
   not a code change.
 - `v_supplier_addresses` materialises every active source record (22,140
   rows, ~180 ms) on each profile read, and other readers share it; changing
-  the view is its own decision.
+  the view is its own decision. **Taken 28 Oct 2026 (migration 0158), see
+  below.**
+
+## 28 Oct 2026: the pane, measured live after release 628
+
+Opening a record beside the results: ~1.8–2.2 s from the click. Reopening one
+seen in the last 5 minutes: 0.1 s (PR 627: a row's link prefetches the record
+in full on hover or press, so the router cache keys it by its `?record=`).
+
+In the database (pg_stat_statements, all calls since the last reset):
+`buyer_supplier_profile` 693 ms mean for buyers (298 calls) and 555 ms for the
+public page (78,141 calls); alone, 245 ms, of which 196 ms is
+`v_supplier_addresses` building every supplier's addresses (22,913 source
+records, 24 MB to temp) to keep one supplier's 2. `buyer_supplier_facility_panel`
+(407 ms mean, 18 ms alone) and `sanctions_lists_read` (258 ms mean, 22 ms
+alone) are slow only beside it. Migration 0158 marks the view's CTE
+`NOT MATERIALIZED`: one supplier 196 → 1 ms, the whole view 228 → 170 ms, all
+28,260 rows identical (read-only trial on a session-only copy).
+
+Still in every click and not changed here: the ~150 ms Amsterdam ↔ California
+round trip, three times before the pane can draw (sign-in check, rate limit
+with role, the page's own reads), then twice more for the record.
 
 ## After
 
